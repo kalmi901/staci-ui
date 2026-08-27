@@ -6,7 +6,7 @@ The application is built with Python and Dash. It can load EPANET `.inp` files, 
 
 > **Status:** proof-of-concept / demonstration application. The project is under active development and is being prepared for containerized deployment.
 
-## Features
+## Target Features
 
 - Upload and inspect EPANET `.inp` network models
 - Preview network topology
@@ -109,12 +109,11 @@ For reproducible builds, deployment uses a pinned STACI revision rather than an 
 
 ## EPANET compatibility
 
--During validation with WNTR-generated EPANET input files, a few input-format compatibility differences were identified in the tested STACI revision, including:
-+The current STACI integration and EPANET compatibility checks were tested against:
-+
-+`STACI commit 892e0a2a02c2ef0da944dfa138df74d39ed12f13`
-+
-+During validation with WNTR-generated EPANET input files, a few input-format compatibility differences were identified in this revision, including:
+The current STACI integration and EPANET compatibility checks were tested against:
+`STACI commit 892e0a2a02c2ef0da944dfa138df74d39ed12f13`
+
+During validation with WNTR-generated EPANET input files, a few input-format
+compatibility differences were identified in this revision, including:
 
  - `HH:MM:SS` versus `HH:MM` formatting in `[TIMES]`
  - midnight representation as `00:00 AM` versus `12:00 AM`

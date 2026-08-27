@@ -33,7 +33,7 @@ def create_sidebar():
             nav_link("Hydraulic", "/analysis/hydraulic", "💧"),
             nav_link("Quality", "/analysis/quality", "🧪"),
             nav_link("Biofilm", "/analysis/biofilm", "🦠"),
-            html.Hr(className="side-separator"),
+            html.Hr(className="sidebar-separator"),
             html.Div(
                 className="sidebar-footer",
                 children="STACI UI · Hydraulic simulation interface\n BME · Department of Hydrodynamic Systems",

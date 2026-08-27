@@ -151,6 +151,7 @@ activemq-data/
 .env
 .envrc
 .venv
+staci-env/
 env/
 venv/
 ENV/
@@ -216,3 +217,12 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local runtime data
+data/uploads/*
+data/runs/*
+!data/uploads/.gitkeep
+!data/runs/.gitkeep
+
+# Local archives
+*.zip

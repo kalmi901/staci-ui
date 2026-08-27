@@ -69,7 +69,7 @@
   padding: 11px 12px;
   border-radius: var(--radius-sm);
   color: var(--sidebar-text);
-  font-family: cursive;
+  font-family: "Segoe Print", "Bradley Hand", cursive;
   text-decoration: none;
   transition: background var(--transition-fast), color var(--transition-fast);
 }

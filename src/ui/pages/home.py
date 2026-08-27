@@ -213,13 +213,13 @@ def create_layout():
                                     _external_link(
                                         "🧬",
                                         "STACI solver repository",
-                                        "Placeholder link for the numerical solver or research backend.",
+                                        "Upstream source repository of the STACI hydraulic solver.",
                                         "https://github.com/hoscsaba/staci",
                                     ),
                                     _external_link(
                                         "🏛️",
                                         "Department website",
-                                        "Placeholder link for the university or department project page.",
+                                        "BME Department of Hydrodynamic Systems",
                                         "https://www.hds.bme.hu/",
                                     ),
                                     _external_link(
