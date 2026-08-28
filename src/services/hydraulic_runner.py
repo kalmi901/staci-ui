@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Any, Literal, Dict
 
 import uuid
-import json
 import pandas as pd
 import numpy as np
 import wntr
@@ -17,7 +16,7 @@ from src.config import RUN_ROOT
 # -- Helpers --
 def _dataframe_range(df: pd.DataFrame, unit: str = "none") -> dict[str, str | float | None]:
     if df.empty:
-        return {"min": None, "max": None}
+        return {"unit": unit, "min": None, "max": None}
     values = df.to_numpy()
     finite = values[np.isfinite(values)]
     if finite.size == 0:
@@ -142,9 +141,6 @@ def run_wntr(
     }
     
     
-    
-
-
 def run_staci(
     inp_path: Path | str,
     model_id: str,
@@ -168,17 +164,24 @@ def run_staci(
         simulation.get("status") == "complete" )
     
     if not success:
-        return {
-            "run_id": run_id,
-            "model_id": model_id,
-            "backend": "staci",
-            "status": "failure",
-            "returncode": result.returncode,
-            "stdout_log": str(result.stdout_path),
-            "stderr_log": str(result.stderr_path),
-        }
+        raise RuntimeError(
+            f"STACI EPS did not complete successfully "
+            f"(return code {result.returncode}). "
+            f"See {result.stderr_path}"
+        )
        
     frames = int(simulation.get("frames", 0))
+    
+    # Name Mapping
+    STACI_RANGE_NAMES = {
+        "pressure_head": "pressure",
+        "flow_rate": "flowrate",
+    }
+
+    ranges = {
+        STACI_RANGE_NAMES.get(name, name): value
+        for name, value in meta.get("ranges", {}).items()
+    }
 
     return {
         "run_id"   : run_id,

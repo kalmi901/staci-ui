@@ -6,6 +6,7 @@ from dash import Input, Output, State, no_update, ctx
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 
+from src.config import UPLOAD_ROOT
 from src.ui import ids
 from src.ui.pages.hydraulic_analysis import render_active_model_summary, render_success_alert
 from src.services.hydraulic_runner import call_hydraulic_simulator
@@ -52,7 +53,16 @@ def register_hydraulic_callbacks(app):
                 className="upload-alert"
             ) # pyright: ignore[reportCallIssue]
                    
-        inp_path = network_state.get("storage", {}).get("path")
+        #inp_path = network_state.get("storage", {}).get("path")
+        model_id = network_state["model_id"]
+        filename = network_state["filename"]
+        
+        inp_path = (UPLOAD_ROOT / model_id / Path(filename).name).resolve()
+        upload_root = UPLOAD_ROOT.resolve()
+
+        if not inp_path.is_relative_to(upload_root):
+            raise ValueError("Invalid uploaded model path.")
+        
         if not inp_path:
             return no_update, dbc.Alert(
                 "The active model has no stored INP path.",
