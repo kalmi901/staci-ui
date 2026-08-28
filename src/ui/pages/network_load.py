@@ -35,7 +35,9 @@ def _create_preview_toolbar():
                             {"label": "Type", "value": "type"}
                         ],
                         value="none",
-                        clearable=False
+                        clearable=False,
+                        persistence=True,
+                        persistence_type="memory"
                     )
                 ]
             ),
@@ -47,13 +49,15 @@ def _create_preview_toolbar():
                         id=ids.LINK_COLOR_BY,
                         options=[
                             {"label": "None", "value": "none"},
-                            {"label": "Length", "value": "lenght"},
+                            {"label": "Length", "value": "length"},
                             {"label": "Diameters", "value": "diameter"},
                             {"label": "Roughness", "value": "roughness"},
                             {"label": "Type", "value": "type"}
                         ],
                         value="none",
-                        clearable=False
+                        clearable=False,
+                        persistence=True,
+                        persistence_type="memory"
                     )
                 ]
             )

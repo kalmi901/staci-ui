@@ -13,8 +13,8 @@ from src.ui import ids
 from src.services.inp_model_reader import read_model_summary, read_water_network_model
 from src.ui.pages.network_load import render_model_summary
 from src.visualisation.network_preview import make_node_preview_figure
+from src.config import UPLOAD_ROOT
 
-UPLOAD_ROOT = Path("data/uploads")
 
 def _safe_filename(filename: str) -> str:
     name = Path(filename or "network.inp").name
@@ -105,8 +105,8 @@ def register_network_callbacks(app):
                 "path" : saved["path"]
             },
             "spatial": {
-                "coordinate_system": "model_xv", # EOV később
-                "backgroud_mode" : "none",      # Map később
+                "coordinate_system": "model_xy", # EOV később
+                "background_mode" : "none",      # Map később
             },
             "summary" : summary
         }
@@ -138,6 +138,7 @@ def register_network_callbacks(app):
         print("load-model-view")
         if not network_state:
             print("load-model-view: nincs network state")
+            raise PreventUpdate
             
         inp_path = network_state["storage"]["path"]
         try:

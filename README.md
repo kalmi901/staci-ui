@@ -45,7 +45,8 @@ staci-ui/
 │   ├── services/
 │   ├── results/
 │   ├── visualization/
-│   └── ui/
+│   ├── ui/
+|   └── config.py
 │
 └── data/
     ├── uploads/
@@ -94,6 +95,14 @@ DASH_AUTH_SECRET
 ```
 
 Additional deployment-specific configuration may be added as containerization is completed.
+
+### Runtime data
+
+By default, runtime data is stored under `data/`.
+
+The location can be overridden with:
+
+`STACI_UI_DATA_DIR`
 
 ## STACI
 

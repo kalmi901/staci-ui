@@ -97,7 +97,7 @@ def read_water_network_model(
         },
         "links": {
             "id"            : link_id,
-            "typle"         : link_type,
+            "type"          : link_type,
             "start_node"    : link_start_node,
             "end_node"      : link_end_node,
             "start_index"   : link_start_idx,
