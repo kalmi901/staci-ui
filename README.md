@@ -36,12 +36,7 @@ staci-ui/
 ├── src/
 │   ├── bin/
 │   │   └── staci/
-│   │       ├── windows/
-│   │       │   └── x64/
-│   │       └── linux/
-│   │           └── x64/
-│   │
-│   ├── solver/
+│   ├── staci/
 │   ├── services/
 │   ├── results/
 │   ├── visualization/

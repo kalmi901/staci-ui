@@ -7,8 +7,8 @@ from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 
 from src.ui import ids
-from src.ui.pages.hydraulic_analysis import render_active_model_summary
-
+from src.ui.pages.hydraulic_analysis import render_active_model_summary, render_success_alert
+from src.services.hydraulic_runner import call_hydraulic_simulator
 
 def register_hydraulic_callbacks(app):
     
@@ -25,8 +25,17 @@ def register_hydraulic_callbacks(app):
     
     
     @app.callback(
-        #Output(ids.HYD_RUN_STORE, "data"),
-        #Output(ids.HYD_RUN_STATUS, "children"),
+    Output(ids.HYD_DURATION_HOURS, "disabled"),
+    Output(ids.HYD_TIMESTEP_MINUTES, "disabled"),
+    Input(ids.HYD_OVERRIDE_OPTIONS, "value"),
+    )
+    def toggle_hydraulic_overrides(enabled):
+        disabled = not bool(enabled)
+        return disabled, disabled
+    
+    @app.callback(
+        Output(ids.HYD_RUN_STORE, "data"),
+        Output(ids.HYD_RUN_STATUS, "children"),
         Input(ids.HYD_RUN_BUTTON, "n_clicks"),
         State(ids.NETWORK_STORE, "data"),
         State(ids.HYD_BACKEND, "value"),
@@ -36,10 +45,32 @@ def register_hydraulic_callbacks(app):
             raise PreventUpdate
         
         if not network_state:
+            #raise PreventUpdate
             return no_update, dbc.Alert(
                 "No active INP file. Upload a model first",
                 color="warning",
                 className="upload-alert"
             ) # pyright: ignore[reportCallIssue]
-            
-        print("run-hydraulic-simulation")
+                   
+        inp_path = network_state.get("storage", {}).get("path")
+        if not inp_path:
+            return no_update, dbc.Alert(
+                "The active model has no stored INP path.",
+                color="danger",
+                className="upload-alert",
+            ) # pyright: ignore[reportCallIssue]
+        
+        try:
+            run_state = call_hydraulic_simulator(
+                inp_path,
+                model_id=network_state.get("model_id"),
+                backend=backend
+            )
+        except Exception as exc:
+            return no_update, dbc.Alert(
+                f"Hydraulic simulation failed: {exc}",
+                color="danger",
+                className="upload-alert",
+            )  # pyright: ignore[reportCallIssue]
+              
+        return run_state, render_success_alert(run_state)

@@ -5,6 +5,13 @@ from dash_auth import BasicAuth
 
 from src.ui.app_shell import create_app_shell
 from src.ui.callbacks import register_callbacks
+from src.config import (
+    DASH_AUTH_SECRET,
+    DASH_DEBUG,
+    DASH_USER,
+    DASH_PASSWORD,
+    PORT
+)
 
 def create_app() -> Dash:
     app = Dash(
@@ -15,13 +22,8 @@ def create_app() -> Dash:
     
     BasicAuth(
         app,
-        {
-            os.getenv("DASH_USER", "staci") : 
-                os.getenv("DASH_PASSWORD", "staci")
-        }, secret_key = os.getenv(
-            "DASH_AUTH_SECRET",
-            "dev-secret-change-me"
-        )
+        {DASH_USER: DASH_PASSWORD}, 
+        secret_key = DASH_AUTH_SECRET
     )
     
     app.title = "STACI Dashboard"
@@ -35,6 +37,6 @@ server = app.server
 if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
-        port=int(os.getenv("PORT", "8050")),
-        debug=os.getenv("DASH_DEBUG", "0") == "1",
+        port=PORT,
+        debug=DASH_DEBUG,
     )

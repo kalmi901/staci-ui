@@ -226,3 +226,7 @@ data/runs/*
 
 # Local archives
 *.zip
+
+# Binaries
+src/bin/staci/*
+!src/bin/staci/README.md

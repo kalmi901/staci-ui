@@ -63,6 +63,24 @@ def render_active_model_summary(network_state):
         ]
     )
 
+def render_success_alert(run_state: Dict[str, Any]):
+    summary = run_state.get("summary", {})
+    #pressure = summary.get("pressures", {})
+    #flowrate = summary.get("flowrater", {})
+    
+    return dbc.Alert(
+        children=[
+            html.Div("Hydraulic simulation finished.", style={"fontWeight": 800}),
+            html.Div(
+                f"Run ID: {run_state.get('run_id', '—')} · "
+                f"Backend: {run_state.get("backend", '—')} · "
+                f"Time steps: {summary.get('n_steps', '—')} · "
+            )
+        ],
+        color="success",
+        className="upload-alert"
+    )
+
 
 # Setup Card
 def _create_setup_card():
@@ -83,7 +101,7 @@ def _create_setup_card():
         ],
     )
     
-    def _create_backed_selection():
+    def _create_backend_selection():
         return html.Div(
             className="setup-section",
             children=[
@@ -178,7 +196,7 @@ def _create_setup_card():
                     className="run-feedback-area",
                     children=[
                         dcc.Loading(
-                            type="graph",
+                            type="dot",
                             color="#137fc4",
                             children=html.Div(
                                 id=ids.HYD_RUN_STATUS,
@@ -194,12 +212,12 @@ def _create_setup_card():
     return dbc.Card(
         className="app-card hydro-setup-card",
         children=[
-            dbc.CardHeader("EPS Simlation Setup"),
+            dbc.CardHeader("EPS Simulation Setup"),
             dbc.CardBody(
                 children=[
                     _create_active_model_section(),
                     html.Hr(),
-                    _create_backed_selection(),
+                    _create_backend_selection(),
                     html.Hr(),
                     _create_simulation_options(),
                     html.Hr(),

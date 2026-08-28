@@ -69,7 +69,7 @@ def register_network_callbacks(app):
         if not filename or not filename.lower().endswith(".inp"):
             return no_update, dbc.Alert(
                 "Please upload an EPANET .inp file.",
-                color="danger",
+                color="warning",
                 className="upload-alert"
             ) # pyright: ignore[reportCallIssue]
         
@@ -135,9 +135,7 @@ def register_network_callbacks(app):
         prevent_initial_call=True
     )
     def load_model_view(network_state):
-        print("load-model-view")
         if not network_state:
-            print("load-model-view: nincs network state")
             raise PreventUpdate
             
         inp_path = network_state["storage"]["path"]
@@ -164,7 +162,6 @@ def register_network_callbacks(app):
         Input(ids.LINK_COLOR_BY, "value"),
     )
     def render_network_grap(network_view_state, node_color_by, link_color_by):
-        print("render-network-grap")
         if not network_view_state:
             raise PreventUpdate
         
