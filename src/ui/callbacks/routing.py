@@ -6,7 +6,8 @@ import dash_bootstrap_components as dbc
 from src.ui import ids
 from src.ui.pages import(
     home,
-    network_load
+    network_load,
+    hydraulic_analysis
 )
 
 def _placeholder_page(title: str, subtitle: str):
@@ -44,7 +45,7 @@ def register_routing_callbacks(app):
         elif pathname == "/network/load":
             return network_load.create_layout()
         elif pathname == "/analysis/hydraulic":
-            return _placeholder_page("Analysis · Hydraulic", "Extended-period simulation and results will be placed here.")
+            return hydraulic_analysis.create_layout()
         elif pathname == "/analysis/quality":
             return _placeholder_page("Analysis · Quality", "Water quality simulation settings and results will be placed here.")
         elif pathname == "/analysis/biofilm":
