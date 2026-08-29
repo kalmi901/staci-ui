@@ -10,7 +10,7 @@ from src.config import UPLOAD_ROOT
 from src.ui import ids
 from src.ui.pages.hydraulic_analysis import render_active_model_summary, render_success_alert
 from src.services.hydraulic_runner import call_hydraulic_simulator
-from src.visualisation.network_preview import make_hydraulic_timesetep_figure
+from src.visualisation.network_preview import make_hydraulic_timestep_figure
 
 PLAY_STR  = "▶ Play"
 PAUSE_STR = "⏸ Pause"
@@ -160,11 +160,58 @@ def register_hydraulic_callbacks(app):
         # 3) Increse time value
         if ctx.triggered_id == ids.HYD_ANIMATION_INTERVAL:
             value = current_value or 0
-            value = (value + 1) % max_index
+            value = (value + 1) % (max_index + 1)
             
             return 0, max_index, marks, value, False, False, PAUSE_STR, False
         
         return 0, max_index, marks, current_value or 0, False, True, PLAY_STR, False
+    
+    @app.callback(
+        Output(ids.HYD_NODE_COLOR_MIN, "value"),
+        Output(ids.HYD_NODE_COLOR_MAX, "value"),
+        Output(ids.HYD_NODE_COLOR_MIN, "disabled"),
+        Output(ids.HYD_NODE_COLOR_MAX, "disabled"),
+        Output(ids.HYD_LINK_COLOR_MIN, "value"),
+        Output(ids.HYD_LINK_COLOR_MAX, "value"),
+        Output(ids.HYD_LINK_COLOR_MIN, "disabled"),
+        Output(ids.HYD_LINK_COLOR_MAX, "disabled"),
+        Input(ids.HYD_RUN_STORE, "data"),
+        Input(ids.HYD_NODE_RESULT, "value"),
+        Input(ids.HYD_LINK_RESULT, "value"),
+        prevent_initial_call=True
+    )
+    def sync_hydraulic_color_range(
+        run_state,
+        node_result,
+        link_result
+    ):
+        if not run_state or run_state.get("status") != "success":
+            return (
+                None, None, True, True,
+                None, None, True, True,
+            )
+    
+        ranges = run_state.get("ranges", {})
+        
+        def _get_range(attribute):
+            info = ranges.get(attribute, {})
+            vmin = info.get("min")
+            vmax = info.get("max")
+            disabled = vmin is None or vmax is None
+
+            return vmin, vmax, disabled, disabled
+        
+        node_values = _get_range(node_result)
+        link_values = _get_range(link_result)
+        
+        if ctx.triggered_id == ids.HYD_NODE_RESULT:
+            return *node_values, no_update, no_update, no_update, no_update
+        
+        if ctx.triggered_id == ids.HYD_LINK_RESULT:
+            return no_update, no_update, no_update, no_update, *link_values
+        
+        return *node_values, *link_values
+
     
     @app.callback(
         Output(ids.HYD_NETWORK_GRAPH, "figure"),
@@ -172,6 +219,10 @@ def register_hydraulic_callbacks(app):
         Input(ids.HYD_TIME_SLIDER, "value"),
         Input(ids.HYD_NODE_RESULT, "value"),
         Input(ids.HYD_LINK_RESULT, "value"),
+        Input(ids.HYD_NODE_COLOR_MIN, "value"),
+        Input(ids.HYD_NODE_COLOR_MAX, "value"),
+        Input(ids.HYD_LINK_COLOR_MIN, "value"),
+        Input(ids.HYD_LINK_COLOR_MAX, "value"),
         State(ids.NETWORK_VIEW_STORE, "data")
     )
     def render_hydraulic_network_graph(
@@ -179,12 +230,20 @@ def register_hydraulic_callbacks(app):
         time_index,
         node_result,
         link_result,
+        node_cmin,
+        node_cmax,
+        link_cmin,
+        link_cmax,
         network_view_state
     ):  
-        return make_hydraulic_timesetep_figure(
+        return make_hydraulic_timestep_figure(
             network_view_state=network_view_state,
             run_state=run_state,
             time_index=time_index,
             node_result=node_result,
-            link_result=link_result
+            link_result=link_result,
+            node_cmin=node_cmin,
+            node_cmax=node_cmax,
+            link_cmin=link_cmin,
+            link_cmax=link_cmax   
         )

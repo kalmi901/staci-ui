@@ -139,6 +139,7 @@ def _create_setup_card():
                 html.P(
                     "Use INP settings by default. Enable overrides to run a scenario "
                     "with modified timing, demand, or solver settings."
+                    "Override controls are currently placeholders and are not yet applied to the simulation."
                 ),
                 dbc.Switch(
                     id=ids.HYD_OVERRIDE_OPTIONS,
@@ -281,12 +282,14 @@ def _create_network_results_card():
                                 dbc.Input(
                                     id=ids.HYD_NODE_COLOR_MIN,
                                     type="number",
+                                    step="any",
                                     placeholder="node-min",
                                     disabled=True
                                 ),
                                 dbc.Input(
                                     id=ids.HYD_NODE_COLOR_MAX,
                                     type="number",
+                                    step="any",
                                     placeholder="node-max",
                                     disabled=True
                                 ),
@@ -304,12 +307,14 @@ def _create_network_results_card():
                                 dbc.Input(
                                     id=ids.HYD_LINK_COLOR_MIN,
                                     type="number",
+                                    step="any",
                                     placeholder="link-min",
                                     disabled=True
                                 ),
                                 dbc.Input(
                                     id=ids.HYD_LINK_COLOR_MAX,
                                     type="number",
+                                    step="any",
                                     placeholder="link-max",
                                     disabled=True
                                 ),

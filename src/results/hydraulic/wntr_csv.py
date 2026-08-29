@@ -1,12 +1,14 @@
 from __future__ import annotations
 import pandas as pd
 import numpy as np
+import json
 
 from functools import cached_property, lru_cache
 from pathlib import Path
 from typing import Dict, Any
 
 from src.results.hydraulic.base import EPSHydraulicResults, ResultType
+from src.services.run_storage import resolve_run_dir
 
 NODE_RESULTS_KEYS = ("pressure", "head", "demand")
 LINK_RESULTS_KEYS = ("flowrate", "velocity", "headloss", "status")
@@ -20,7 +22,13 @@ def _read_csv_cached(path: str) -> pd.DataFrame:
 class WntrCsvResults(EPSHydraulicResults):
     def __init__(self, run_state: Dict[str, Any]) -> None:
         self.run_state = run_state
+        self.run_id = run_state["run_id"]
+        self.run_dir = resolve_run_dir(self.run_id)
+        manifest_path = self.run_dir / "run.json"
         
+        self.manifest = json.loads(
+            manifest_path.read_text(encoding="utf-8")
+        )
     @property
     def backend(self) -> str:
         return "wntr"
@@ -77,12 +85,23 @@ class WntrCsvResults(EPSHydraulicResults):
         type: ResultType,
         attribute: str
     ) -> Dict[str, Any] | None:
-        return (
-            self.run_state
+        
+        filename = (
+            self.manifest
             .get("files", {})
-            .get(type, {})
+            .get(f"{type}s", {})
             .get(attribute)
         )
+        if not filename:
+            return None
+        
+        path = (self.run_dir / filename).resolve()
+        if not path.is_relative_to(self.run_dir):
+            raise ValueError(
+                f"Invalid result file path: {filename}"
+            )
+        return path
+
         
     def _get_dataframe(
         self,

@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal, Dict
 
+import json
 import uuid
 import pandas as pd
 import numpy as np
@@ -35,6 +36,17 @@ def _dataframe_range(df: pd.DataFrame, unit: str = "none") -> dict[str, str | fl
         "max": float(finite.max()),
     }
 
+
+def write_run_manifest(
+    run_dir: Path,
+    manifest: Dict[str, Any]
+) -> None:
+    
+    path = run_dir / "run.json"
+    path.write_text(
+        json.dumps(manifest, indent=2),
+        encoding="utf-8"
+    )
 
 def run_wntr(
     inp_path: Path | str,
@@ -125,7 +137,22 @@ def run_wntr(
         else 0
     )
     
-    frames = len(time_values)
+    frames = len(time_values)   
+    server_manifest = {
+        "backend": "wntr",
+            "files": {
+                "nodes": {
+                    attribute: Path(file).name
+                    for attribute, file in node_files.items()
+                },
+                "links": {
+                    attribute: Path(file).name
+                    for attribute, file in link_files.items()
+                },
+            },
+        }
+    
+    write_run_manifest(run_dir, server_manifest)
     
     return {
         "run_id" : run_id,
@@ -134,17 +161,13 @@ def run_wntr(
         "status"   : "success",
         "time"     : time_values,
         "created_at" : datetime.now(timezone.utc).isoformat(),
-        "files" : {
-            "node" : node_files,
-            "link" : link_files
-        },
         "summary": {
             "duration_seconds" : duration_seconds,
             "n_steps"   : frames
         },
         "ranges" : ranges
     }
-    
+        
     
 def run_staci(
     inp_path: Path | str,
@@ -190,13 +213,8 @@ def run_staci(
         for name, value in meta.get("ranges", {}).items()
     }
 
-    return {
-        "run_id"   : run_id,
-        "model_id" : model_id,
-        "backend"  : "staci",
-        "status"   : "success",
-        "time"     : time,
-        "created_at" : datetime.now(timezone.utc).isoformat(),
+    server_manifest = {
+        "backend": "staci",
         "files" : {
             "hdf5" : str(result.h5_path),
             "metadata" : str(result.meta_path),
@@ -209,6 +227,17 @@ def run_staci(
             "stdout" : str(result.stdout_path),
             "stderr" : str(result.stderr_path)
         },
+    }
+        
+    write_run_manifest(run_dir, server_manifest)
+
+    return {
+        "run_id"   : run_id,
+        "model_id" : model_id,
+        "backend"  : "staci",
+        "status"   : "success",
+        "time"     : time,
+        "created_at" : datetime.now(timezone.utc).isoformat(),
         "summary" : {
             "duration_seconds" : simulation.get("duration_seconds", ""),
             "n_steps" : frames,

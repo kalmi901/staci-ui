@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Dict, Any
 
 from src.results.hydraulic.base import EPSHydraulicResults, ResultType
+from src.services.run_storage import resolve_run_dir
 
 STACI_NODE_DATASETS = {
     "pressure" : "/nodes/pressure_head",
@@ -62,21 +63,28 @@ def _get_dataset(
     
 
 class StaciHDF5Results(EPSHydraulicResults):
-    def __init__(self, run_state: Dict[str, Any]):
+    def __init__(self, run_state: Dict[str, Any]):        
         self.run_state = run_state
+        self.run_id = run_state["run_id"]
+        self.run_dir = resolve_run_dir(self.run_id)
+        manifest_path = self.run_dir / "run.json"
         
-        files = run_state.get("files", {})
+        self.manifest = json.loads(
+            manifest_path.read_text(encoding="utf-8")
+        )
+        
+        files = self.manifest.get("files", {})
         h5_path = files.get("hdf5")
         meta_path = files.get("metadata")
         
         if not h5_path:
             raise ValueError(
-                "STACI run state does not contain an HDF5 result path."
+                "STACI run manifest does not contain an HDF5 result path."
             )
             
         if not meta_path:
             raise ValueError(
-                "STACI run state does not contain an metadata result path."
+                "STACI run manifes does not contain an metadata result path."
             )
             
         self.h5_path = Path(h5_path)

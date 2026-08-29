@@ -4,6 +4,7 @@ import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
 
+from plotly.colors import sample_colorscale
 from src.results.hydraulic import open_eps_hydraulic_results
 
 FIG_LAYOUT = {
@@ -14,13 +15,29 @@ FIG_LAYOUT = {
     "yaxis"     : {"visible": False, "showgrid": False, "zeroline": False}
 }
 
-LINK_BIN_COLORS = [
-    "rgba(56, 132, 181, 0.18)",
-    "rgba(56, 132, 181, 0.30)",
-    "rgba(56, 132, 181, 0.44)",
-    "rgba(56, 132, 181, 0.60)",
-    "rgba(56, 132, 181, 0.78)",
-]
+N_LINK_BINS = 5
+
+LINK_BIN_COLORS = sample_colorscale(
+    "Turbo",
+    np.linspace(0.05, 0.95, N_LINK_BINS),
+)
+
+def _make_discrete_colorscale(
+    colors
+) -> list[list[float | str]]:
+    n = len(colors)
+    scale = []
+
+    for i, color in enumerate(colors):
+        lower = i / n
+        upper = (i + 1) / n
+
+        scale.append([lower, color])
+        scale.append([upper, color])
+
+    return scale
+
+LINK_COLORSCALE = _make_discrete_colorscale(LINK_BIN_COLORS)
 
 # ---- Format Helpers ----
 def _format_time_seconds(value) -> str:
@@ -66,6 +83,44 @@ def _make_link_bin_edges(
         return None
 
     return np.linspace(vmin, vmax, n_bins + 1)
+
+
+def _make_link_colorbar_trace(
+    *,
+    link_attribute: str,
+    cmin: float | None,
+    cmax: float | None
+) -> go.Scatter | None:
+    if cmin is None or cmax is None:
+        return None
+
+    if not np.isfinite(cmin) or not np.isfinite(cmax):
+        return None
+
+    if cmin >= cmax:
+        return None
+    
+    return go.Scatter(
+        x=[None, None],
+        y=[None, None],
+        mode="markers",
+        marker={
+            "color": [cmin, cmax],
+            "cmin": cmin,
+            "cmax": cmax,
+            "colorscale": LINK_COLORSCALE,
+            "showscale": True,
+            "colorbar": {
+                "title": link_attribute,
+                "x": 1.02,
+                "y": 0.24,
+                "len": 0.38,
+                "thickness": 12,
+            },
+        },
+        hoverinfo="skip",
+        showlegend=False,
+    )
 
 def make_empty_network_figure(
     message: str = "Upload a model to view the network preview."):
@@ -136,7 +191,13 @@ def _make_node_trace(
             "cmin" : cmin,
             "cmax" : cmax,
             "showscale": True,
-            "colorbar" : {"title": node_attribute},
+            "colorbar" : {
+                "title" : node_attribute,
+                "x"     : 1.02,
+                "y"     : 0.76,
+                "len"   : 0.38,
+                "thickness" : 12
+            },
             "line" : {"width": 0.5, "color": "white"}
         },
         text=hover_text,
@@ -209,10 +270,8 @@ def _make_link_traces(
                 y=bin_y[i],
                 mode="lines",
                 line={
-                    "width": 0.8 + i * 0.55,
-                    "color": LINK_BIN_COLORS[
-                        i % len(LINK_BIN_COLORS)
-                    ],
+                    "width": 1.4,
+                    "color": LINK_BIN_COLORS[i]
                 },
                 hoverinfo="skip",
                 name=f"{link_attribute} bin {i + 1}",
@@ -344,13 +403,17 @@ def make_node_preview_figure(
 
 
 
-def make_hydraulic_timesetep_figure(
+def make_hydraulic_timestep_figure(
     *,
     network_view_state: Dict[str, Any],
     run_state: Dict[str, Any],
     time_index: int | None,
     node_result: str = "pressure",
-    link_result: str = "flowrate"
+    link_result: str = "flowrate",
+    node_cmin: float | None = None,
+    node_cmax: float | None = None,
+    link_cmin: float | None = None,
+    link_cmax: float | None = None
 ) -> go.Figure:
     
     if not run_state:
@@ -419,14 +482,13 @@ def make_hydraulic_timesetep_figure(
         nodes=nodes,
         node_values=node_values,
         node_attribute=node_result,
-        cmin=None,
-        cmax=None
+        cmin=node_cmin,
+        cmax=node_cmax
     )
     
-    n_link_bins = 5
     link_bin_edges = _make_link_bin_edges(
-        results.value_range("link", link_result),
-        n_link_bins
+        (link_cmin, link_cmax),
+        N_LINK_BINS
     )
     
     link_traces = _make_link_traces(
@@ -435,11 +497,20 @@ def make_hydraulic_timesetep_figure(
         link_values=link_values,
         link_attribute=link_result,
         bin_edges=link_bin_edges,
-        n_bins=n_link_bins,
+        n_bins=N_LINK_BINS,
     )
     
-    fig = go.Figure(
-        data=[*link_traces, node_trace])
+    link_colorbar_trace = _make_link_colorbar_trace(
+        link_attribute=link_result,
+        cmin=link_cmin,
+        cmax=link_cmax
+    )
+    
+    traces = [*link_traces, node_trace]
+    if link_colorbar_trace is not None:
+        traces.append(link_colorbar_trace)
+    
+    fig = go.Figure(data=traces)
     
     fig.update_layout(**FIG_LAYOUT,
         uirevision=run_state.get(
