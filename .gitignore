@@ -230,3 +230,5 @@ data/runs/*
 # Binaries
 src/bin/staci/*
 !src/bin/staci/README.md
+
+.env

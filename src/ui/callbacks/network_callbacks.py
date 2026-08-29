@@ -10,6 +10,7 @@ from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 
 from src.ui import ids
+from src.services.model_storage import resolve_uploaded_model
 from src.services.inp_model_reader import read_model_summary, read_water_network_model
 from src.ui.pages.network_load import render_model_summary
 from src.visualisation.network_preview import make_node_preview_figure
@@ -100,10 +101,6 @@ def register_network_callbacks(app):
             "uploaded_at" : datetime.now(timezone.utc).isoformat(),
             "size_bytes" : saved["size_bytes"],
             "status" : "uploaded",
-            "storage" : {
-                "backend": "local",
-                "path" : saved["path"]
-            },
             "spatial": {
                 "coordinate_system": "model_xy", # EOV később
                 "background_mode" : "none",      # Map később
@@ -138,7 +135,9 @@ def register_network_callbacks(app):
         if not network_state:
             raise PreventUpdate
             
-        inp_path = network_state["storage"]["path"]
+        inp_path = resolve_uploaded_model(
+            network_state["model_id"],
+            network_state["filename"])
         try:
             model_data = read_water_network_model(inp_path)
         except Exception as e:

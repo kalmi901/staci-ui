@@ -216,16 +216,10 @@ def run_staci(
     server_manifest = {
         "backend": "staci",
         "files" : {
-            "hdf5" : str(result.h5_path),
-            "metadata" : str(result.meta_path),
-            "csv" : {
-                "nodes": str(run_dir / "results-nodes.csv"),
-                "links": str(run_dir / "results-links.csv"),
-                "tanks": str(run_dir / "results-tanks.csv"),
-                "summary": str(run_dir / "results-summary.csv"),
-            },
-            "stdout" : str(result.stdout_path),
-            "stderr" : str(result.stderr_path)
+            "hdf5" : result.h5_path.name,
+            "metadata" : result.meta_path.name,
+            "stdout" : result.stdout_path.name,
+            "stderr" : result.stderr_path.name
         },
     }
         

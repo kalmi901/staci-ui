@@ -79,11 +79,10 @@ def _make_link_bin_edges(
     if not np.isfinite(vmin) or not np.isfinite(vmax):
         return None
 
-    if vmin == vmax:
+    if vmin >= vmax:
         return None
 
     return np.linspace(vmin, vmax, n_bins + 1)
-
 
 def _make_link_colorbar_trace(
     *,
@@ -442,7 +441,23 @@ def make_hydraulic_timestep_figure(
         return make_empty_network_figure(
             f"Link result '{link_result}' is not available for this run."
         )
-        
+    
+    if (
+        node_cmin is not None
+        and node_cmax is not None
+        and node_cmin >= node_cmax):
+        return make_empty_network_figure(
+            "Node color minimum must be smaller than maximum."
+        )
+
+    if (
+        link_cmin is not None
+        and link_cmax is not None
+        and link_cmin >= link_cmax):
+        return make_empty_network_figure(
+            "Link color minimum must be smaller than maximum."
+        )
+      
     nodes = network_view_state.get("nodes", {})
     links = network_view_state.get("links", {})
 

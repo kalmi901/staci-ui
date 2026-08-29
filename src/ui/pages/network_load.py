@@ -72,7 +72,6 @@ def render_model_summary(network_state: Dict[str, Any] | None):
     nodes = summary.get("Nodes", {})
     links = summary.get("Links", {})
     spatial = network_state.get("spatial", {})
-    storage = network_state.get("storage", {})
     status  = network_state.get("status", "uploaded")
     
     def _tile(label, value):
@@ -124,7 +123,6 @@ def render_model_summary(network_state: Dict[str, Any] | None):
             html.Div(
                 className="model-storage-note",
                 children=[
-                    html.Div(f"Stored at: {storage.get('path', '—')}"),
                     html.Div(f"Coordinate system: {spatial.get('coordinate_system', '—')}"),
                     html.Div(f"Background mode: {spatial.get('background_mode', '—')}"),
                 ],
@@ -219,7 +217,7 @@ def create_layout():
                                     _create_preview_toolbar(),
                                     dcc.Graph(
                                         id=ids.NETWORK_GRAPH,
-                                        className="network-grap",
+                                        className="network-graph",
                                         config={"displaylogo": False},
                                         figure=make_empty_network_figure()
                                     )

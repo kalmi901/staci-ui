@@ -10,6 +10,7 @@ from src.config import UPLOAD_ROOT
 from src.ui import ids
 from src.ui.pages.hydraulic_analysis import render_active_model_summary, render_success_alert
 from src.services.hydraulic_runner import call_hydraulic_simulator
+from src.services.model_storage import resolve_uploaded_model
 from src.visualisation.network_preview import make_hydraulic_timestep_figure
 
 PLAY_STR  = "▶ Play"
@@ -57,15 +58,10 @@ def register_hydraulic_callbacks(app):
                 className="upload-alert"
             ) # pyright: ignore[reportCallIssue]
                    
-        #inp_path = network_state.get("storage", {}).get("path")
-        model_id = network_state["model_id"]
-        filename = network_state["filename"]
-        
-        inp_path = (UPLOAD_ROOT / model_id / Path(filename).name).resolve()
-        upload_root = UPLOAD_ROOT.resolve()
-
-        if not inp_path.is_relative_to(upload_root):
-            raise ValueError("Invalid uploaded model path.")
+        inp_path = resolve_uploaded_model(
+            network_state["model_id"],
+            network_state["filename"]
+        )   
         
         if not inp_path:
             return no_update, dbc.Alert(

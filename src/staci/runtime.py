@@ -4,10 +4,6 @@ import os
 from pathlib import Path
 
 def default_staci_executable() -> Path:
-    env_path = os.getenv("STACI_EXECUTABLE")
-
-    if env_path:
-        return Path(env_path).expanduser().resolve()
 
     bin_dir = Path(__file__).resolve().parents[1] / "bin" / "staci"
 

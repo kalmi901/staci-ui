@@ -263,7 +263,7 @@ def _create_network_results_card():
                                 {"label": "Flow rate", "value": "flowrate"},
                                 {"label": "Velocity", "value": "velocity"},
                                 {"label": "Headloss", "value": "headloss"},
-                                {"label": "Status", "value": "status"}
+                                #{"label": "Status", "value": "status"}
                             ],
                             value="flowrate",
                             clearable=False,

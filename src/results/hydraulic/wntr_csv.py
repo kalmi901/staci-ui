@@ -84,7 +84,7 @@ class WntrCsvResults(EPSHydraulicResults):
         self,
         type: ResultType,
         attribute: str
-    ) -> Dict[str, Any] | None:
+    ) -> Path | None:
         
         filename = (
             self.manifest

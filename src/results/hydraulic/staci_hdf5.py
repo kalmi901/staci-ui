@@ -76,7 +76,6 @@ class StaciHDF5Results(EPSHydraulicResults):
         files = self.manifest.get("files", {})
         h5_path = files.get("hdf5")
         meta_path = files.get("metadata")
-        
         if not h5_path:
             raise ValueError(
                 "STACI run manifest does not contain an HDF5 result path."
@@ -86,9 +85,15 @@ class StaciHDF5Results(EPSHydraulicResults):
             raise ValueError(
                 "STACI run manifes does not contain an metadata result path."
             )
-            
-        self.h5_path = Path(h5_path)
-        self.meta_path = Path(meta_path)
+        
+        self.h5_path = (self.run_dir / h5_path).resolve()
+        self.meta_path = (self.run_dir / meta_path).resolve()
+
+        if not self.h5_path.is_relative_to(self.run_dir):
+            raise ValueError("Invalid HDF5 result path.")
+
+        if not self.meta_path.is_relative_to(self.run_dir):
+            raise ValueError("Invalid metadata result path.")
         
         if not self.h5_path.exists():
             raise FileNotFoundError(

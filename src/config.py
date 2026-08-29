@@ -4,9 +4,31 @@ from pathlib import Path
 
 from src.staci.runtime import default_staci_executable
 
+APP_ENV = os.getenv("STACI_UI_ENV", "development").lower()
+
 DASH_USER = os.getenv("DASH_USER", "staci")
 DASH_PASSWORD = os.getenv("DASH_PASSWORD", "staci")
 DASH_AUTH_SECRET = os.getenv("DASH_AUTH_SECRET", "manbearpig")
+
+if APP_ENV == "production":
+    required = {
+        "DASH_USER": os.getenv("DASH_USER"),
+        "DASH_PASSWORD": os.getenv("DASH_PASSWORD"),
+        "DASH_AUTH_SECRET": os.getenv("DASH_AUTH_SECRET"),
+    }
+
+    missing = [
+        name
+        for name, value in required.items()
+        if not value
+    ]
+
+    if missing:
+        raise RuntimeError(
+            "Missing required production environment variables: "
+            + ", ".join(missing)
+        )
+
 
 DASH_DEBUG = os.getenv("DASH_DEBUG", "0") == "1"
 PORT = int(os.getenv("PORT", "8050"))
