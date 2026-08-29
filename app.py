@@ -17,7 +17,8 @@ def create_app() -> Dash:
     app = Dash(
         __name__,
         external_stylesheets=[dbc.themes.BOOTSTRAP],
-        suppress_callback_exceptions=True
+        suppress_callback_exceptions=True,
+        update_title=""
     )
     
     BasicAuth(

@@ -1,14 +1,71 @@
 from __future__ import annotations
 from typing import Dict, Any
 import plotly.graph_objects as go
+import pandas as pd
+import numpy as np
+
+from src.results.hydraulic import open_eps_hydraulic_results
 
 FIG_LAYOUT = {
     "template"  : "plotly_white",
     "height"    : 470,
     "margin"    : {"l": 10, "r": 10, "t": 10, "b": 10},
-    "xaxis"     : {"visible": False, "scaleanchor": "y", "scaleratio": 1},
-    "yaxis"     : {"visible": False}
+    "xaxis"     : {"visible": False, "showgrid": False, "zeroline": False, "scaleanchor": "y", "scaleratio": 1},
+    "yaxis"     : {"visible": False, "showgrid": False, "zeroline": False}
 }
+
+LINK_BIN_COLORS = [
+    "rgba(56, 132, 181, 0.18)",
+    "rgba(56, 132, 181, 0.30)",
+    "rgba(56, 132, 181, 0.44)",
+    "rgba(56, 132, 181, 0.60)",
+    "rgba(56, 132, 181, 0.78)",
+]
+
+# ---- Format Helpers ----
+def _format_time_seconds(value) -> str:
+    try:
+        seconds = int(float(value))
+    except (TypeError, ValueError):
+        return str(value)
+
+    hours = seconds / 3600.0
+
+    if abs(hours - round(hours)) < 1e-9:
+        return f"{int(round(hours))} h"
+
+    return f"{hours:.2f} h"
+
+def _format_value(value) -> str:
+    if value is None:
+        return "—"
+    try:
+        if np.isnan(value):
+            return "—"
+    except TypeError:
+        pass
+
+    try:
+        return f"{float(value):.3g}"
+    except (TypeError, ValueError):
+        return str(value)
+
+def _make_link_bin_edges(
+    data_range: tuple[float | None, float | None],
+    n_bins: int,
+) -> np.ndarray | None:
+    vmin, vmax = data_range
+
+    if vmin is None or vmax is None:
+        return None
+
+    if not np.isfinite(vmin) or not np.isfinite(vmax):
+        return None
+
+    if vmin == vmax:
+        return None
+
+    return np.linspace(vmin, vmax, n_bins + 1)
 
 def make_empty_network_figure(
     message: str = "Upload a model to view the network preview."):
@@ -31,6 +88,140 @@ def make_empty_network_figure(
     
     return fig
 
+def _make_node_trace(
+    *,
+    nodes: Dict[str, Any],
+    node_values: pd.Series,
+    node_attribute: str,
+    cmin: float | None,
+    cmax: float | None
+) -> go.Scattergl:
+    node_ids = nodes.get("id", [])
+    node_types = nodes.get("type", [])
+    node_x = nodes.get("x", [])
+    node_y = nodes.get("y", [])
+    
+    plot_x, plot_y, plot_color, hover_text = [], [], [], []
+    for i, node_id in enumerate(node_ids):
+        if i >= len(node_x) or i >= len(node_y):
+            continue
+        
+        x = node_x[i]
+        y = node_y[i]
+        
+        if x is None or y is None:
+            continue
+        value = node_values[node_id] if node_id in node_values.index else np.nan
+        node_type = node_types[i] if i < len(node_types) else "node"
+        
+        plot_x.append(x)
+        plot_y.append(y)
+        plot_color.append(value)
+
+        hover_text.append(
+            f"<b>{node_id}</b><br>"
+            f"Type: {node_type}<br>"
+            f"{node_attribute}: {_format_value(value)}"
+        )
+
+    return go.Scattergl(
+        x=plot_x,
+        y=plot_y,
+        mode="markers",
+        marker={
+            "size" : 5,
+            "opacity" : 0.9,
+            "color" : plot_color,
+            "colorscale" : "Viridis",
+            "cmin" : cmin,
+            "cmax" : cmax,
+            "showscale": True,
+            "colorbar" : {"title": node_attribute},
+            "line" : {"width": 0.5, "color": "white"}
+        },
+        text=hover_text,
+        hoverinfo="text",
+        name="Nodes",
+        showlegend=False
+    )
+
+def _make_link_traces(
+    *,
+    nodes: Dict[str, Any],
+    links: Dict[str, Any],
+    link_values: pd.Series | None,
+    link_attribute: str,
+    bin_edges: np.ndarray | None,
+    n_bins: int
+) -> list[go.Scatter]:
+    node_x = nodes.get("x", [])
+    node_y = nodes.get("y", [])
+    
+    link_ids = links.get("id", [])
+    start_indices = links.get("start_index", [])
+    end_indices = links.get("end_index", [])
+    
+    bin_x = [[] for _ in range(n_bins)]
+    bin_y = [[] for _ in range(n_bins)]
+
+    for i, link_id in enumerate(link_ids):
+        if i >= len(start_indices) or i >= len(end_indices):
+            continue
+        
+        start_idx = start_indices[i]
+        end_idx   = end_indices[i]
+        
+        if start_idx >= len(node_x) or end_idx >= len(node_x):
+            continue
+        
+        x0 = node_x[start_idx]
+        y0 = node_y[start_idx]
+        x1 = node_x[end_idx]
+        y1 = node_y[end_idx]
+        
+        if None in (x0, y0, x1, y1):
+            continue
+        
+        bin_id = 0
+        if link_values is not None and link_id in link_values.index:
+            value = link_values[link_id]
+
+            if pd.notna(value) and bin_edges is not None:
+                bin_id = int(
+                    np.searchsorted(
+                        bin_edges,
+                        float(value),
+                        side="right",
+                    )
+                    - 1
+                )
+                bin_id = max(0, min(n_bins - 1, bin_id))
+
+        bin_x[bin_id].extend([x0, x1, None])
+        bin_y[bin_id].extend([y0, y1, None])
+        
+    traces = []
+        
+    for i in range(n_bins):
+        traces.append(
+            go.Scatter(
+                x=bin_x[i],
+                y=bin_y[i],
+                mode="lines",
+                line={
+                    "width": 0.8 + i * 0.55,
+                    "color": LINK_BIN_COLORS[
+                        i % len(LINK_BIN_COLORS)
+                    ],
+                },
+                hoverinfo="skip",
+                name=f"{link_attribute} bin {i + 1}",
+                showlegend=False,
+            )
+        )
+
+    return traces        
+                
 
 def make_node_preview_figure(
     network_view_state: Dict[str, Any],
@@ -77,7 +268,7 @@ def make_node_preview_figure(
     
     marker = {
         "size": 5,
-        "opacity": 0.85,
+        "opacity": 0.9,
         "line": {"width": 0.5, "color": "white"},
     }
     
@@ -148,6 +339,120 @@ def make_node_preview_figure(
     )
     
     fig.update_layout(**FIG_LAYOUT)
+    
+    return fig
+
+
+
+def make_hydraulic_timesetep_figure(
+    *,
+    network_view_state: Dict[str, Any],
+    run_state: Dict[str, Any],
+    time_index: int | None,
+    node_result: str = "pressure",
+    link_result: str = "flowrate"
+) -> go.Figure:
+    
+    if not run_state:
+        return make_empty_network_figure(
+            "Run a hydraulic simulation to view network results."
+        )
+        
+    if not network_view_state:
+        return make_empty_network_figure(
+            "Build the network preview before plotting hydraulic results."
+        )
+    
+    results = open_eps_hydraulic_results(run_state)
+    
+    if results.n_steps == 0:
+        return make_empty_network_figure(
+            "The hydraulic run has no time steps."
+        )
+        
+    if node_result not in results.node_attributes:
+        return make_empty_network_figure(
+            f"Node result '{node_result}' is not available for this run."
+        )
+        
+    if link_result not in results.link_attributes:
+        return make_empty_network_figure(
+            f"Link result '{link_result}' is not available for this run."
+        )
+        
+    nodes = network_view_state.get("nodes", {})
+    links = network_view_state.get("links", {})
+
+    node_ids = nodes.get("id", [])
+    link_ids = links.get("id", [])
+    
+    if time_index is None:
+        time_index = 0
+
+    time_index = max(
+        0,
+        min(int(time_index), results.n_steps - 1),
+    )
+
+    time_value = results.times[time_index]
+    
+    node_values = results.node_frame(
+        attribute=node_result,
+        time_index=time_index
+    ).reindex(node_ids)
+    
+    link_values = results.link_frame(
+        attribute=link_result,
+        time_index=time_index
+    ).reindex(link_ids)
+    
+    converged = results.frame_converged(time_index)
+    title = (
+        f"{node_result} / {link_result}"
+        f" · {_format_time_seconds(time_value)}"
+    )
+
+    if not converged:
+        title += " · ⚠ not converged"
+    
+    node_trace = _make_node_trace(
+        nodes=nodes,
+        node_values=node_values,
+        node_attribute=node_result,
+        cmin=None,
+        cmax=None
+    )
+    
+    n_link_bins = 5
+    link_bin_edges = _make_link_bin_edges(
+        results.value_range("link", link_result),
+        n_link_bins
+    )
+    
+    link_traces = _make_link_traces(
+        nodes=nodes,
+        links=links,
+        link_values=link_values,
+        link_attribute=link_result,
+        bin_edges=link_bin_edges,
+        n_bins=n_link_bins,
+    )
+    
+    fig = go.Figure(
+        data=[*link_traces, node_trace])
+    
+    fig.update_layout(**FIG_LAYOUT,
+        uirevision=run_state.get(
+            "run_id",
+            "hydraulic-run",
+        ),  # Fix view between updates
+        title = {
+            "text"      : title,
+            "x"         : 0.02,
+            "y"         : 0.9,
+            "xanchor"   : "left",
+            "font"      : {"size": 14}
+        })
     
     return fig
     

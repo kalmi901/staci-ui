@@ -10,6 +10,7 @@ from src.config import UPLOAD_ROOT
 from src.ui import ids
 from src.ui.pages.hydraulic_analysis import render_active_model_summary, render_success_alert
 from src.services.hydraulic_runner import call_hydraulic_simulator
+from src.visualisation.network_preview import make_hydraulic_timesetep_figure
 
 PLAY_STR  = "▶ Play"
 PAUSE_STR = "⏸ Pause"
@@ -145,12 +146,10 @@ def register_hydraulic_callbacks(app):
         # -- Handle Inputs --
         # 1) Store Available 
         if ctx.triggered_id == ids.HYD_RUN_STORE:
-            print("Control Hydraulic time: HYD_RUN_STORE")
             return 0, max_index, marks, 0, False, True, PLAY_STR, False
         
         # 2) PLAY/PAUSE Button pressed
         if ctx.triggered_id == ids.HYD_PLAY_BUTTON:
-            print("Control Hydraulic time: HYD_PLAY_BUTTON")
             should_start = bool(interval_disabled)
             
             if should_start:
@@ -160,10 +159,32 @@ def register_hydraulic_callbacks(app):
         
         # 3) Increse time value
         if ctx.triggered_id == ids.HYD_ANIMATION_INTERVAL:
-            print("Control Hydraulic time: HYD_ANIMATION_INTERVAL")
             value = current_value or 0
             value = (value + 1) % max_index
             
             return 0, max_index, marks, value, False, False, PAUSE_STR, False
         
         return 0, max_index, marks, current_value or 0, False, True, PLAY_STR, False
+    
+    @app.callback(
+        Output(ids.HYD_NETWORK_GRAPH, "figure"),
+        Input(ids.HYD_RUN_STORE, "data"),
+        Input(ids.HYD_TIME_SLIDER, "value"),
+        Input(ids.HYD_NODE_RESULT, "value"),
+        Input(ids.HYD_LINK_RESULT, "value"),
+        State(ids.NETWORK_VIEW_STORE, "data")
+    )
+    def render_hydraulic_network_graph(
+        run_state,
+        time_index,
+        node_result,
+        link_result,
+        network_view_state
+    ):  
+        return make_hydraulic_timesetep_figure(
+            network_view_state=network_view_state,
+            run_state=run_state,
+            time_index=time_index,
+            node_result=node_result,
+            link_result=link_result
+        )
