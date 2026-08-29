@@ -202,7 +202,7 @@ def _create_setup_card():
                             children=html.Div(
                                 id=ids.HYD_RUN_STATUS,
                                 className="small-status hyd-run-status",
-                                children="Upload a network model first.",
+                                #children="Upload a network model first.",
                             )
                         )
                     ]
@@ -284,14 +284,16 @@ def _create_network_results_card():
                                     type="number",
                                     step="any",
                                     placeholder="node-min",
-                                    disabled=True
+                                    persistence=True,
+                                    persistence_type="memory"
                                 ),
                                 dbc.Input(
                                     id=ids.HYD_NODE_COLOR_MAX,
                                     type="number",
                                     step="any",
                                     placeholder="node-max",
-                                    disabled=True
+                                    persistence=True,
+                                    persistence_type="memory"
                                 ),
                             ]
                         )
@@ -309,14 +311,16 @@ def _create_network_results_card():
                                     type="number",
                                     step="any",
                                     placeholder="link-min",
-                                    disabled=True
+                                    persistence=True,
+                                    persistence_type="memory"
                                 ),
                                 dbc.Input(
                                     id=ids.HYD_LINK_COLOR_MAX,
                                     type="number",
                                     step="any",
                                     placeholder="link-max",
-                                    disabled=True
+                                    persistence=True,
+                                    persistence_type="memory"
                                 ),
                             ]
                         )

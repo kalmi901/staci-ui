@@ -58,19 +58,12 @@ def register_hydraulic_callbacks(app):
                 className="upload-alert"
             ) # pyright: ignore[reportCallIssue]
                    
-        inp_path = resolve_uploaded_model(
-            network_state["model_id"],
-            network_state["filename"]
-        )   
-        
-        if not inp_path:
-            return no_update, dbc.Alert(
-                "The active model has no stored INP path.",
-                color="danger",
-                className="upload-alert",
-            ) # pyright: ignore[reportCallIssue]
-        
         try:
+            inp_path = resolve_uploaded_model(
+                network_state["model_id"],
+                network_state["filename"]
+            )   
+        
             run_state = call_hydraulic_simulator(
                 inp_path,
                 model_id=network_state.get("model_id"),
@@ -95,20 +88,22 @@ def register_hydraulic_callbacks(app):
         Output(ids.HYD_ANIMATION_INTERVAL, "disabled"),
         Output(ids.HYD_PLAY_BUTTON, "children"),
         Output(ids.HYD_PLAY_BUTTON, "disabled"),
+        Input(ids.URL, "pathname"),
         Input(ids.HYD_RUN_STORE, "data"),
         Input(ids.HYD_PLAY_BUTTON, "n_clicks"),
         Input(ids.HYD_ANIMATION_INTERVAL, "n_intervals"),
         State(ids.HYD_TIME_SLIDER, "value"),
-        State(ids.HYD_ANIMATION_INTERVAL, "disabled"),
-        prevent_initial_call=True
+        State(ids.HYD_ANIMATION_INTERVAL, "disabled")
     )
     def control_hydraulic_time(
+        pathname,
         run_state,
         play_clicks,
         n_intervals,
         current_value,
         interval_disabled
     ):
+               
         # Enable / Disable Control
         if not run_state or run_state.get("status") != "success":
             return 0, 0, {0: "0"}, 0, True, True, PLAY_STR, True

@@ -51,6 +51,7 @@ def register_network_callbacks(app):
     @app.callback(
         Output(ids.NETWORK_STORE, "data"),
         Output(ids.UPLOAD_STATUS, "children"),
+        Output(ids.HYD_RUN_STORE, "data", allow_duplicate=True),
         Input(ids.UPLOAD_INP, "contents"),
         State(ids.UPLOAD_INP, "filename"),
         State(ids.NETWORK_STORE, "data"),
@@ -68,33 +69,42 @@ def register_network_callbacks(app):
                 raise PreventUpdate
         
         if not filename or not filename.lower().endswith(".inp"):
-            return no_update, dbc.Alert(
-                "Please upload an EPANET .inp file.",
-                color="warning",
-                className="upload-alert"
-            ) # pyright: ignore[reportCallIssue]
-        
+            return (
+                no_update, 
+                dbc.Alert(
+                    "Please upload an EPANET .inp file.",
+                    color="warning",
+                    className="upload-alert"
+                ), # pyright: ignore[reportCallIssue]
+                no_update
+                )
         try:
             file_bytes = _decode_upload(contents)
             saved = _save_uploaded_file(filename, file_bytes)
         except Exception as exc:
-                return no_update, dbc.Alert(
-                    f"Upload failed: {exc}",
-                    color="danger",
-                    className="upload-alert",
-                ) # pyright: ignore[reportCallIssue]
-        
+                return(
+                    no_update,
+                    dbc.Alert(
+                        f"Upload failed: {exc}",
+                        color="danger",
+                        className="upload-alert",
+                    ), # pyright: ignore[reportCallIssue]
+                    no_update
+                )
         
         summary = {}
         try:
             summary = read_model_summary(saved["path"])
         except Exception as e:
-            return no_update, dbc.Alert(
-            f"Model load failed: {e}",
-            color="danger",
-            className="upload-alert",
-            ) # pyright: ignore[reportCallIssue]
-        
+            return (
+                no_update, 
+                dbc.Alert(
+                    f"Model load failed: {e}",
+                    color="danger",
+                    className="upload-alert",
+                ), # pyright: ignore[reportCallIssue]
+                no_update
+            )
         network_state = {
             "model_id" : saved["model_id"],
             "filename" : saved["filename"],
@@ -108,12 +118,16 @@ def register_network_callbacks(app):
             "summary" : summary
         }
    
-        return network_state, dbc.Alert(
+        return (
+            network_state, 
+            dbc.Alert(
                 f"Uploaded {saved['filename']} successfully.",
                 color="success",
                 className="upload-alert",
-            )  # pyright: ignore[reportCallIssue]
-      
+            ),  # pyright: ignore[reportCallIssue]
+            None # invalidate previous hydraulic run
+            )
+            
     @app.callback(
         Output(ids.ACTIVE_MODEL_SUMMARY, "children"),
         Input(ids.NETWORK_STORE, "data"),

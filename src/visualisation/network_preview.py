@@ -467,6 +467,7 @@ def make_hydraulic_timestep_figure(
     if time_index is None:
         time_index = 0
 
+    time_index = int(time_index)
     time_index = max(
         0,
         min(int(time_index), results.n_steps - 1),
