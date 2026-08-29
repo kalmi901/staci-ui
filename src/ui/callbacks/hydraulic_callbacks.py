@@ -11,6 +11,9 @@ from src.ui import ids
 from src.ui.pages.hydraulic_analysis import render_active_model_summary, render_success_alert
 from src.services.hydraulic_runner import call_hydraulic_simulator
 
+PLAY_STR  = "▶ Play"
+PAUSE_STR = "⏸ Pause"
+
 def register_hydraulic_callbacks(app):
     
     @app.callback(
@@ -84,3 +87,83 @@ def register_hydraulic_callbacks(app):
             )  # pyright: ignore[reportCallIssue]
               
         return run_state, render_success_alert(run_state)
+    
+    # -- Animation --
+    @app.callback(
+        Output(ids.HYD_TIME_SLIDER, "min"),
+        Output(ids.HYD_TIME_SLIDER, "max"),
+        Output(ids.HYD_TIME_SLIDER, "marks"),
+        Output(ids.HYD_TIME_SLIDER, "value"),
+        Output(ids.HYD_TIME_SLIDER, "disabled"),
+        Output(ids.HYD_ANIMATION_INTERVAL, "disabled"),
+        Output(ids.HYD_PLAY_BUTTON, "children"),
+        Output(ids.HYD_PLAY_BUTTON, "disabled"),
+        Input(ids.HYD_RUN_STORE, "data"),
+        Input(ids.HYD_PLAY_BUTTON, "n_clicks"),
+        Input(ids.HYD_ANIMATION_INTERVAL, "n_intervals"),
+        State(ids.HYD_TIME_SLIDER, "value"),
+        State(ids.HYD_ANIMATION_INTERVAL, "disabled"),
+        prevent_initial_call=True
+    )
+    def control_hydraulic_time(
+        run_state,
+        play_clicks,
+        n_intervals,
+        current_value,
+        interval_disabled
+    ):
+        # Enable / Disable Control
+        if not run_state or run_state.get("status") != "success":
+            return 0, 0, {0: "0"}, 0, True, True, PLAY_STR, True
+        
+        time = run_state.get("time", [])
+        if not time:
+            return 0, 0, {0: "0"}, 0, True, True, PLAY_STR, True
+        
+        max_index = len(time) - 1
+        if max_index <= 0:
+            return 0, 0, {0: "0"}, 0, True, True, PLAY_STR, True
+        
+        # Mark settings
+        mark_indices = sorted(
+            set(
+                [
+                    0,
+                    max_index,
+                    max_index // 4,
+                    max_index // 2,
+                    (3 * max_index) // 4,
+                ]
+            )
+        )
+        
+        marks = {
+            i: f"{int(time[i] / 3600)} h"
+            for i in mark_indices
+        }
+        
+        # -- Handle Inputs --
+        # 1) Store Available 
+        if ctx.triggered_id == ids.HYD_RUN_STORE:
+            print("Control Hydraulic time: HYD_RUN_STORE")
+            return 0, max_index, marks, 0, False, True, PLAY_STR, False
+        
+        # 2) PLAY/PAUSE Button pressed
+        if ctx.triggered_id == ids.HYD_PLAY_BUTTON:
+            print("Control Hydraulic time: HYD_PLAY_BUTTON")
+            should_start = bool(interval_disabled)
+            
+            if should_start:
+                return 0, max_index, marks, current_value or 0, False, False, PAUSE_STR, False
+        
+            return 0, max_index, marks, current_value or 0, False, True, PLAY_STR, False
+        
+        # 3) Increse time value
+        if ctx.triggered_id == ids.HYD_ANIMATION_INTERVAL:
+            print("Control Hydraulic time: HYD_ANIMATION_INTERVAL")
+            value = current_value or 0
+            value = (value + 1) % max_index
+            
+            return 0, max_index, marks, value, False, False, PAUSE_STR, False
+        
+        return 0, max_index, marks, current_value or 0, False, True, PLAY_STR, False

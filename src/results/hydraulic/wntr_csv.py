@@ -8,8 +8,8 @@ from typing import Dict, Any
 
 from src.results.hydraulic.base import EPSHydraulicResults, ResultType
 
-NODE_RESULTS_KEYS = {"pressure", "head", "demand"}
-LINK_RESULTS_KEYS = {"flowrate", "velocity", "headloss", "status"}
+NODE_RESULTS_KEYS = ("pressure", "head", "demand")
+LINK_RESULTS_KEYS = ("flowrate", "velocity", "headloss", "status")
 
 
 @lru_cache(maxsize=64)
@@ -33,8 +33,7 @@ class WntrCsvResults(EPSHydraulicResults):
             raise ValueError(
                 f"Node result 'pressure' is not available."
             )
-        times = df["time"].to_numpy()
-        return times
+        return df.index.to_numpy(dtype=np.int64)
     
     @property
     def node_attributes(self) -> list[str]:
@@ -54,7 +53,7 @@ class WntrCsvResults(EPSHydraulicResults):
     
     
     def link_frame(self, attribute: str, time_index: int) -> pd.Series | None:
-        df = self._get_dataframe("node", attribute)
+        df = self._get_dataframe("link", attribute)
         if df is None:
             raise KeyError(
                 f"Link result '{attribute}' is not available."

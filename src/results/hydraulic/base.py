@@ -45,7 +45,7 @@ class EPSHydraulicResults(ABC):
         self,
         attribute: str,
         time_index: int,
-    ) -> pd.Series | None:
+    ) -> pd.Series:
         raise NotImplementedError
 
     @abstractmethod

@@ -11,6 +11,11 @@ def open_eps_hydraulic_results(
 
     backend = run_state.get("backend")
 
+    if run_state.get("status") != "success":
+        raise ValueError(
+            "Cannot open results from an unsuccessful hydraulic run."
+        )
+
     if backend == "wntr":
         return WntrCsvResults(run_state)
 

@@ -16,7 +16,11 @@ from src.config import RUN_ROOT
 # -- Helpers --
 def _dataframe_range(df: pd.DataFrame, unit: str = "none") -> dict[str, str | float | None]:
     if df.empty:
-        return {"unit": unit, "min": None, "max": None}
+        return {
+            "unit": unit, 
+            "min": None, 
+            "max": None
+        }
     values = df.to_numpy()
     finite = values[np.isfinite(values)]
     if finite.size == 0:
@@ -128,6 +132,7 @@ def run_wntr(
         "model_id" : model_id,
         "backend"  : "wntr",
         "status"   : "success",
+        "time"     : time_values,
         "created_at" : datetime.now(timezone.utc).isoformat(),
         "files" : {
             "node" : node_files,
@@ -171,6 +176,8 @@ def run_staci(
         )
        
     frames = int(simulation.get("frames", 0))
+    report_dt = int(simulation.get("report_timestep_seconds", 0))
+    time = [i * report_dt for i in range(frames)]
     
     # Name Mapping
     STACI_RANGE_NAMES = {
@@ -188,6 +195,7 @@ def run_staci(
         "model_id" : model_id,
         "backend"  : "staci",
         "status"   : "success",
+        "time"     : time,
         "created_at" : datetime.now(timezone.utc).isoformat(),
         "files" : {
             "hdf5" : str(result.h5_path),
