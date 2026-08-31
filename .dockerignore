@@ -1,0 +1,35 @@
+# Git
+.git/
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# Virtual environments
+.venv/
+venv/
+staci-env/
+
+# Local secrets
+.env
+.env.*
+!.env.example
+
+# Runtime data
+data/
+
+# Locally bundled STACI binaries
+src/bin/staci/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local archives / scratch
+*.zip
+backup.txt
