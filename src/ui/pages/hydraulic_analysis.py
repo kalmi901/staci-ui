@@ -155,7 +155,7 @@ def _create_setup_card():
                                 dbc.Input(
                                     id=ids.HYD_DURATION_HOURS,
                                     type="number",
-                                    min=0,
+                                    min=1,
                                     step=1,
                                     value=24,
                                     disabled=True

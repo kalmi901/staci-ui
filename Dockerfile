@@ -4,7 +4,7 @@
 # C++ build environment
 FROM debian:bookworm-slim AS staci-builder
 
-ARG STACI_COMMIT=892e0a2a02c2ef0da944dfa138df74d39ed12f13
+ARG STACI_COMMIT=c52ec0424ed5e088a47c7e2a629216d777bab5c4
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
@@ -20,10 +20,6 @@ WORKDIR /build
 RUN git clone https://github.com/hoscsaba/staci.git \
     && cd staci \
     && git checkout ${STACI_COMMIT}
-
-# GCC portability fix for the pinned STACI revision.
-RUN grep -q '^#include <algorithm>' /build/staci/src/Csatorna.cpp \
-    || sed -i '1i#include <algorithm>' /build/staci/src/Csatorna.cpp
 
 RUN cmake \
         -S /build/staci \

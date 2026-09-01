@@ -149,14 +149,14 @@ def register_network_callbacks(app):
         if not network_state:
             raise PreventUpdate
             
-        inp_path = resolve_uploaded_model(
+        try:
+            inp_path = resolve_uploaded_model(
             network_state["model_id"],
             network_state["filename"])
-        try:
             model_data = read_water_network_model(inp_path)
-        except Exception as e:
+        except Exception as exc:
             return no_update, dbc.Alert(
-            f"Model load failed: {e}",
+            f"Model load failed: {exc}",
             color="danger",
             className="upload-alert",
         )  # pyright: ignore[reportCallIssue]

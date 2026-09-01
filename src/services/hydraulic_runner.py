@@ -11,6 +11,7 @@ import numpy as np
 import wntr
 
 from src.staci.eps import run_staci_eps
+from src.services.inp_model_reader import set_model_options
 from src.config import RUN_ROOT
 
 
@@ -250,7 +251,8 @@ def call_hydraulic_simulator(
     inp_path: Path | str,
     *,
     model_id: str,
-    backend: Literal["wntr", "staci"]
+    backend: Literal["wntr", "staci"],
+    option_overrides: Dict[str, float] | None = None
 ):
     inp_path = Path(inp_path)
     if not inp_path.exists():
@@ -260,11 +262,19 @@ def call_hydraulic_simulator(
     run_dir = Path(RUN_ROOT) / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
     
+    run_inp_path = inp_path
+    
+    if option_overrides:
+        run_inp_path = run_dir / "input.inp"
+        set_model_options(
+            inp_path, option_overrides, run_inp_path
+        )
+    
     if backend == "wntr":
-        return run_wntr(inp_path, model_id, run_id, run_dir)
+        return run_wntr(run_inp_path, model_id, run_id, run_dir)
         
     elif backend == "staci":
-        return run_staci(inp_path, model_id, run_id, run_dir)
+        return run_staci(run_inp_path, model_id, run_id, run_dir)
         
     raise NotImplementedError(
         f"Hydraulic backend is not implemented yet: {backend}"

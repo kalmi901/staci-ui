@@ -63,8 +63,6 @@ def read_water_network_model(
     inp_or_wn: Path | wntr.network.WaterNetworkModel) -> Dict[str, Any]:
     wn = _as_wn(inp_or_wn)
     
-    read_model_options(wn)
-    
     # Read Nodes:
     node_id: List[str] = []
     node_type: List[str] = []
@@ -85,7 +83,6 @@ def read_water_network_model(
     link_roughness: List[float] = []
     
     
-    # TODO -> decompose to junctions, tanks and reservoirs
     for nid, node in wn.nodes():
         # Node ID & Tpye
         node_id.append(nid)
@@ -106,8 +103,8 @@ def read_water_network_model(
         
         base_demand = 0.0
         if isinstance(node, wntr.network.elements.Junction):
-            for pattern in node.demand_timeseries_list:
-                base_demand += pattern.base_value
+            for demand_ts in node.demand_timeseries_list:
+                base_demand += demand_ts.base_value
         node_demand.append(base_demand * 3600)  # m3/h
     
     node_index = {nid: i for i, nid in enumerate(node_id)}
@@ -115,7 +112,7 @@ def read_water_network_model(
     for lid, link in wn.links():
         start_node = link.start_node_name
         end_node = link.end_node_name
-        # Ha valamiért nincs node hozzá, kihagyjuk de bugokat ki kell innen gyomlálni majd, elvileg helyes hálózatban ilyen nincs
+        # Ha valamiért nincs node hozzá, kihagyjuk de elvileg helyes hálózatban ilyen nincs
         if start_node not in node_index or end_node not in node_index:
             continue
         

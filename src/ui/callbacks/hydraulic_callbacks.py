@@ -11,7 +11,7 @@ from src.ui import ids
 from src.ui.pages.hydraulic_analysis import render_active_model_summary, render_success_alert
 from src.services.hydraulic_runner import call_hydraulic_simulator
 from src.services.model_storage import resolve_uploaded_model
-from src.services.inp_model_reader import read_model_options, set_model_options
+from src.services.inp_model_reader import read_model_options
 from src.visualisation.network_preview import make_hydraulic_timestep_figure
 
 PLAY_STR  = "▶ Play"
@@ -49,7 +49,7 @@ def register_hydraulic_callbacks(app):
         network_state
     ):
         if not network_state:
-            return no_update
+            return no_update, no_update
         
         try:
             inp_path = resolve_uploaded_model(
@@ -62,7 +62,7 @@ def register_hydraulic_callbacks(app):
             
             return duration_h, hydraulic_timestep        
         
-        except:
+        except Exception:
             return no_update, no_update  
     
     @app.callback(
@@ -100,19 +100,27 @@ def register_hydraulic_callbacks(app):
                 network_state["filename"]
             )
             
+            option_overrides = None
             if override_enabled:
-                option_override = {
+                if duration is None or hydraulic_timestep is None:
+                    raise ValueError(
+                        "Duration and hydraulic timestep are required when overrides are enabled"
+                    )
+                if duration < 0:
+                    raise ValueError("Duration must be non-negative")
+                if hydraulic_timestep <= 0:
+                    raise ValueError("Hydraulic timestep must be greater than zero.")
+                
+                option_overrides = {
                     "duration" : duration * 3600,                   # hours --> seconds
                     "hydraulic_timestep" : hydraulic_timestep * 60  # minutes --> seconds
                 }
-                
-                set_model_options(inp_path, option_override, inp_path)
-                
         
             run_state = call_hydraulic_simulator(
                 inp_path,
                 model_id=network_state.get("model_id"),
-                backend=backend
+                backend=backend,
+                option_overrides=option_overrides
             )
         except Exception as exc:
             return no_update, dbc.Alert(

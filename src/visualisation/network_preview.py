@@ -121,6 +121,23 @@ def _make_link_colorbar_trace(
         showlegend=False,
     )
 
+def _validate_normalize_color_range(
+    cmin: float | None,  cmax: float | None
+    ) -> tuple[float | None, float |None]:
+    if cmin is None or cmax is None:
+        return cmin, cmax
+
+    if cmin > cmax:
+        raise ValueError
+
+    if np.isclose(cmin, cmax):
+        pad = max(abs(cmin) * 1e-6, 1e-9)
+        return cmin - pad, cmax + pad
+
+
+    return cmin, cmax
+
+
 def make_empty_network_figure(
     message: str = "Upload a model to view the network preview."):
     fig = go.Figure()
@@ -313,20 +330,22 @@ def make_node_preview_figure(
     if not valid_idx:
         return make_empty_network_figure("The loaded model has no valid node coordinates.")
     
-    if (
-            node_cmin is not None
-            and node_cmax is not None
-            and node_cmin >= node_cmax):
-            return make_empty_network_figure(
-                "Node color minimum must be smaller than maximum."
-            )
-    
-    if (
-        link_cmin is not None
-        and link_cmax is not None
-        and link_cmin >= link_cmax):
+    try:
+        node_cmin, node_cmax = _validate_normalize_color_range(
+            node_cmin, node_cmax
+        )
+    except ValueError:
         return make_empty_network_figure(
-            "Link color minimum must be smaller than maximum."
+            "Node color minimum must not be greater than maximum."
+        )
+        
+    try:
+        link_cmin, link_cmax = _validate_normalize_color_range(
+            link_cmin, link_cmax
+        )
+    except ValueError:
+        return make_empty_network_figure(
+            "Link color minimum must not be greater than maximum."
         )
     
         
@@ -364,7 +383,11 @@ def make_node_preview_figure(
         traces.append(link_colorbar_trace)
     
     fig = go.Figure(data=traces)
-    fig.update_layout(**FIG_LAYOUT)
+    fig.update_layout(**FIG_LAYOUT,
+        uirevision=network_view_state.get(
+                    "model_id",
+                    "model-view",
+                ))
     
     return fig
 
@@ -410,20 +433,22 @@ def make_hydraulic_timestep_figure(
             f"Link result '{link_result}' is not available for this run."
         )
     
-    if (
-        node_cmin is not None
-        and node_cmax is not None
-        and node_cmin >= node_cmax):
-        return make_empty_network_figure(
-            "Node color minimum must be smaller than maximum."
+    try:
+        node_cmin, node_cmax = _validate_normalize_color_range(
+            node_cmin, node_cmax
         )
-
-    if (
-        link_cmin is not None
-        and link_cmax is not None
-        and link_cmin >= link_cmax):
+    except ValueError:
         return make_empty_network_figure(
-            "Link color minimum must be smaller than maximum."
+            "Node color minimum must not be greater than maximum."
+        )
+    
+    try:
+        link_cmin, link_cmax = _validate_normalize_color_range(
+            link_cmin, link_cmax
+        )
+    except ValueError:
+        return make_empty_network_figure(
+            "Link color minimum must not be greater than maximum."
         )
       
     nodes = network_view_state.get("nodes", {})
