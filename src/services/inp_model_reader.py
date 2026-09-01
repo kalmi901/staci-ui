@@ -1,7 +1,17 @@
 from __future__ import annotations
 import wntr
 from pathlib import Path
-from typing import Union, Dict, Any, List
+from typing import Dict, Any, List
+
+_OPTIONS_PATHS = {
+    # --- Time ---
+    "duration": ("time", "duration"),
+    "hydraulic_timestep" : ("time", "hydraulic_timestep"),
+    "rule_timestep" : ("time", "rule_timestep"),
+    "report_timestep" : ("time", "report_timestep"),
+    # --- Hydraulic ---
+    "demand_multiplier": ("hydraulic", "demand_multiplier")
+}
 
 
 def _as_wn(inp_or_wn) -> wntr.network.WaterNetworkModel:
@@ -15,14 +25,45 @@ def _as_wn(inp_or_wn) -> wntr.network.WaterNetworkModel:
         raise ValueError(f"Could not load water network model: {e}")
     
     
-def read_model_summary(inp_or_wn: Union[Path, wntr.network.WaterNetworkModel]) -> Dict[str, Any]:
+def read_model_summary(inp_or_wn: Path | wntr.network.WaterNetworkModel) -> Dict[str, Any]:
     wn = _as_wn(inp_or_wn)
     return wn.describe(level=1)
 
+def read_model_options(inp_or_wn: Path | wntr.network.WaterNetworkModel) -> Dict[str, Any]:
+    wn = _as_wn(inp_or_wn)   
+    
+    results = {}
+    for key, (group_name, option_name) in _OPTIONS_PATHS.items():
+        group = getattr(wn.options, group_name)
+        results[key] = getattr(group, option_name)
+        
+    return results
+
+def set_model_options(inp_or_wn: Path | wntr.network.WaterNetworkModel, 
+                      options: Dict[str, float],
+                      save_filename: str | Path) -> None:
+    
+    wn = _as_wn(inp_or_wn)
+    for key, value in options.items():
+        try:
+            group_name, option_name = _OPTIONS_PATHS[key]
+        except KeyError:
+            raise ValueError(f"Unsupported model option: {key!r}")
+
+        group = getattr(wn.options, group_name)
+        setattr(group, option_name, value)
+
+    wntr.network.write_inpfile(
+        wn,
+        str(save_filename)
+    )
+
 
 def read_water_network_model(
-    inp_or_wn: Union[Path, wntr.network.WaterNetworkModel]) -> Dict[str, Any]:
+    inp_or_wn: Path | wntr.network.WaterNetworkModel) -> Dict[str, Any]:
     wn = _as_wn(inp_or_wn)
+    
+    read_model_options(wn)
     
     # Read Nodes:
     node_id: List[str] = []
@@ -67,7 +108,7 @@ def read_water_network_model(
         if isinstance(node, wntr.network.elements.Junction):
             for pattern in node.demand_timeseries_list:
                 base_demand += pattern.base_value
-        node_demand.append(base_demand * 3600)
+        node_demand.append(base_demand * 3600)  # m3/h
     
     node_index = {nid: i for i, nid in enumerate(node_id)}
     

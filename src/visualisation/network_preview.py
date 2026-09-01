@@ -385,7 +385,7 @@ def make_hydraulic_timestep_figure(
     
     if not run_state:
         return make_empty_network_figure(
-            "Run a hydraulic simulation to view network results."
+            "Run a hydraulic simulation to view animated network results."
         )
         
     if not network_view_state:

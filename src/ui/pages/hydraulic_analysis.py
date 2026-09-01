@@ -138,8 +138,7 @@ def _create_setup_card():
                 html.H3("Simulation Options"),
                 html.P(
                     "Use INP settings by default. Enable overrides to run a scenario "
-                    "with modified timing, demand, or solver settings."
-                    "Override controls are currently placeholders and are not yet applied to the simulation."
+                    "with modified timing."
                 ),
                 dbc.Switch(
                     id=ids.HYD_OVERRIDE_OPTIONS,
@@ -171,7 +170,7 @@ def _create_setup_card():
                                     type="number",
                                     min=0,
                                     step=1,
-                                    value=60,
+                                    value=5,
                                     disabled=True
                                 )
                             ]

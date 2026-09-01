@@ -11,6 +11,7 @@ from src.ui import ids
 from src.ui.pages.hydraulic_analysis import render_active_model_summary, render_success_alert
 from src.services.hydraulic_runner import call_hydraulic_simulator
 from src.services.model_storage import resolve_uploaded_model
+from src.services.inp_model_reader import read_model_options, set_model_options
 from src.visualisation.network_preview import make_hydraulic_timestep_figure
 
 PLAY_STR  = "▶ Play"
@@ -40,15 +41,50 @@ def register_hydraulic_callbacks(app):
         return disabled, disabled
     
     @app.callback(
+    Output(ids.HYD_DURATION_HOURS, "value"),
+    Output(ids.HYD_TIMESTEP_MINUTES, "value"),
+    Input(ids.NETWORK_STORE, "data")
+    )
+    def render_simulation_options(
+        network_state
+    ):
+        if not network_state:
+            return no_update
+        
+        try:
+            inp_path = resolve_uploaded_model(
+                network_state["model_id"],
+                network_state["filename"]
+            )
+            options = read_model_options(inp_path)
+            duration_h = options["duration"] / 3600                     # seconds --> hours
+            hydraulic_timestep = options["hydraulic_timestep"] / 60     # seconds --> minutes
+            
+            return duration_h, hydraulic_timestep        
+        
+        except:
+            return no_update, no_update  
+    
+    @app.callback(
         Output(ids.HYD_RUN_STORE, "data"),
         Output(ids.HYD_RUN_STATUS, "children"),
         Input(ids.HYD_RUN_BUTTON, "n_clicks"),
         State(ids.NETWORK_STORE, "data"),
         State(ids.HYD_BACKEND, "value"),
+        State(ids.HYD_OVERRIDE_OPTIONS, "value"),
+        State(ids.HYD_DURATION_HOURS, "value"),
+        State(ids.HYD_TIMESTEP_MINUTES, "value"),
         prevent_initial_call=True)
-    def run_hydraulic_simulation(n_clicks, network_state, backend):
+    def run_hydraulic_simulation(
+        n_clicks,
+        network_state,
+        backend,
+        override_enabled,
+        duration,
+        hydraulic_timestep):
         if not n_clicks:
-            raise PreventUpdate
+            #raise PreventUpdate
+            return no_update, no_update
         
         if not network_state:
             #raise PreventUpdate
@@ -62,7 +98,16 @@ def register_hydraulic_callbacks(app):
             inp_path = resolve_uploaded_model(
                 network_state["model_id"],
                 network_state["filename"]
-            )   
+            )
+            
+            if override_enabled:
+                option_override = {
+                    "duration" : duration * 3600,                   # hours --> seconds
+                    "hydraulic_timestep" : hydraulic_timestep * 60  # minutes --> seconds
+                }
+                
+                set_model_options(inp_path, option_override, inp_path)
+                
         
             run_state = call_hydraulic_simulator(
                 inp_path,
