@@ -229,6 +229,7 @@ data/runs/*
 
 # Binaries
 src/bin/staci/*
+src/bin/backup/*
 !src/bin/staci/README.md
 
 .env

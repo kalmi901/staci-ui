@@ -283,18 +283,24 @@ def _make_link_traces(
 
 def make_node_preview_figure(
     network_view_state: Dict[str, Any],
-    node_color_by: str = "none", link_color_by: str = "none"
+    node_color_by: str = "none", 
+    link_color_by: str = "none",
+    node_cmin: float | None = None,
+    node_cmax: float | None = None,
+    link_cmin: float | None = None,
+    link_cmax: float | None = None
 ):
     # network-view-state---> model-data rename later
-    
     nodes = network_view_state.get("nodes", {})
     x = nodes.get("x", [])
     y = nodes.get("y", [])
     
-    node_id = nodes.get("id", [])
-    node_type = nodes.get("type", [])
-    elevation = nodes.get("elevation", [])
-    base_demand = nodes.get("base_demand", [])
+    node_ids = nodes.get("id", [])
+    node_values = pd.Series(data=nodes.get(node_color_by), index=node_ids)
+    
+    links = network_view_state.get("links", {})
+    link_ids = links.get("id", [])
+    link_values = pd.Series(data=links.get(link_color_by), index=link_ids)
     
     if not x or not y:
         return make_empty_network_figure("The loaded model has no node coordinates.")
@@ -307,95 +313,57 @@ def make_node_preview_figure(
     if not valid_idx:
         return make_empty_network_figure("The loaded model has no valid node coordinates.")
     
-    plot_x = [x[i] for i in valid_idx]
-    plot_y = [y[i] for i in valid_idx]
-    plot_id = [node_id[i] for i in valid_idx]
-    plot_type = [node_type[i] for i in valid_idx]
-    plot_elevation = [elevation[i] for i in valid_idx]
-    plot_demand = [base_demand[i] for i in valid_idx]
+    if (
+            node_cmin is not None
+            and node_cmax is not None
+            and node_cmin >= node_cmax):
+            return make_empty_network_figure(
+                "Node color minimum must be smaller than maximum."
+            )
     
-    hover_text = [
-        (
-            f"<b>{plot_id[i]}</b><br>"
-            f"Type: {plot_type[i]}<br>"
-            f"Elevation: {plot_elevation[i]}<br>"
-            f"Base demand: {plot_demand[i]}"
+    if (
+        link_cmin is not None
+        and link_cmax is not None
+        and link_cmin >= link_cmax):
+        return make_empty_network_figure(
+            "Link color minimum must be smaller than maximum."
         )
-        for i in range(len(plot_id))
-    ]
     
-    marker = {
-        "size": 5,
-        "opacity": 0.9,
-        "line": {"width": 0.5, "color": "white"},
-    }
-    
-    # TODO: node type!
-    if node_color_by == "elevation":
-        marker["color"] = plot_elevation
-        marker["colorscale"] = "Viridis"
-        marker["showscale"] = True
-        marker["colorbar"] = {"title": "Elevation"}
-    elif node_color_by == "demand":
-        marker["color"] = plot_demand
-        marker["colorscale"] = "Blues"
-        marker["showscale"] = True
-        marker["colorbar"] = {"title": "Demand"}
-    else:
-        marker["color"] = "#137fc4"
-        
-    
-    # TODO: add link color support
-    links = network_view_state.get("links", {})
-
-    link_x = []
-    link_y = []
-
-    start_indices = links.get("start_index", [])
-    end_indices = links.get("end_index", [])
-
-    for start_idx, end_idx in zip(start_indices, end_indices):
-        x0 = x[start_idx]
-        y0 = y[start_idx]
-        x1 = x[end_idx]
-        y1 = y[end_idx]
-
-        if None in (x0, y0, x1, y1):
-            continue
-
-        link_x.extend([x0, x1, None])
-        link_y.extend([y0, y1, None])
-        
         
     # ---  Drawing ----
-    fig = go.Figure()
-    if link_x and link_y:
-        fig.add_trace(
-            go.Scatter(
-                x=link_x,
-                y=link_y,
-                mode="lines",
-                line={
-                    "width": 1,
-                    "color": "rgba(36, 99, 140, 0.35)",
-                },
-                hoverinfo="skip",
-                name="Links",
-            )
-        )
-        
-    fig.add_trace(
-        go.Scatter(
-            x=plot_x,
-            y=plot_y,
-            mode="markers",
-            marker=marker,
-            text=hover_text,
-            hoverinfo="text",
-            name="Nodes",
-        )
+    node_trace = _make_node_trace(
+        nodes=nodes,
+        node_values=node_values,
+        node_attribute=node_color_by,
+        cmin=node_cmin,
+        cmax=node_cmax
     )
     
+    link_bin_edges = _make_link_bin_edges(
+        (link_cmin, link_cmax),
+        N_LINK_BINS
+    )
+    
+    link_traces = _make_link_traces(
+        nodes=nodes,
+        links=links,
+        link_values=link_values,
+        link_attribute=link_color_by,
+        bin_edges=link_bin_edges,
+        n_bins=N_LINK_BINS
+    )
+    
+    link_colorbar_trace = _make_link_colorbar_trace(
+            link_attribute=link_color_by,
+            cmin=link_cmin,
+            cmax=link_cmax
+        )
+    
+    traces =[*link_traces, node_trace]
+    if link_colorbar_trace is not None:
+        traces.append(link_colorbar_trace)
+    
+    fig = go.Figure(data=traces)
     fig.update_layout(**FIG_LAYOUT)
     
     return fig

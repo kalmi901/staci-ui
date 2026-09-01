@@ -32,7 +32,7 @@ def _create_preview_toolbar():
                             {"label": "None", "value" : "none"},
                             {"label": "Elevation", "value": "elevation"},
                             {"label": "Demand", "value": "demand"},
-                            {"label": "Type", "value": "type"}
+                            #{"label": "Type", "value": "type"}
                         ],
                         value="none",
                         clearable=False,
@@ -52,12 +52,66 @@ def _create_preview_toolbar():
                             {"label": "Length", "value": "length"},
                             {"label": "Diameters", "value": "diameter"},
                             {"label": "Roughness", "value": "roughness"},
-                            {"label": "Type", "value": "type"}
+                            #{"label": "Type", "value": "type"}
                         ],
                         value="none",
                         clearable=False,
                         persistence=True,
                         persistence_type="memory"
+                    )
+                ]
+            ),
+            html.Div(
+                className="plot-control color-range-inputs",
+                children=[
+                    dbc.Label("Node min / max"),
+                    html.Div(
+                        className="color-range-row",
+                        children=[
+                            dbc.Input(
+                                id=ids.NODE_COLOR_MIN,
+                                type="number",
+                                step="any",
+                                placeholder="node-min",
+                                persistence=True,
+                                persistence_type="memory"
+                            ),
+                            dbc.Input(
+                                id=ids.NODE_COLOR_MAX,
+                                type="number",
+                                step="any",
+                                placeholder="node-max",
+                                persistence=True,
+                                persistence_type="memory"
+                            )
+                        ]
+                    )
+                ]
+            ),
+            html.Div(
+                className="plot-control color-range-inputs",
+                children=[
+                    dbc.Label("Link min / max"),
+                    html.Div(
+                        className="color-range-row",
+                        children=[
+                            dbc.Input(
+                                id=ids.LINK_COLOR_MIN,
+                                type="number",
+                                step="any",
+                                placeholder="link-min",
+                                persistence=True,
+                                persistence_type="memory"
+                            ),
+                            dbc.Input(
+                                id=ids.LINK_COLOR_MAX,
+                                type="number",
+                                step="any",
+                                placeholder="link-max",
+                                persistence=True,
+                                persistence_type="memory"
+                            )
+                        ]
                     )
                 ]
             )
@@ -228,9 +282,9 @@ def create_layout():
                 ]
             ),
             # -- Property Inspector ---
-            dbc.Card(
-                className="app-card inspector-card",
-                children = [html.P("Property Inspector")]
-            )
+            #dbc.Card(
+            #    className="app-card inspector-card",
+            #    children = [html.P("Property Inspector")]
+            #)
         ]
     )

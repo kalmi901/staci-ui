@@ -16,6 +16,10 @@ LOAD_MODEL_STATUS = "load-model-status"
 NETWORK_GRAPH = "network-graph"
 NODE_COLOR_BY = "node-color-by"
 LINK_COLOR_BY = "link-color-by"
+NODE_COLOR_MIN = "node-color-min"
+NODE_COLOR_MAX = "node-color-max"
+LINK_COLOR_MIN = "link-color-min"
+LINK_COLOR_MAX = "link-color-max"
 
 # --- Hydraulic Analysis Page ---
 HYD_ACTIVE_MODEL_SUMMARY = "hyd-active-model-summary"

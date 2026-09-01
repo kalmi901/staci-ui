@@ -30,9 +30,7 @@ staci-ui/
 ├── LICENSE
 ├── .gitignore
 ├── .dockerignore
-│
 ├── assets/
-│
 ├── src/
 │   ├── bin/
 │   │   └── staci/
@@ -109,21 +107,7 @@ https://github.com/hoscsaba/staci
 
 This repository contains the user-interface and integration layer. STACI itself is a separate project and is **not covered by this repository's license**.
 
-For reproducible builds, deployment uses a pinned STACI revision rather than an unpinned `master` branch. The currently tested revision is `892e0a2a02c2ef0da944dfa138df74d39ed12f13`.
-
-## EPANET compatibility
-
-The current STACI integration and EPANET compatibility checks were tested against:
-`STACI commit 892e0a2a02c2ef0da944dfa138df74d39ed12f13`
-
-During validation with WNTR-generated EPANET input files, a few input-format
-compatibility differences were identified in this revision, including:
-
- - `HH:MM:SS` versus `HH:MM` formatting in `[TIMES]`
- - midnight representation as `00:00 AM` versus `12:00 AM`
- - `=` versus `IS` in the action branch of `[RULES]`
-
- After these formatting adjustments, the tested extended-period simulation reproduced the expected hydraulic behaviour well.
+For reproducible builds, deployment uses a pinned STACI revision rather than an unpinned `master` branch. The currently tested revision is `c52ec0424ed5e088a47c7e2a629216d777bab5c4`.
 
  ## Deployment
 

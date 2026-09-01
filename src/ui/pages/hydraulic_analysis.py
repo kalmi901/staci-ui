@@ -321,7 +321,7 @@ def _create_network_results_card():
                                     placeholder="link-max",
                                     persistence=True,
                                     persistence_type="memory"
-                                ),
+                                )
                             ]
                         )
                     ]

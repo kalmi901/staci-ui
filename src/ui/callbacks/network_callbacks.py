@@ -167,15 +167,77 @@ def register_network_callbacks(app):
             className="upload-alert",
         ) # pyright: ignore[reportCallIssue]
     
+    @app.callback(
+        Output(ids.NODE_COLOR_MIN, "value"),
+        Output(ids.NODE_COLOR_MAX, "value"),
+        Output(ids.NODE_COLOR_MIN, "disabled"),
+        Output(ids.NODE_COLOR_MAX, "disabled"),
+        Output(ids.LINK_COLOR_MIN, "value"),
+        Output(ids.LINK_COLOR_MAX, "value"),
+        Output(ids.LINK_COLOR_MIN, "disabled"),
+        Output(ids.LINK_COLOR_MAX, "disabled"),
+        Input(ids.NETWORK_VIEW_STORE, "data"),
+        Input(ids.NODE_COLOR_BY, "value"),
+        Input(ids.LINK_COLOR_BY, "value")
+    )
+    def sync_color_range(
+        network_view_state,
+        node_color_by,
+        link_color_by
+    ):
+        if not network_view_state:
+            return (
+                None, None, True, True,
+                None, None, True, True,
+            )
+
+        ranges = network_view_state.get("ranges", {})
+        def _get_range(attribute):
+            info = ranges.get(attribute, {})
+            vmin = info.get("min")
+            vmax = info.get("max")
+            disabled = vmin is None or vmax is None
+
+            return vmin, vmax, disabled, disabled
+        
+        node_values = _get_range(node_color_by)
+        link_values = _get_range(link_color_by)
+        
+        if ctx.triggered_id == ids.NODE_COLOR_BY:
+            return *node_values, no_update, no_update, no_update, no_update
+        
+        if ctx.triggered_id == ids.LINK_COLOR_BY:
+            return no_update, no_update, no_update, no_update, *link_values
+        
+        return *node_values, *link_values
+    
     
     @app.callback(
         Output(ids.NETWORK_GRAPH, "figure"),
         Input(ids.NETWORK_VIEW_STORE, "data"),
         Input(ids.NODE_COLOR_BY, "value"),
         Input(ids.LINK_COLOR_BY, "value"),
+        Input(ids.NODE_COLOR_MIN, "value"),
+        Input(ids.NODE_COLOR_MAX, "value"),
+        Input(ids.LINK_COLOR_MIN, "value"),
+        Input(ids.LINK_COLOR_MAX, "value")
     )
-    def render_network_grap(network_view_state, node_color_by, link_color_by):
+    def render_network_grap(
+        network_view_state, 
+        node_color_by, 
+        link_color_by,
+        node_cmin,
+        node_cmax,
+        link_cmin,
+        link_cmax):
         if not network_view_state:
             raise PreventUpdate
         
-        return make_node_preview_figure(network_view_state, node_color_by, link_color_by)
+        return make_node_preview_figure(
+            network_view_state, 
+            node_color_by, 
+            link_color_by,
+            node_cmin=node_cmin,
+            node_cmax=node_cmax,
+            link_cmin=link_cmin,
+            link_cmax=link_cmax)
