@@ -167,6 +167,7 @@ a {
 /* Shared analysis-page layout */
 
 .load-workspace,
+.partition-workspace,
 .hydro-workspace {
   display: grid;
   grid-template-columns: var(--workspace-left) var(--workspace-right);
@@ -356,9 +357,8 @@ a {
 
 .run-feedback-area .dash-loading {
   min-height: 54px;
+  margin-top: 12px
 }
-
-/* Legacy utility classes kept for older pages */
 
 
 

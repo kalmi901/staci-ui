@@ -23,7 +23,7 @@ class WntrCsvResults(EPSHydraulicResults):
     def __init__(self, run_state: Dict[str, Any]) -> None:
         self.run_state = run_state
         self.run_id = run_state["run_id"]
-        self.run_dir = resolve_run_dir(self.run_id)
+        self.run_dir = resolve_run_dir(self.run_id, "hydraulic")
         manifest_path = self.run_dir / "run.json"
         
         self.manifest = json.loads(

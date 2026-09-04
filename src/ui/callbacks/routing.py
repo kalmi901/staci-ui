@@ -7,6 +7,7 @@ from src.ui import ids
 from src.ui.pages import(
     home,
     network_load,
+    network_partitioning,
     hydraulic_analysis
 )
 
@@ -44,6 +45,8 @@ def register_routing_callbacks(app):
             return home.create_layout()
         elif pathname == "/network/load":
             return network_load.create_layout()
+        elif pathname == "/network/partitioning":
+            return network_partitioning.create_layout()
         elif pathname == "/analysis/hydraulic":
             return hydraulic_analysis.create_layout()
         elif pathname == "/analysis/quality":

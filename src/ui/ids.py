@@ -4,6 +4,7 @@ PAGE_CONTENT = "page-content"
 NETWORK_STORE = "network-store"
 NETWORK_VIEW_STORE = "network-view-store"
 HYD_RUN_STORE = "hyd-run-store"
+PART_RUN_STORE = "part-run-store"
 
 # --- Load Model Page ---
 UPLOAD_INP = "upload-inp"
@@ -20,6 +21,24 @@ NODE_COLOR_MIN = "node-color-min"
 NODE_COLOR_MAX = "node-color-max"
 LINK_COLOR_MIN = "link-color-min"
 LINK_COLOR_MAX = "link-color-max"
+
+# --- Partitioning Page ---
+PART_NETWORK_GRAPH = "partitioned-network-graph"
+PART_ACTIVE_MODEL_SUMMARY = "part-active-model-summary"
+PART_NCOMM = "part-ncomm"
+PART_OBJECTIVE = "part-objective"
+PART_WEIGHT_TYPE = "part-weight-type"
+PART_WEIGHT_MOD = "part-weight-mod"
+PART_POPSIZE = "part-popsize"
+PART_NGEN = "part-ngen"
+PART_PMUT = "part-pmut"
+PART_PCROSS = "part-pcross"
+PART_SEED = "part-seed"
+PART_RUN_BUTTON = "part-run-button"
+PART_RUN_STATUS = "part-run-status"
+PART_COMMUNITY_FILTER = "part-community-filter"
+PART_SHOW_BOUNDARY_LINKS="part-show-boundary-links"
+
 
 # --- Hydraulic Analysis Page ---
 HYD_ACTIVE_MODEL_SUMMARY = "hyd-active-model-summary"

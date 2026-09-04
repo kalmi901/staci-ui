@@ -12,6 +12,7 @@ def create_app_shell():
             dcc.Store(id=ids.NETWORK_STORE, storage_type="memory"),
             dcc.Store(id=ids.NETWORK_VIEW_STORE, storage_type="memory"),
             dcc.Store(id=ids.HYD_RUN_STORE, storage_type="memory"),
+            dcc.Store(id=ids.PART_RUN_STORE, storage_type="memory"),
             create_sidebar(),
             html.Main(id=ids.PAGE_CONTENT, className="page-content")
         ]

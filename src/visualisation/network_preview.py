@@ -4,7 +4,7 @@ import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
 
-from plotly.colors import sample_colorscale
+from plotly.colors import sample_colorscale, qualitative
 from src.results.hydraulic import open_eps_hydraulic_results
 
 FIG_LAYOUT = {
@@ -536,3 +536,225 @@ def make_hydraulic_timestep_figure(
     
     return fig
     
+    
+def make_partitioned_network_figure(
+    *, 
+    network_view_state: Dict[str, Any],
+    partition_state: Dict[str, Any],
+    selected_communities: list[str],
+    show_boundary_links: bool = False
+):
+    
+    if not partition_state:
+        return make_empty_network_figure(
+            "Run optimization to view network partitions."
+        )
+    
+    if not network_view_state:
+        return make_empty_network_figure(
+            "Build the network preview before plotting partitioning results."
+        )
+    
+    node_community = partition_state.get("node_community")
+
+    if not node_community:
+        return make_empty_network_figure(
+            "Partitioning result has no communities."
+        )
+    
+    nodes = network_view_state.get("nodes", {})
+    links = network_view_state.get("links", {})
+    
+    node_ids = nodes.get("id", {})
+    #link_ids = links.get("id", {})
+    
+    node_x = nodes.get("x", [])
+    node_y = nodes.get("y", [])
+    
+    start_nodes = links.get("start_node", [])
+    end_nodes   = links.get("end_node", [])
+    
+    # Community selection
+    # Empty selection means: show all communities
+    selected = {str(c) for c in selected_communities or []}
+    
+    def _is_visible(node_id: str) -> bool:
+        communitiy = node_community.get(node_id)
+        if communitiy is None:
+            return False
+        
+        return (
+            not selected or str(communitiy) in selected
+        )
+        
+    # --- Node lookup ---
+    node_positions = {
+        node_id: (x, y) for node_id, x, y in zip(node_ids, node_x, node_y)
+    }
+    
+    visible_node_ids = [
+        node_id for node_id in node_ids if _is_visible(node_id)
+    ]
+    
+    if not visible_node_ids:
+        return make_empty_network_figure(
+            "No nodes belong to the selected communities."
+        )
+    visible_nodes = set(visible_node_ids)
+    
+    # --- Links ---
+    # Only draw a ling of both endpoints are visible
+    link_x = []
+    link_y = []
+    boundary_x = []
+    boundary_y = []
+    
+    for start_node, end_node in zip(start_nodes, end_nodes):
+        if (start_node not in visible_nodes
+            or end_node not in visible_nodes):
+            # Non-visible linke
+            continue
+        # Visible link
+        start_pos = node_positions.get(start_node)
+        end_pos   = node_positions.get(end_node)
+        
+        if start_pos is None or end_pos is None:
+            continue
+        
+        x0, y0 = start_pos
+        x1, y1 = end_pos
+        
+        start_community = node_community.get(start_node)
+        end_community   = node_community.get(end_node)
+        
+        is_boundary = (
+            start_community is not None
+            and end_community is not None
+            and start_community != end_community
+        )
+        
+        if show_boundary_links and is_boundary:
+            boundary_x.extend([x0, x1, None])
+            boundary_y.extend([y0, y1, None])
+        else:
+            link_x.extend([x0, x1, None])
+            link_y.extend([y0, y1, None])
+        
+    link_trace = go.Scattergl(
+        x=link_x,
+        y=link_y,
+        mode="lines",
+        line={
+            "width": 1,
+            "color": LINK_BIN_COLORS[0],
+        },
+        hoverinfo="skip",
+        showlegend=False,
+    )
+    
+    boundary_trace = go.Scattergl(
+        x=boundary_x,
+        y=boundary_y,
+        mode="lines",
+        line={
+            "width" : 3,
+            "color" : "red"
+        },
+        hoverinfo="skip",
+        name="Boundary links",
+        showlegend=show_boundary_links,
+    )
+    
+    community_ids = sorted({
+        node_community[node_id] for node_id in visible_node_ids
+    })
+    
+    community_to_color_index = {
+        community_id: i
+        for i, community_id in enumerate(community_ids)
+    }
+
+    node_colors = [
+        community_to_color_index[node_community[node_id]]
+        for node_id in visible_node_ids
+    ]
+
+    node_hover = [
+        (
+            f"<b>{node_id}</b>"
+            f"<br>Community: {node_community[node_id]}"
+        )
+        for node_id in visible_node_ids
+    ]
+    
+    palette = qualitative.Plotly
+
+    colorscale = []
+
+    n_colors = len(community_ids)
+
+    for i in range(n_colors):
+        color = palette[i % len(palette)]
+
+        lo = i / n_colors
+        hi = (i + 1) / n_colors
+
+        colorscale.extend([
+            [lo, color],
+            [hi, color],
+        ])
+
+    node_trace = go.Scattergl(
+        x=[
+            node_positions[node_id][0]
+            for node_id in visible_node_ids
+        ],
+        y=[
+            node_positions[node_id][1]
+            for node_id in visible_node_ids
+        ],
+        mode="markers",
+        customdata=visible_node_ids,
+        hovertext=node_hover,
+        hoverinfo="text",
+        marker={
+            "size": 5,
+            "color": node_colors,
+            "colorscale": colorscale,
+            "cmin": -0.5,
+            "cmax": n_colors - 0.5,
+            "showscale": True,
+            "colorbar": {
+                "title": "Community",
+                "x" : 1.02,
+                "y" : 0.24,
+                "len" : 0.38,
+                "thickness" : 12,
+                "tickmode": "array",
+                "tickvals": list(range(n_colors)),
+                "ticktext": [
+                    str(community_id)
+                    for community_id in community_ids
+                ],
+            },
+        },
+        showlegend=False,
+    )
+    
+    fig = go.Figure(
+        data=[link_trace, boundary_trace, node_trace]
+    )
+    
+    fig.update_layout(
+        **FIG_LAYOUT,
+        uirevision=partition_state.get(
+            "run_id", "partition-run"),
+        legend={
+            "x" : 0.05,
+            "y" : 0.94,
+            "xanchor": "left",
+            "yanchor": "top"
+        }
+    )
+    
+    return fig

@@ -11,6 +11,8 @@ from src.config import (
     STACI_TIMEOUT_SECONDS
     )
 
+from src.staci.runtime import _stream_to_text
+
 @dataclass
 class StaciEPSResults:
     returncode: int
@@ -20,14 +22,6 @@ class StaciEPSResults:
     stdout_path: Path
     stderr_path: Path
     meta: Dict[str, Any]
-
-
-def _stream_to_text(value: str | bytes | None) -> str:
-    if value is None:
-        return ""
-    if isinstance(value, bytes):
-        return value.decode("utf-8", errors="replace")
-    return value
 
     
 def run_staci_eps(

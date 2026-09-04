@@ -259,7 +259,7 @@ def call_hydraulic_simulator(
         raise FileNotFoundError(f"INP file does not exist: {inp_path}")
     
     run_id = uuid.uuid4().hex[:12]
-    run_dir = Path(RUN_ROOT) / run_id
+    run_dir = Path(RUN_ROOT) / "hydraulic" / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
     
     run_inp_path = inp_path

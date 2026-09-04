@@ -1,14 +1,11 @@
 from __future__ import annotations
-from datetime import datetime, timezone
-from pathlib import Path
-
 from dash import Input, Output, State, no_update, ctx
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 
-from src.config import UPLOAD_ROOT
 from src.ui import ids
-from src.ui.pages.hydraulic_analysis import render_active_model_summary, render_success_alert
+from src.ui.pages.components import render_active_model_summary
+from src.ui.pages.hydraulic_analysis import render_success_alert
 from src.services.hydraulic_runner import call_hydraulic_simulator
 from src.services.model_storage import resolve_uploaded_model
 from src.services.inp_model_reader import read_model_options
@@ -83,8 +80,7 @@ def register_hydraulic_callbacks(app):
         duration,
         hydraulic_timestep):
         if not n_clicks:
-            #raise PreventUpdate
-            return no_update, no_update
+            raise PreventUpdate
         
         if not network_state:
             #raise PreventUpdate

@@ -29,6 +29,7 @@ def create_sidebar():
             html.Hr(className="sidebar-separator"),
             html.Div("Water Network", className="sidebar-section-title"),
             nav_link("Load Model", "/network/load", "📁"),
+            nav_link("Partitioning", "/network/partitioning", "🧩"),
             html.Div("Analysis", className="sidebar-section-title sidebar-section-spaced"),
             nav_link("Hydraulic", "/analysis/hydraulic", "💧"),
             nav_link("Quality", "/analysis/quality", "🧪"),

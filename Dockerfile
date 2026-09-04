@@ -13,6 +13,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     libsuitesparse-dev \
     libhdf5-dev \
+    libpagmo-dev \
+    libeigen3-dev \
+    libigraph-dev \
+    libarpack2-dev \
+    libglpk-dev \
+    libplfit-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
@@ -25,13 +31,17 @@ RUN cmake \
         -S /build/staci \
         -B /build/staci/build \
         -DCMAKE_BUILD_TYPE=Release \
-        -DSTACI_BUILD_OPTIMIZERS=OFF \
+        -DSTACI_BUILD_OPTIMIZERS=ON \
         -DSTACI_ENABLE_HDF5=ON \
         -DBUILD_TESTING=OFF \
-    && cmake --build /build/staci/build --parallel 2
+    && cmake --build /build/staci/build \
+        --target staci staci_split \
+        --parallel 1 \
+        --verbose
 
 
-RUN test -x /build/staci/build/staci
+RUN test -x /build/staci/build/staci \
+    && test -x /build/staci/build/staci_split
 
 # ----------------------
 # Stage 2: APP RUNTIME
@@ -39,8 +49,13 @@ RUN test -x /build/staci/build/staci
 FROM python:3.13-slim-bookworm AS runtime
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libsuitesparse-dev \
-    libhdf5-dev \
+    libumfpack5 \
+    libhdf5-103-1 \
+    libpagmo8 \
+    libigraph3 \
+    libarpack2 \
+    libglpk40 \
+    libplfit0 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /opt/staci
@@ -49,7 +64,18 @@ COPY --from=staci-builder \
     /build/staci/build/staci \
     /opt/staci/staci
 
-RUN test -x /opt/staci/staci
+COPY --from=staci-builder \
+    /build/staci/build/staci_split \
+    /opt/staci/staci_split
+
+RUN test -x /opt/staci/staci \
+    && test -x /opt/staci/staci_split
+
+# Fail the Docke build immedieately if a shared library is missing
+RUN ldd /opt/staci/staci \
+    && ! ldd /opt/staci/staci | grep "not found" \
+    && ldd /opt/staci/staci_split \
+    && ! ldd /opt/staci/staci_split | grep "not found"
 
 # Python application dependecies
 WORKDIR /app
@@ -66,6 +92,7 @@ COPY assets ./assets
 
 # Runtime configuration
 ENV STACI_EXECUTABLE=/opt/staci/staci
+ENV STACI_SPLIT_EXECUTABLE=/opt/staci/staci_split
 ENV STACI_UI_DATA_DIR=/data
 ENV PORT=8050
 ENV DASH_DEBUG=0

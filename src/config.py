@@ -47,11 +47,17 @@ UPLOAD_ROOT = DATA_ROOT / "uploads"
 RUN_ROOT    = DATA_ROOT / "runs"
 
 _staci_executable = os.getenv("STACI_EXECUTABLE")
+_staci_split_executable = os.getenv("STACI_SPLIT_EXECUTABLE")
 
 STACI_EXECUTABLE = (
     Path(_staci_executable).expanduser().resolve() 
     if _staci_executable
-    else default_staci_executable())
+    else default_staci_executable("staci"))
+
+STACI_SPLIT_EXECUTABLE = (
+    Path(_staci_split_executable).expanduser().resolve()
+    if _staci_split_executable
+    else default_staci_executable("staci_split"))
 
 STACI_TIMEOUT_SECONDS = int(
     os.getenv("STACI_TIMEOUT_SECONDS", "300")
