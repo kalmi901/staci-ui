@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 import json
 from functools import cached_property
-from pathlib import Path
 from typing import Dict, Any
 
 from src.results.hydraulic.base import EPSHydraulicResults, ResultType

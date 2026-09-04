@@ -11,6 +11,9 @@ from src.services.model_storage import resolve_uploaded_model
 from src.services.inp_model_reader import read_model_options
 from src.visualisation.network_preview import make_hydraulic_timestep_figure
 
+import logging
+logger = logging.getLogger(__name__)
+
 PLAY_STR  = "▶ Play"
 PAUSE_STR = "⏸ Pause"
 
@@ -112,14 +115,32 @@ def register_hydraulic_callbacks(app):
                     "hydraulic_timestep" : hydraulic_timestep * 60  # minutes --> seconds
                 }
         
+            logger.info(
+                "Hydraulic simulation started: model_id=%s, backend=%s",
+                network_state.get("model_id"),
+                backend
+            )
+        
             run_state = call_hydraulic_simulator(
                 inp_path,
-                model_id=network_state.get("model_id"),
+                model_id=network_state.get("model_id", ""),
                 backend=backend,
                 option_overrides=option_overrides
             )
+            
+            logger.info(
+                "Hydraulis simulation finished: model_id=%s, run_id=%s, backend=%s",
+                run_state.get("model_id", ""),
+                run_state.get("run_id", ""),
+                run_state.get("backend", "")
+            )
+            
         except Exception as exc:
-            return no_update, dbc.Alert(
+            logger.exception(
+                "Hydraulic simulation faled: model_id=%s",
+                network_state.get("model_id", "")
+            )
+            return None, dbc.Alert(
                 f"Hydraulic simulation failed: {exc}",
                 color="danger",
                 className="upload-alert",
@@ -224,7 +245,7 @@ def register_hydraulic_callbacks(app):
         run_state,
         node_result,
         link_result
-    ):
+    ):       
         if not run_state or run_state.get("status") != "success":
             return (
                 None, None, True, True,

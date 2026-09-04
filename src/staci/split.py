@@ -80,7 +80,7 @@ def run_staci_split(
     inp_path: Path,
     staci_split_settings_xml: Path,
     seed: int = 1
-):
+) -> StaciSplitResults:
     if not STACI_SPLIT_EXECUTABLE.exists():
         raise FileNotFoundError(
             f"STACI_SPLIT executable not found: {STACI_SPLIT_EXECUTABLE}"
@@ -115,7 +115,7 @@ def run_staci_split(
     try:
         result = subprocess.run(
             command,
-            cwd=inp_path.parent,
+            cwd=run_dir,
             capture_output=True,
             text=True,
             errors="replace",
@@ -128,7 +128,7 @@ def run_staci_split(
         stdout_path.write_text( _stream_to_text(exc.stdout), encoding="utf-8")
         stderr_path.write_text( _stream_to_text(exc.stderr), encoding="utf-8")
         raise TimeoutError(
-            f"STACI EPS exceeded the "
+            f"STACI Split exceeded the "
             f"{STACI_TIMEOUT_SECONDS} s timeout."
         ) from exc
         

@@ -130,6 +130,13 @@ def read_water_network_model(
     valid_length   = [x for x in link_length if x != 0]
     valid_roughness= [x for x in link_roughness if x != 0]    
     
+    def _range(values, unit):
+        return {
+            "unit" : unit,
+            "min"  : min(values) if values else None,
+            "max"  : max(values) if values else None
+        }
+    
     return {
         "nodes": {
             "id"            : node_id,
@@ -153,8 +160,8 @@ def read_water_network_model(
         "ranges": {
             "elevation" : {"unit" : "m", "min": min(node_elevation),"max": max(node_elevation)},
             "demand"    : {"unit": "m^3/h", "min": min(node_demand),"max": max(node_demand)},
-            "diameter"  : {"unit": "m", "min": min(valid_diameter), "max": max(valid_diameter)},
-            "length"    : {"unit": "m", "min": min(valid_length),   "max": max(valid_length)},
-            "roughness" : {"unit": None, "min" : min(valid_roughness),"max" : max(valid_roughness)}
+            "diameter"  : _range(valid_diameter, "m"),
+            "length"    : _range(valid_length, "m"),
+            "roughness" : _range(valid_roughness, None)
         }}
     

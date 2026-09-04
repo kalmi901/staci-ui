@@ -9,6 +9,7 @@ import uuid
 import pandas as pd
 import numpy as np
 import wntr
+import shutil
 
 from src.staci.eps import run_staci_eps
 from src.services.inp_model_reader import set_model_options
@@ -261,14 +262,16 @@ def call_hydraulic_simulator(
     run_id = uuid.uuid4().hex[:12]
     run_dir = Path(RUN_ROOT) / "hydraulic" / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
-    
-    run_inp_path = inp_path
+      
     
     if option_overrides:
         run_inp_path = run_dir / "input.inp"
         set_model_options(
             inp_path, option_overrides, run_inp_path
         )
+    else:
+        run_inp_path = run_dir / "input.inp"
+        shutil.copy2(inp_path, run_inp_path)
     
     if backend == "wntr":
         return run_wntr(run_inp_path, model_id, run_id, run_dir)

@@ -189,16 +189,27 @@ def _make_node_trace(
         plot_y.append(y)
         plot_color.append(value)
 
-        hover_text.append(
-            f"<b>{node_id}</b><br>"
-            f"Type: {node_type}<br>"
-            f"{node_attribute}: {_format_value(value)}"
-        )
+        if node_attribute == "none":
+            hover_text.append(
+                f"<b>{node_id}</b><br>"
+                f"Type: {node_type}<br>"
+            )
+        else:
+            hover_text.append(
+                f"<b>{node_id}</b><br>"
+                f"Type: {node_type}<br>"
+                f"{node_attribute}: {_format_value(value)}"
+            )
 
-    return go.Scattergl(
-        x=plot_x,
-        y=plot_y,
-        mode="markers",
+    if node_attribute == "none":
+        marker = {
+            "size" : 5,
+            "opacity" : 0.9,
+            "color" : "#104dc7",
+            "line": {"width" : 0.5, "color" : "white"}
+        }
+        
+    else:
         marker={
             "size" : 5,
             "opacity" : 0.9,
@@ -215,7 +226,13 @@ def _make_node_trace(
                 "thickness" : 12
             },
             "line" : {"width": 0.5, "color": "white"}
-        },
+        }
+
+    return go.Scattergl(
+        x=plot_x,
+        y=plot_y,
+        mode="markers",
+        marker=marker,
         text=hover_text,
         hoverinfo="text",
         name="Nodes",
@@ -238,6 +255,9 @@ def _make_link_traces(
     start_indices = links.get("start_index", [])
     end_indices = links.get("end_index", [])
     
+    missing_x = []
+    missing_y = []
+    
     bin_x = [[] for _ in range(n_bins)]
     bin_y = [[] for _ in range(n_bins)]
 
@@ -259,20 +279,30 @@ def _make_link_traces(
         if None in (x0, y0, x1, y1):
             continue
         
-        bin_id = 0
-        if link_values is not None and link_id in link_values.index:
-            value = link_values[link_id]
-
-            if pd.notna(value) and bin_edges is not None:
-                bin_id = int(
-                    np.searchsorted(
-                        bin_edges,
-                        float(value),
-                        side="right",
-                    )
-                    - 1
+        if link_values is None or link_id not in link_values.index:
+            missing_x.extend([x0, x1, None])
+            missing_y.extend([y0, y1, None])
+            continue
+        
+        value = link_values[link_id]
+    
+        if pd.isna(value):
+            missing_x.extend([x0, x1, None])
+            missing_y.extend([y0, y1, None])
+            continue
+        
+        if bin_edges is None:
+            bin_id = 0
+        else:
+            bin_id = int(
+                np.searchsorted(
+                    bin_edges,
+                    float(value),
+                    side="right",
                 )
-                bin_id = max(0, min(n_bins - 1, bin_id))
+                - 1
+            )
+            bin_id = max(0, min(n_bins - 1, bin_id))
 
         bin_x[bin_id].extend([x0, x1, None])
         bin_y[bin_id].extend([y0, y1, None])
@@ -294,6 +324,22 @@ def _make_link_traces(
                 showlegend=False,
             )
         )
+        
+    if missing_x:
+        traces.insert(
+            0,
+            go.Scattergl(
+                x=missing_x,
+                y=missing_y,
+                mode="lines",
+                line={
+                    "width":1,
+                    "color" : "#343841"
+                },
+                hoverinfo="skip",
+                showlegend=False
+            )
+        )
 
     return traces        
                 
@@ -308,6 +354,8 @@ def make_node_preview_figure(
     link_cmax: float | None = None
 ):
     # network-view-state---> model-data rename later
+    if not network_view_state:
+        return make_empty_network_figure()
     nodes = network_view_state.get("nodes", {})
     x = nodes.get("x", [])
     y = nodes.get("y", [])
@@ -414,6 +462,13 @@ def make_hydraulic_timestep_figure(
     if not network_view_state:
         return make_empty_network_figure(
             "Build the network preview before plotting hydraulic results."
+        )
+    
+    if (run_state.get("model_id") 
+        and network_view_state.get("model_id")
+        and run_state["model_id"] != network_view_state["model_id"]):
+        return make_empty_network_figure(
+            "Hydraulic results belong to a different network model."
         )
     
     results = open_eps_hydraulic_results(run_state)
@@ -555,6 +610,13 @@ def make_partitioned_network_figure(
             "Build the network preview before plotting partitioning results."
         )
     
+    if (partition_state.get("model_id")
+        and network_view_state.get("model_id")
+        and partition_state["model_id"] != network_view_state["model_id"]):
+        return make_empty_network_figure(
+            "Partitioning results belong to a different network model."
+        )
+    
     node_community = partition_state.get("node_community")
 
     if not node_community:
@@ -565,8 +627,7 @@ def make_partitioned_network_figure(
     nodes = network_view_state.get("nodes", {})
     links = network_view_state.get("links", {})
     
-    node_ids = nodes.get("id", {})
-    #link_ids = links.get("id", {})
+    node_ids = nodes.get("id", [])
     
     node_x = nodes.get("x", [])
     node_y = nodes.get("y", [])
@@ -664,10 +725,8 @@ def make_partitioned_network_figure(
         name="Boundary links",
         showlegend=show_boundary_links,
     )
-    
-    community_ids = sorted({
-        node_community[node_id] for node_id in visible_node_ids
-    })
+        
+    community_ids = sorted(set(node_community.values()))
     
     community_to_color_index = {
         community_id: i

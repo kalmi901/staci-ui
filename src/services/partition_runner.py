@@ -99,7 +99,8 @@ def call_staci_split_service(
     inp_path: Path | str,
     *,
     model_id: str,
-    optimizer_settings: Dict[str, Any] | None = None
+    optimizer_settings: Dict[str, Any] | None = None,
+    seed: int = 12345,
 ) -> Dict[str, Any]:
     
     inp_path = Path(inp_path)
@@ -125,7 +126,7 @@ def call_staci_split_service(
     split_results = run_staci_split(
         run_inp,
         settings_path,
-        seed=12345
+        seed=seed
     )
     
     if not split_results.success or not split_results.membership_path:

@@ -16,6 +16,8 @@ from src.ui.pages.network_load import render_model_summary
 from src.visualisation.network_preview import make_node_preview_figure
 from src.config import UPLOAD_ROOT
 
+import logging
+logger = logging.getLogger(__name__)
 
 def _safe_filename(filename: str) -> str:
     name = Path(filename or "network.inp").name
@@ -52,6 +54,7 @@ def register_network_callbacks(app):
         Output(ids.NETWORK_STORE, "data"),
         Output(ids.UPLOAD_STATUS, "children"),
         Output(ids.HYD_RUN_STORE, "data", allow_duplicate=True),
+        Output(ids.PART_RUN_STORE, "data", allow_duplicate=True),
         Input(ids.UPLOAD_INP, "contents"),
         State(ids.UPLOAD_INP, "filename"),
         State(ids.NETWORK_STORE, "data"),
@@ -70,32 +73,40 @@ def register_network_callbacks(app):
         
         if not filename or not filename.lower().endswith(".inp"):
             return (
-                no_update, 
+                None, 
                 dbc.Alert(
                     "Please upload an EPANET .inp file.",
                     color="warning",
                     className="upload-alert"
                 ), # pyright: ignore[reportCallIssue]
-                no_update
+                no_update, no_update
                 )
         try:
             file_bytes = _decode_upload(contents)
             saved = _save_uploaded_file(filename, file_bytes)
         except Exception as exc:
-                return(
-                    no_update,
-                    dbc.Alert(
-                        f"Upload failed: {exc}",
-                        color="danger",
-                        className="upload-alert",
-                    ), # pyright: ignore[reportCallIssue]
-                    no_update
-                )
+            logger.exception(
+                "Model upload failed: filename=%s",
+                filename
+            )
+            return(
+                None,
+                dbc.Alert(
+                    f"Upload failed: {exc}",
+                    color="danger",
+                    className="upload-alert",
+                ), # pyright: ignore[reportCallIssue]
+                no_update, no_update
+            )
         
         summary = {}
         try:
             summary = read_model_summary(saved["path"])
         except Exception as e:
+            logger.exception(
+                "Model load failed: filename=%s",
+                filename
+            )
             return (
                 no_update, 
                 dbc.Alert(
@@ -103,7 +114,7 @@ def register_network_callbacks(app):
                     color="danger",
                     className="upload-alert",
                 ), # pyright: ignore[reportCallIssue]
-                no_update
+                no_update, no_update
             )
         network_state = {
             "model_id" : saved["model_id"],
@@ -117,6 +128,12 @@ def register_network_callbacks(app):
             },
             "summary" : summary
         }
+        logger.info(
+            "Model uploaded: model_id=%s filename=%s size=%d",
+            saved["model_id"],
+            saved["filename"],
+            saved["size_bytes"]
+        )
    
         return (
             network_state, 
@@ -125,8 +142,9 @@ def register_network_callbacks(app):
                 color="success",
                 className="upload-alert",
             ),  # pyright: ignore[reportCallIssue]
-            None # invalidate previous hydraulic run
-            )
+            None, # invalidate previous hydraulic run
+            None, # invalidate previous partition run
+        )
             
     @app.callback(
         Output(ids.ACTIVE_MODEL_SUMMARY, "children"),
@@ -147,15 +165,17 @@ def register_network_callbacks(app):
     )
     def load_model_view(network_state):
         if not network_state:
-            raise PreventUpdate
+            return None, None
             
         try:
             inp_path = resolve_uploaded_model(
             network_state["model_id"],
             network_state["filename"])
             model_data = read_water_network_model(inp_path)
+            model_data["model_id"] = network_state["model_id"]
+            model_data["filename"] = network_state["filename"]
         except Exception as exc:
-            return no_update, dbc.Alert(
+            return None, dbc.Alert(
             f"Model load failed: {exc}",
             color="danger",
             className="upload-alert",
@@ -230,8 +250,8 @@ def register_network_callbacks(app):
         node_cmax,
         link_cmin,
         link_cmax):
-        if not network_view_state:
-            raise PreventUpdate
+        #if not network_view_state:
+        #    raise PreventUpdate
         
         return make_node_preview_figure(
             network_view_state, 

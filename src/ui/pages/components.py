@@ -2,9 +2,8 @@
 # pyright: reportCallIssue=false
 # Collection of common UI components
 from __future__ import annotations
-from dash import dcc, html
+from dash import html
 import dash_bootstrap_components as dbc
-from typing import Dict, Any
 
 
 def render_active_model_summary(network_state):

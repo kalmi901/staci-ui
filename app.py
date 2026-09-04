@@ -1,4 +1,5 @@
 import os
+import logging
 import dash_bootstrap_components as dbc
 from dash import Dash
 from dash_auth import BasicAuth
@@ -11,6 +12,13 @@ from src.config import (
     DASH_USER,
     DASH_PASSWORD,
     PORT
+)
+
+logging.basicConfig(
+    level=logging.DEBUG if DASH_DEBUG else logging.INFO,
+    format=(
+        "%(asctime)s | %(levelname)-8s | "
+        "%(name)s | %(message)s")
 )
 
 def create_app() -> Dash:

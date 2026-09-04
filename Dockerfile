@@ -94,6 +94,7 @@ COPY assets ./assets
 ENV STACI_EXECUTABLE=/opt/staci/staci
 ENV STACI_SPLIT_EXECUTABLE=/opt/staci/staci_split
 ENV STACI_UI_DATA_DIR=/data
+ENV STACU_UI_ENV=production
 ENV PORT=8050
 ENV DASH_DEBUG=0
 
@@ -101,4 +102,6 @@ RUN mkdir -p /data/uploads /data/runs
 
 EXPOSE 8050
 
-CMD ["gunicorn", "--bind", "0.0.0.0:8050", "--worker-class", "gthread", "--workers", "1", "--threads", "4", "--timeout", "600", "app:server"]
+#CMD ["gunicorn", "--bind", "0.0.0.0:8050", "--worker-class", "gthread", "--workers", "1", "--threads", "4", "--timeout", "600", "app:server"]
+
+CMD ["sh", "-c", "exec gunicorn --bind 0.0.0.0:${PORT} --worker-class gthread --workers 1 --threads 4 --timeout 600 app:server"]

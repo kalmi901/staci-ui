@@ -10,7 +10,6 @@ PART_RUN_STORE = "part-run-store"
 UPLOAD_INP = "upload-inp"
 UPLOAD_STATUS = "upload-status"
 ACTIVE_MODEL_SUMMARY = "active-model-summary"
-LOAD_MODEL_BUTTON = "load-model-button"
 LOAD_MODEL_STATUS = "load-model-status"
 
 # Network Preview
@@ -58,15 +57,12 @@ HYD_LINK_RESULT = "hyd-link-result"
 
 # Animation / Timestep Controls
 HYD_TIME_SLIDER = "hyd-time-slider"
-HYD_TIME_LABEL  = "hyd-time-label"
 HYD_PLAY_BUTTON = "hyd-play-button"
 HYD_ANIMATION_INTERVAL = "hyd-animation-interval"
 
 # Node Color Range
-HYD_NODE_COLOR_AUTO = "hyd-node-color-auto"
 HYD_NODE_COLOR_MIN = "hyd-node-color-min"
 HYD_NODE_COLOR_MAX = "hyd-node-color-max"
 
-HYD_LINK_COLOR_AUTO = "hyd-link-color-auto"
 HYD_LINK_COLOR_MIN = "hyd-link-color-min"
 HYD_LINK_COLOR_MAX = "hyd-link-color-max"

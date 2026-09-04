@@ -11,19 +11,27 @@ from src.visualisation.network_preview import make_empty_network_figure
 
 def render_success_alert(run_state: Dict[str, Any]):
     summary = run_state.get("summary", {})
+    failed_frames = int(run_state.get("failed_frames", 0) or 0)
     #pressure = summary.get("pressures", {})
     #flowrate = summary.get("flowrater", {})
     
     return dbc.Alert(
         children=[
-            html.Div("Hydraulic simulation finished.", style={"fontWeight": 800}),
+            html.Div(
+                "Hydraulic simulation finished with warnings." 
+                if failed_frames
+                else "Hydraulic simulation finished.", style={"fontWeight": 800}),
             html.Div(
                 f"Run ID: {run_state.get('run_id', '—')} · "
                 f"Backend: {run_state.get("backend", '—')} · "
                 f"Time steps: {summary.get('n_steps', '—')} · "
-            )
+            ),
+            html.Div(
+                f"{failed_frames} time step(s) did not converge.",
+                className="mt-1"
+            ) if failed_frames else None,
         ],
-        color="success",
+        color="warning" if failed_frames else "success",
         className="upload-alert"
     )
 

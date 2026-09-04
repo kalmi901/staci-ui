@@ -393,6 +393,7 @@ a {
 
 @media (max-width: 1100px) {
   .load-workspace,
+  .partition-workspace,
   .hydro-workspace {
     grid-template-columns: 1fr;
   }

@@ -197,7 +197,7 @@ def _create_setup_card():
                 dbc.Input(
                     id=ids.PART_POPSIZE,
                     type="number",
-                    value="20",
+                    value=20,
                     min=2,
                     step=1
                 ),
