@@ -11,7 +11,7 @@ from src.visualisation.network_preview import make_empty_network_figure
 
 def render_success_alert(run_state: Dict[str, Any]):
     summary = run_state.get("summary", {})
-    failed_frames = int(run_state.get("failed_frames", 0) or 0)
+    failed_frames = int(summary.get("failed_frames", 0) or 0)
     #pressure = summary.get("pressures", {})
     #flowrate = summary.get("flowrater", {})
     

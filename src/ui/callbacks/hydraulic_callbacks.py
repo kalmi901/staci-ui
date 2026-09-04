@@ -49,7 +49,7 @@ def register_hydraulic_callbacks(app):
         network_state
     ):
         if not network_state:
-            return no_update, no_update
+            return None, None
         
         try:
             inp_path = resolve_uploaded_model(
@@ -63,7 +63,11 @@ def register_hydraulic_callbacks(app):
             return duration_h, hydraulic_timestep        
         
         except Exception:
-            return no_update, no_update  
+            logger.exception(
+                "Failed to read hydraulic options: model_id=%s",
+                network_state.get("model_id", ""),
+            )
+            return None, None  
     
     @app.callback(
         Output(ids.HYD_RUN_STORE, "data"),
@@ -87,7 +91,7 @@ def register_hydraulic_callbacks(app):
         
         if not network_state:
             #raise PreventUpdate
-            return no_update, dbc.Alert(
+            return None, dbc.Alert(
                 "No active INP file. Upload a model first",
                 color="warning",
                 className="upload-alert"
@@ -129,7 +133,7 @@ def register_hydraulic_callbacks(app):
             )
             
             logger.info(
-                "Hydraulis simulation finished: model_id=%s, run_id=%s, backend=%s",
+                "Hydraulic simulation finished: model_id=%s, run_id=%s, backend=%s",
                 run_state.get("model_id", ""),
                 run_state.get("run_id", ""),
                 run_state.get("backend", "")
@@ -137,7 +141,7 @@ def register_hydraulic_callbacks(app):
             
         except Exception as exc:
             logger.exception(
-                "Hydraulic simulation faled: model_id=%s",
+                "Hydraulic simulation failed: model_id=%s",
                 network_state.get("model_id", "")
             )
             return None, dbc.Alert(

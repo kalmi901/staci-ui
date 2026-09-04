@@ -1,4 +1,3 @@
-import os
 import logging
 import dash_bootstrap_components as dbc
 from dash import Dash

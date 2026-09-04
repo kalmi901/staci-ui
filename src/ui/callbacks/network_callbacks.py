@@ -79,7 +79,7 @@ def register_network_callbacks(app):
                     color="warning",
                     className="upload-alert"
                 ), # pyright: ignore[reportCallIssue]
-                no_update, no_update
+                None, None
                 )
         try:
             file_bytes = _decode_upload(contents)
@@ -96,7 +96,7 @@ def register_network_callbacks(app):
                     color="danger",
                     className="upload-alert",
                 ), # pyright: ignore[reportCallIssue]
-                no_update, no_update
+                None, None
             )
         
         summary = {}
@@ -108,13 +108,13 @@ def register_network_callbacks(app):
                 filename
             )
             return (
-                no_update, 
+                None, 
                 dbc.Alert(
                     f"Model load failed: {e}",
                     color="danger",
                     className="upload-alert",
                 ), # pyright: ignore[reportCallIssue]
-                no_update, no_update
+                None, None
             )
         network_state = {
             "model_id" : saved["model_id"],
@@ -175,17 +175,22 @@ def register_network_callbacks(app):
             model_data["model_id"] = network_state["model_id"]
             model_data["filename"] = network_state["filename"]
         except Exception as exc:
+            logger.exception(
+                "Network view build failed: model_id=%s filename=%s",
+                network_state.get("model_id", ""),
+                network_state.get("filename", "")
+            )
             return None, dbc.Alert(
-            f"Model load failed: {exc}",
-            color="danger",
-            className="upload-alert",
-        )  # pyright: ignore[reportCallIssue]
+                f"Model load failed: {exc}",
+                color="danger",
+                className="upload-alert",
+                )  # pyright: ignore[reportCallIssue]
             
         return model_data, dbc.Alert(
-            f"Loaded model data from {network_state['filename']}.",
-            color="success",
-            className="upload-alert",
-        ) # pyright: ignore[reportCallIssue]
+                f"Loaded model data from {network_state['filename']}.",
+                color="success",
+                className="upload-alert",
+                ) # pyright: ignore[reportCallIssue]
     
     @app.callback(
         Output(ids.NODE_COLOR_MIN, "value"),

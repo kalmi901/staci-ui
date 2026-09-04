@@ -5,7 +5,7 @@ from typing import Any, Dict
 from dataclasses import dataclass
 import shutil
 import uuid
-
+from collections import Counter
 
 from src.staci.split import write_split_settings, run_staci_split
 from src.config import RUN_ROOT
@@ -19,7 +19,7 @@ class ParsedMembership:
 
     @property
     def n_communities(self) -> int:
-        return len(set(self.node_community.values()))
+        return len(self.n_community_members)
     
 def parse_membership(path: Path) -> ParsedMembership:
     if not path.is_file():
@@ -29,7 +29,6 @@ def parse_membership(path: Path) -> ParsedMembership:
 
     n_nodes: int | None = None
     node_community: dict[str, int] = {}
-    n_community_members: dict[int, int] = {} 
 
     lines = path.read_text(
         encoding="utf-8",
@@ -65,7 +64,6 @@ def parse_membership(path: Path) -> ParsedMembership:
 
         community_id = int(parts[0][1:])
         
-        n_valid_members = 0
         for node_id in parts[1:]:
             if node_id in node_community:
                 raise ValueError(
@@ -73,9 +71,7 @@ def parse_membership(path: Path) -> ParsedMembership:
                 )
 
             node_community[node_id] = community_id
-            n_valid_members += 1
         
-        n_community_members[community_id] = n_valid_members  
 
     if n_nodes is None:
         raise ValueError(
@@ -87,6 +83,10 @@ def parse_membership(path: Path) -> ParsedMembership:
             "Membership node count mismatch: "
             f"expected {n_nodes}, parsed {len(node_community)}."
         )
+
+    n_community_members  = dict(
+        sorted(Counter(node_community.values()).items())
+    )
 
     return ParsedMembership(
         n_nodes=n_nodes,
@@ -104,12 +104,12 @@ def call_staci_split_service(
 ) -> Dict[str, Any]:
     
     inp_path = Path(inp_path)
-    if not inp_path.exists():
+    if not inp_path.is_file():
         raise FileNotFoundError(f"INP file does not exist: {inp_path}")
     
     run_id = uuid.uuid4().hex[:12]
     run_dir = Path(RUN_ROOT) / "partition" / run_id
-    run_dir.mkdir(parents=True, exist_ok=True)
+    run_dir.mkdir(parents=True, exist_ok=False)
     
     # Keep the uploaded/original model untouched.
     run_inp = run_dir / "model.inp"

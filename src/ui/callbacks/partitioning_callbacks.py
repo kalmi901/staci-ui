@@ -1,5 +1,5 @@
 from __future__ import annotations
-from dash import Input, Output, State, no_update, ctx
+from dash import Input, Output, State
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 
@@ -59,7 +59,7 @@ def register_partitioning_callbacks(app):
             raise PreventUpdate
         
         if not network_state:
-            return no_update, dbc.Alert(
+            return None, dbc.Alert(
                 "No active INP file. Upload a model first",
                 color="warning",
                 className="upload-alert"
@@ -129,7 +129,7 @@ def register_partitioning_callbacks(app):
         partition_state
     ):
         if not partition_state:
-            return no_update
+            return [], []
         
         node_community = partition_state.get("node_community")
         
