@@ -33,7 +33,7 @@ services:
   wordpress:
     image: wordpress:php8.3-apache
     restart: unless-stopped
-    environment:
+    environment: &wordpress-environment
       WORDPRESS_DB_HOST: database
       WORDPRESS_DB_NAME: wordpress
       WORDPRESS_DB_USER: wordpress
@@ -51,6 +51,31 @@ services:
     depends_on:
       database:
         condition: service_healthy
+    healthcheck:
+      test: [CMD, php, -r, "exit(is_file('/var/www/html/wp-config.php') ? 0 : 1);"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  wordpress-init:
+    image: wordpress:cli-php8.3
+    restart: "no"
+    user: "33:33"
+    environment:
+      <<: *wordpress-environment
+      SITE_DOMAIN: ${SITE_DOMAIN:-hydroreact.org}
+      WORDPRESS_ADMIN_USER: ${WORDPRESS_ADMIN_USER:?Set WORDPRESS_ADMIN_USER in .env}
+      WORDPRESS_ADMIN_PASSWORD: ${WORDPRESS_ADMIN_PASSWORD:?Set WORDPRESS_ADMIN_PASSWORD in .env}
+      WORDPRESS_ADMIN_EMAIL: ${WORDPRESS_ADMIN_EMAIL:?Set WORDPRESS_ADMIN_EMAIL in .env}
+    volumes:
+      - wordpress-data:/var/www/html
+      - ./deploy/wordpress/initialize.sh:/usr/local/bin/staci-wordpress-init.sh:ro
+    command: [sh, /usr/local/bin/staci-wordpress-init.sh]
+    networks:
+      - database
+    depends_on:
+      wordpress:
+        condition: service_healthy
 
   caddy:
     image: caddy:2
@@ -65,8 +90,10 @@ services:
       - caddy-data:/data
       - caddy-config:/config
     depends_on:
-      - app
-      - wordpress
+      app:
+        condition: service_started
+      wordpress-init:
+        condition: service_completed_successfully
     networks:
       - default
       - solver

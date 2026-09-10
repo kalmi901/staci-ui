@@ -20,6 +20,9 @@ openssl rand -hex 32
 Set `SITE_DOMAIN` to the hostname only (default `hydroreact.org`). Set separate
 `WORDPRESS_DB_PASSWORD` and `MARIADB_ROOT_PASSWORD` values using the generated
 secrets. Never commit `.env`.
+ySet `WORDPRESS_ADMIN_USER`, `WORDPRESS_ADMIN_PASSWORD`, and `WORDPRESS_ADMIN_EMAIL`
+for the initial WordPress administrator. Keep the password in `.env` only; use
+single quotes around its value if it contains `$` or `#` characters.
 Database passwords initialize a new database volume; changing `.env` later
 does not rotate credentials in an existing database.
 
@@ -32,15 +35,23 @@ docker compose ps
 docker compose logs --tail=50 caddy wordpress
 ```
 
-Immediately open `https://<your-domain>/` and complete WordPress installation.
-Until installation is complete, restrict public access to your administrator IP
-at the VPS/provider firewall (allow certificate issuance as appropriate).
+The one-shot `wordpress-init` service installs WordPress with the site title
+`STACI` and the configured administrator. Caddy starts after this service exits
+successfully. If WordPress is already installed, initialization leaves users,
+passwords and settings untouched. Changing the administrator values in `.env`
+does not reset an existing account.
+
+Open `https://<your-domain>/wp-admin/` and sign in with the configured credentials.
 
 1. Under Plugins, activate **STACI Tool**, mounted from this repository.
 2. Install and activate **Force Login** (`wp-force-login`).
 3. Create a page, for example `/tool/`, with a Shortcode block containing
    `[staci_tool]`. A full-width page template gives the existing UI more room.
 4. Publish the page and use WordPress accounts to access it.
+
+Initialization only installs WordPress and its administrator; the plugin and
+page steps above are manual. The four application services keep running;
+`wordpress-init` normally appears as `Exited (0)` in `docker compose ps -a`.
 
 Keep WordPress at the domain root, with its public URL matching `SITE_DOMAIN`.
 The supplied stack relies on WordPress's logged-in cookie reaching
@@ -96,7 +107,8 @@ docker compose exec wordpress php -l /var/www/html/wp-content/plugins/staci-tool
 The existing `staci-data`, `caddy-data` and `caddy-config` volumes are retained;
 `wordpress-data` and `wordpress-db` hold the new site. Keep the same Compose
 project name/directory when upgrading to reuse the existing volumes. Back up
-volumes before switching the live site. All services restart unless stopped.
+volumes before switching the live site. The four application services restart
+unless stopped; the initialization service exits after completing its check.
 
 Models/results are not assigned to users, and there is no previous-run browser.
 Logged-in users are trusted with the shared tool; their data is not isolated.

@@ -82,8 +82,11 @@ WORKDIR /app
 
 COPY requirements.txt requirements-deploy.txt ./
 
-RUN pip install --no-cache-dir \
-    -r requirements-deploy.txt
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends g++ \
+    && pip install --no-cache-dir -r requirements-deploy.txt \
+    && apt-get purge -y --auto-remove g++ \
+    && rm -rf /var/lib/apt/lists/*
 
 # Application source
 COPY app.py ./

@@ -135,7 +135,9 @@ docker build -t staci-ui .
 
 ### WordPress deployment
 
-The supplied Compose stack runs Caddy, WordPress, MariaDB and STACI. Only Caddy
+The supplied Compose stack runs Caddy, WordPress, MariaDB and STACI. A one-shot
+initialization service installs WordPress with the administrator configured in
+`.env`, preserving existing installations. Only Caddy
 publishes ports. It checks the WordPress session before forwarding every request
 under `/staci-app/`, including Dash callbacks and assets. WordPress displays the
 existing UI through the `[staci_tool]` shortcode supplied by the STACI Tool plugin.
