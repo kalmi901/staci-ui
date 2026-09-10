@@ -4,7 +4,7 @@ A lightweight web interface for loading, running, and inspecting hydraulic netwo
 
 The application is built with Python and Dash. It supports EPANET `.inp` models, STACI extended-period hydraulic simulation, network partitioning through `staci_split`, and interactive Plotly-based visualization of model and simulation results.
 
-> **Status:** demonstration / engineering application under active development. Hydraulic simulation, network visualization, network partitioning, Docker deployment, and BasicAuth are implemented. Water-quality and biofilm pages are currently placeholders for future modules.
+> **Status:** demonstration / engineering application under active development. Hydraulic simulation, network visualization, network partitioning, and a Docker deployment for WordPress embedding are implemented.
 
 ## Features
 
@@ -19,7 +19,7 @@ The application is built with Python and Dash. It supports EPANET `.inp` models,
 ### Hydraulic simulation
 
 - Run **STACI EPS** as the primary hydraulic backend
-- Run **WNTR** as a reference/development backend
+- Run **WNTR** as a reference backend
 - Use the timing options stored in the input model or override simulation duration and hydraulic timestep
 - Store STACI hydraulic results in HDF5 and read them directly for visualization
 - Store WNTR reference results as per-run CSV files
@@ -36,7 +36,7 @@ The application is built with Python and Dash. It supports EPANET `.inp` models,
 - Filter the displayed communities
 - Highlight links crossing community boundaries
 
-The current partitioning page exposes **modularity with topology-based edge weighting**. A-/D-optimality and hydraulic sensitivity/pressure-drop weighting are present as future options but are currently disabled in the UI.
+The partitioning page exposes **modularity with topology-based edge weighting**.
 
 ## Architecture
 
@@ -64,6 +64,9 @@ Browser-side stores contain identifiers and lightweight metadata rather than sol
 staci-ui/
 ├── app.py
 ├── Dockerfile
+├── compose.yaml
+├── Caddyfile
+├── deploy/               # VPS deployment guide, WordPress plugin and watchdog
 ├── requirements.txt
 ├── requirements-deploy.txt
 ├── assets/
@@ -74,58 +77,29 @@ staci-ui/
 │   ├── staci/            # native STACI process invocation/configuration
 │   ├── ui/               # Dash pages, callbacks and application shell
 │   └── visualisation/    # Plotly network visualization
-└── data/                 # local runtime data in development
+└── data/                 # runtime data
     ├── uploads/
     └── runs/
 ```
 
-## Local development
-
-The current development environment uses **CPython 3.13.1 (64-bit)**. Python 3.13 is therefore the recommended development runtime for the pinned dependency set.
-
-Create and activate a virtual environment:
-
-```bash
-python -m venv staci-env
-```
-
-Windows PowerShell:
-
-```powershell
-.\staci-env\Scripts\Activate.ps1
-pip install -r requirements.txt
-python app.py
-```
-
-The development server is available by default at:
-
-```text
-http://localhost:8050
-```
-
-The WNTR backend only requires the Python dependencies. Native STACI execution additionally requires the corresponding STACI executables. Outside Docker they can either be placed under `src/bin/staci/` (`staci.exe` / `staci_split.exe` on Windows) or provided through the `STACI_EXECUTABLE` and `STACI_SPLIT_EXECUTABLE` environment variables.
-
-
 ## Configuration
 
-The application is configured through environment variables.
+The Docker deployment configures the application through environment variables.
 
 | Variable | Purpose | Default / notes |
 | --- | --- | --- |
-| `STACI_UI_ENV` | Application environment | `development`; Docker image sets `production` |
-| `DASH_USER` | BasicAuth username | required in production |
-| `DASH_PASSWORD` | BasicAuth password | required in production |
-| `DASH_AUTH_SECRET` | BasicAuth secret key | required in production |
-| `STACI_UI_DATA_DIR` | Runtime data directory | local: `data/`; Docker: `/data` |
+| `STACI_UI_URL_PREFIX` | Dash URL prefix | `/staci-app/`; must match the proxy and WordPress embed |
+| `STACI_UI_DATA_DIR` | Runtime data directory | Docker sets `/data` |
 | `STACI_TIMEOUT_SECONDS` | Native solver timeout | `300` |
-| `PORT` | Dash/Gunicorn listening port | `8050` |
+| `PORT` | Gunicorn listening port | `8050` |
 | `DASH_DEBUG` | Dash debug mode | `0` |
 | `STACI_EXECUTABLE` | Path to the STACI executable | Docker sets `/opt/staci/staci` |
 | `STACI_SPLIT_EXECUTABLE` | Path to `staci_split` | Docker sets `/opt/staci/staci_split` |
 
 An example production environment file is provided as `.env.example`.
 
-Production mode intentionally refuses to start when `DASH_USER`, `DASH_PASSWORD`, or `DASH_AUTH_SECRET` is missing.
+Authentication is handled by WordPress and Caddy. Never expose the application
+port publicly: access must pass through the supplied Caddy configuration.
 
 ## Docker deployment
 
@@ -159,70 +133,30 @@ The build enables the STACI optimizer targets required for `staci_split` and ver
 docker build -t staci-ui .
 ```
 
-### Configure credentials
+### WordPress deployment
 
-Create a local environment file from the supplied example and set non-default production credentials:
+The supplied Compose stack runs Caddy, WordPress, MariaDB and STACI. Only Caddy
+publishes ports. It checks the WordPress session before forwarding every request
+under `/staci-app/`, including Dash callbacks and assets. WordPress displays the
+existing UI through the `[staci_tool]` shortcode supplied by the STACI Tool plugin.
 
-```bash
-cp .env.example .env
-```
+Follow [the VPS deployment guide](deploy/README.md) to configure `.env`, initialize
+WordPress, activate STACI Tool and Force Login, and create the tool page.
 
-For example:
-
-```text
-STACI_UI_ENV=production
-DASH_USER=<username>
-DASH_PASSWORD=<password>
-DASH_AUTH_SECRET=<random-secret>
-STACI_TIMEOUT_SECONDS=300
-```
-
-Do not commit the populated `.env` file.
-
-
-### Run with persistent runtime storage
-
-A Docker named volume can be mounted at `/data`:
-
-```bash
-docker volume create staci-ui-data
-
-docker run --rm \
-  --name staci-ui \
-  --env-file .env \
-  -p 8050:8050 \
-  -v staci-ui-data:/data \
-  staci-ui
-```
-
-Open:
-
-```text
-http://localhost:8050
-```
-
-Uploaded models and solver run directories are stored under `/data/uploads` and `/data/runs` inside the container. Mount `/data` to persistent storage when results must survive container replacement.
-
-If persistent storage is not required, the application can run with temporary container storage instead.
+Uploaded models and solver run directories remain under `/data/uploads` and
+`/data/runs` in the `staci-data` volume. Storage is shared between authenticated
+users, without per-user ownership or a history browser.
 
 ### Logs
 
 Application workflow events and callback exceptions are written through Python logging to the process output. With Docker they can be inspected using:
 
 ```bash
-docker logs -f staci-ui
+docker compose logs -f app
 ```
 
 Gunicorn and application logs are therefore available through the normal container logging mechanism rather than a separate application log file.
 
-
-### Runtime data
-
-By default, runtime data is stored under `data/`.
-
-The location can be overridden with:
-
-`STACI_UI_DATA_DIR`
 
 ## STACI
 
@@ -252,14 +186,7 @@ Implemented:
 - `staci_split` modularity-based network partitioning
 - Community filtering and boundary-link visualization
 - Docker/Gunicorn deployment
-- BasicAuth protection
-
-Currently placeholders / future work:
-
-- Water-quality analysis page
-- Biofilm analysis page
-- A-/D-optimality workflows
-- Sensitivity- and pressure-drop-weighted partitioning controls
+- WordPress session checks at the reverse proxy
 
 ## License
 
