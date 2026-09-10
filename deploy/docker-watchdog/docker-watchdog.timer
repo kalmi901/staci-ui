@@ -1,0 +1,11 @@
+[Unit]
+Description=Periodically check Docker daemon responsiveness
+
+[Timer]
+OnBootSec=3min
+OnUnitInactiveSec=60s
+AccuracySec=5s
+Unit=docker-watchdog.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,10 @@
+[Unit]
+Description=Check Docker daemon responsiveness
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/docker-watchdog
+StateDirectory=docker-watchdog
+StateDirectoryMode=0700
+UMask=0077
+TimeoutStartSec=50s

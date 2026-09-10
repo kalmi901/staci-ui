@@ -1,0 +1,48 @@
+#!/bin/bash
+set -euo pipefail
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin
+
+# systemd creates this root-owned directory through StateDirectory.
+state_dir=/var/lib/docker-watchdog
+exec 9>"$state_dir/lock"
+flock -n 9 || exit 0
+
+# Respect deliberate stops and let systemd handle crashed/inactive services.
+if ! systemctl is-active --quiet docker.service; then
+    printf '0\n' > "$state_dir/failures"
+    exit 0
+fi
+
+if timeout --kill-after=5s 30s docker --host unix:///var/run/docker.sock info > /dev/null 2>&1; then
+    printf '0\n' > "$state_dir/failures"
+    exit 0
+fi
+
+failures=0
+if [[ -f "$state_dir/failures" ]]; then
+    read -r failures < "$state_dir/failures" || failures=0
+fi
+[[ "$failures" =~ ^[0-9]{1,6}$ ]] || failures=0
+failures=$((10#$failures + 1))
+printf '%s\n' "$failures" > "$state_dir/failures"
+echo "Docker API check failed ($failures consecutive failures)."
+(( failures >= 3 )) || exit 0
+
+last_restart=0
+if [[ -f "$state_dir/last-restart" ]]; then
+    read -r last_restart < "$state_dir/last-restart" || last_restart=0
+fi
+[[ "$last_restart" =~ ^[0-9]{1,12}$ ]] || last_restart=0
+now=$(date +%s)
+if (( now - last_restart < 600 )); then
+    echo 'Restart cooldown active; no restart requested.'
+    exit 0
+fi
+
+# Recheck in case an administrator stopped Docker during the probe.
+systemctl is-active --quiet docker.service || exit 0
+printf '%s\n' "$now" > "$state_dir/last-restart"
+printf '0\n' > "$state_dir/failures"
+echo 'Docker API failed repeatedly; requesting Docker service restart.'
+# Do not block this watchdog indefinitely on an unresponsive daemon.
+systemctl --no-block try-restart docker.service
