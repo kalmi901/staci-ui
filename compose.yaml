@@ -2,17 +2,61 @@ services:
   app:
     build: .
     restart: unless-stopped
-    env_file: .env
     environment:
-      STACI_UI_ENV: production
+      STACI_UI_URL_PREFIX: /staci-app/
       PORT: "8050"
       DASH_DEBUG: "0"
+      STACI_TIMEOUT_SECONDS: ${STACI_TIMEOUT_SECONDS:-300}
     volumes:
       - staci-data:/data
+    networks:
+      - solver
+
+  database:
+    image: mariadb:11.4
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: wordpress
+      MARIADB_USER: wordpress
+      MARIADB_PASSWORD: ${WORDPRESS_DB_PASSWORD:?Set WORDPRESS_DB_PASSWORD in .env}
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:?Set MARIADB_ROOT_PASSWORD in .env}
+    volumes:
+      - wordpress-db:/var/lib/mysql
+    networks:
+      - database
+    healthcheck:
+      test: [CMD, healthcheck.sh, --connect, --innodb_initialized]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  wordpress:
+    image: wordpress:php8.3-apache
+    restart: unless-stopped
+    environment:
+      WORDPRESS_DB_HOST: database
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: ${WORDPRESS_DB_PASSWORD:?Set WORDPRESS_DB_PASSWORD in .env}
+      WORDPRESS_CONFIG_EXTRA: |
+        define('WP_HOME', 'https://${SITE_DOMAIN:-hydroreact.org}');
+        define('WP_SITEURL', 'https://${SITE_DOMAIN:-hydroreact.org}');
+        define('FORCE_SSL_ADMIN', true);
+    volumes:
+      - wordpress-data:/var/www/html
+      - ./deploy/wordpress/staci-tool:/var/www/html/wp-content/plugins/staci-tool:ro
+    networks:
+      - default
+      - database
+    depends_on:
+      database:
+        condition: service_healthy
 
   caddy:
     image: caddy:2
     restart: unless-stopped
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN:-hydroreact.org}
     ports:
       - "80:80"
       - "443:443"
@@ -22,8 +66,20 @@ services:
       - caddy-config:/config
     depends_on:
       - app
+      - wordpress
+    networks:
+      - default
+      - solver
+
+networks:
+  solver:
+    internal: true
+  database:
+    internal: true
 
 volumes:
   staci-data:
   caddy-data:
   caddy-config:
+  wordpress-data:
+  wordpress-db:

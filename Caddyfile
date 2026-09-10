@@ -1,3 +1,30 @@
-hydroreact.org {
-    reverse_proxy app:8050
+{$SITE_DOMAIN:hydroreact.org} {
+    redir /staci-app /staci-app/ 308
+
+    handle /staci-app/* {
+        header {
+            defer
+            Cache-Control "no-store"
+            Content-Security-Policy "frame-ancestors 'self'"
+            X-Frame-Options SAMEORIGIN
+        }
+        route {
+            request_header -X-Staci-Access
+            forward_auth wordpress:80 {
+                uri /wp-admin/admin-ajax.php?action=staci_tool_access
+                copy_headers X-Staci-Access
+            }
+            @denied not header X-Staci-Access allowed
+            respond @denied "WordPress access verification failed." 403
+            reverse_proxy app:8050 {
+                header_up -Cookie
+                header_up -Authorization
+                header_up -X-Staci-Access
+            }
+        }
+    }
+
+    handle {
+        reverse_proxy wordpress:80
+    }
 }

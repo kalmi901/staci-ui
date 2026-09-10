@@ -94,7 +94,6 @@ COPY assets ./assets
 ENV STACI_EXECUTABLE=/opt/staci/staci
 ENV STACI_SPLIT_EXECUTABLE=/opt/staci/staci_split
 ENV STACI_UI_DATA_DIR=/data
-ENV STACI_UI_ENV=production
 ENV PORT=8050
 ENV DASH_DEBUG=0
 
