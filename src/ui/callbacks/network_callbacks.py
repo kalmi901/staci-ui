@@ -10,6 +10,7 @@ from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 
 from src.ui import ids
+from src.ui.paths import local_path
 from src.services.model_storage import resolve_uploaded_model
 from src.services.inp_model_reader import read_model_summary, read_water_network_model
 from src.ui.pages.network_load import render_model_summary
@@ -152,7 +153,7 @@ def register_network_callbacks(app):
         Input(ids.URL, "pathname")
     )  
     def render_active_model_summary(network_state, pathname):  
-        if pathname != "/network/load":
+        if local_path(pathname) != "/network/load":
             raise PreventUpdate
         
         return render_model_summary(network_state)

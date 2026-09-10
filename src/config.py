@@ -4,34 +4,18 @@ from pathlib import Path
 
 from src.staci.runtime import default_staci_executable
 
-APP_ENV = os.getenv("STACI_UI_ENV", "development").lower()
-
-DASH_USER = os.getenv("DASH_USER", "staci")
-DASH_PASSWORD = os.getenv("DASH_PASSWORD", "staci")
-DASH_AUTH_SECRET = os.getenv("DASH_AUTH_SECRET", "manbearpig")
-
-if APP_ENV == "production":
-    required = {
-        "DASH_USER": os.getenv("DASH_USER"),
-        "DASH_PASSWORD": os.getenv("DASH_PASSWORD"),
-        "DASH_AUTH_SECRET": os.getenv("DASH_AUTH_SECRET"),
-    }
-
-    missing = [
-        name
-        for name, value in required.items()
-        if not value
-    ]
-
-    if missing:
-        raise RuntimeError(
-            "Missing required production environment variables: "
-            + ", ".join(missing)
-        )
+APP_URL_PREFIX = os.getenv("STACI_UI_URL_PREFIX", "/staci-app/")
+if (
+    not APP_URL_PREFIX.startswith("/")
+    or not APP_URL_PREFIX.endswith("/")
+    or "//" in APP_URL_PREFIX
+    or any(character in APP_URL_PREFIX for character in "?#\\")
+    or any(segment in (".", "..") for segment in APP_URL_PREFIX.split("/"))
+):
+    raise ValueError("STACI_UI_URL_PREFIX must be an absolute URL path ending in '/'.")
 
 
 DASH_DEBUG = os.getenv("DASH_DEBUG", "0") == "1"
-PORT = int(os.getenv("PORT", "8050"))
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 

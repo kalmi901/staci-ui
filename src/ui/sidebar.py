@@ -1,11 +1,12 @@
 from __future__ import annotations
 from dash import dcc, html
+from src.ui.paths import app_path
 
 
 def nav_link(label: str, href: str, icon: str = ""):
     return dcc.Link(
         className="sidebar-link",
-        href=href,
+        href=app_path(href),
         children=[
             html.Span(icon, className="sidebar-link-icon"),
             html.Span(label)]
@@ -19,7 +20,7 @@ def create_sidebar():
                 className="sidebar-logo-block",
                 children=[
                     html.Img(
-                        src="/assets/images/logo_gpt2.png",
+                        src=app_path("/assets/images/logo_gpt2.png"),
                         className="sidebar-logo-image",
                         alt="STACI EPS Dashboard"
                     )

@@ -4,6 +4,7 @@ from dash import Input, Output, html
 import dash_bootstrap_components as dbc
 
 from src.ui import ids
+from src.ui.paths import local_path
 from src.ui.pages import(
     home,
     network_load,
@@ -41,6 +42,7 @@ def _placeholder_page(title: str, subtitle: str):
 def register_routing_callbacks(app):
     @app.callback(Output(ids.PAGE_CONTENT, "children"), Input(ids.URL, "pathname"))
     def route(pathname):
+        pathname = local_path(pathname)
         if pathname in (None, "", "/"):
             return home.create_layout()
         elif pathname == "/network/load":
