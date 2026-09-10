@@ -20,6 +20,7 @@ staci-env/
 
 # Runtime data
 data/
+examples/simple_network.inp
 
 # Locally bundled STACI binaries
 src/bin/staci/
