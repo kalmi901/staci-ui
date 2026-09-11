@@ -2,7 +2,7 @@
 /**
  * Plugin Name: STACI Tool
  * Description: Embeds STACI and verifies WordPress sessions for the reverse proxy.
- * Version: 1.0.0
+ * Version: 1.1.0
  */
 
 defined('ABSPATH') || exit;
@@ -42,12 +42,23 @@ function staci_tool_access() {
 add_action('wp_ajax_staci_tool_access', 'staci_tool_access');
 add_action('wp_ajax_nopriv_staci_tool_access', 'staci_tool_access');
 
+function staci_tool_enqueue_assets() {
+    if (!is_user_logged_in()) {
+        return;
+    }
+
+    wp_enqueue_style('staci-tool', plugins_url('embed.css', __FILE__), array(), '1.1.0');
+    wp_enqueue_script('staci-tool', plugins_url('embed.js', __FILE__), array(), '1.1.0', true);
+}
+
+add_action('wp_enqueue_scripts', 'staci_tool_enqueue_assets');
+
 function staci_tool_shortcode() {
     if (!is_user_logged_in()) {
         return '<p><a href="' . esc_url(wp_login_url(get_permalink())) . '">Bejelentkezés a tool használatához</a></p>';
     }
 
-    return '<iframe src="' . esc_url(home_url('/staci-app/')) . '" title="STACI" style="display:block;width:100%;height:85vh;min-height:600px;border:0;"></iframe>';
+    return '<div class="staci-tool alignfull"><iframe class="staci-tool-frame" src="' . esc_url(home_url('/staci-app/')) . '" title="STACI" scrolling="no"></iframe></div>';
 }
 
 add_shortcode('staci_tool', 'staci_tool_shortcode');

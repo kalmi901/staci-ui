@@ -1,0 +1,12 @@
+.staci-tool.alignfull {
+    max-width: none;
+    margin-block: 0;
+}
+
+.staci-tool-frame {
+    display: block;
+    width: 100%;
+    height: 100vh;
+    max-height: none;
+    border: 0;
+}
