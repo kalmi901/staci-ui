@@ -40,3 +40,28 @@ jobs:
 
       - name: Run tests without native STACI
         run: python -m pytest -m "not staci" -vv
+
+  docker-tests:
+    name: Docker / full STACI suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build Docker test image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          target: test
+          load: true
+          tags: staci-ui:test
+          cache-from: type=gha,scope=staci-ui-test
+          cache-to: type=gha,mode=max,scope=staci-ui-test,ignore-error=true
+
+      - name: Run full test suite in Docker
+        run: docker run --rm staci-ui:test
