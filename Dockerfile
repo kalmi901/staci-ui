@@ -128,3 +128,22 @@ EXPOSE 8050
 #CMD ["gunicorn", "--bind", "0.0.0.0:8050", "--worker-class", "gthread", "--workers", "1", "--threads", "4", "--timeout", "600", "app:server"]
 
 CMD ["sh", "-c", "exec gunicorn --bind 0.0.0.0:${PORT} --worker-class gthread --workers 1 --threads 4 --timeout 600 app:server"]
+
+# ----------------------
+# Stage 3: TEST
+# ----------------------
+FROM runtime AS test
+
+COPY requirements-dev.txt pyproject.toml ./
+
+RUN python -m pip install --no-cache-dir \
+    -r requirements-dev.txt
+
+COPY tests ./tests
+
+CMD ["python", "-m", "pytest", "-vv"]
+
+# ----------------------
+# Stage 4: PRODUCTION
+# ----------------------
+FROM runtime AS production
