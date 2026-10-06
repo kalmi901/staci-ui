@@ -5,6 +5,7 @@ pythonpath = ["."]
 markers = [
     "integration: exercises multiple application components together",
     "slow: takes materially longer than the fast test suite",
+    "staci: requires a real STACI executable",
 ]
 addopts = [
     "-ra",
