@@ -122,7 +122,7 @@ Dash application
 The image currently pins STACI to revision:
 
 ```text
-c52ec0424ed5e088a47c7e2a629216d777bab5c4
+b215127e10acce0d404922dbcd2eda623f8f47e2
 ```
 
 The build enables the STACI optimizer targets required for `staci_split` and verifies the runtime shared-library dependencies before completing the image.
