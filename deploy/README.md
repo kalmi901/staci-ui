@@ -75,7 +75,8 @@ grant access. Failed authentication returns 401; a failed origin check returns
 requests, but does not cancel a computation already running or erase results
 already displayed in the browser.
 
-Dash has no login or user identity logic. Its container is reachable only on a
+Dash relies on WordPress/Caddy for login and uses the verified user headers only
+to attribute application logs. Its container is reachable only on a
 private Docker network shared with Caddy. Never publish port 8050 or attach an
 untrusted container to that network. WordPress cookies are removed before
 requests reach Dash. Force Login protects WordPress pages; Caddy and the STACI
@@ -112,6 +113,38 @@ unless stopped; the initialization service exits after completing its check.
 
 Models/results are not assigned to users, and there is no previous-run browser.
 Logged-in users are trusted with the shared tool; their data is not isolated.
+
+## User-attributed application logs
+
+STACI Tool 1.1.1 returns `X-Staci-User-Id` and a URL-encoded
+`X-Staci-User-Login` after validating the WordPress session. Caddy removes any
+client-supplied values and forwards only the verified headers. Keep the app
+private on the solver network; these headers are not standalone credentials.
+
+Existing Python logs now include the user ID/login and explicit UTC timestamps.
+Events outside a request have `user_id=- user=-`. Solver execution, result
+classification and browser workflows are unchanged. Filenames remain in upload
+events and are linked to run events by `model_id`; this is not a run database.
+
+Compose enables a rotating `/var/log/staci/application.log`: 5 MiB per file,
+five backups (approximately 30 MiB total, apart from an oversized single event).
+Docker console output is retained as before. File rotation supports the current
+single Gunicorn worker with four threads, not multiple writing processes.
+Local development without `STACI_LOG_DIR` keeps console-only logging.
+
+The new `staci-logs` volume is writable only in the app and mounted read-only
+in WordPress. The app sets its directory group to GID 33 (`www-data`), mode 2750,
+and creates files with mode 0640. Include this volume in future backups.
+
+Administrators can open **Tools → STACI napló**. The page uses `manage_options`,
+allows only the six known filenames, escapes log content, and reads at most the
+last 256 KiB / 500 lines. Refresh is manual. The volume is outside the web root;
+there is no public log endpoint. Historical Docker logs are not imported.
+
+Deploy the plugin, Caddy configuration and Python changes together; recreate
+app/WordPress to apply the volume mounts and environment. No database migration
+or solver rebuild is required. Check two user identities, forged headers,
+anonymous requests, administrator/subscriber access and rotated-file readability.
 
 After code updates, run `docker compose up -d --build` during a maintenance
 window; replacing the app can interrupt simulations. Do not run
