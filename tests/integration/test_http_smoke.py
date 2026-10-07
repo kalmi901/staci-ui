@@ -57,6 +57,7 @@ def test_dash_layout_contains_application_shell(client) -> None:
         ids.NETWORK_STORE,
         ids.HYD_RUN_STORE,
         ids.PART_RUN_STORE,
+        ids.FLUSH_RUN_STORE,
     }.issubset(component_ids)
 
 
@@ -75,6 +76,8 @@ def test_dash_dependencies_include_main_callbacks(client) -> None:
     assert f"{ids.PAGE_CONTENT}.children" in outputs
     assert any(ids.HYD_RUN_STORE in output for output in outputs)
     assert any(ids.PART_RUN_STORE in output for output in outputs)
+    assert any(ids.FLUSH_RUN_STORE in output for output in outputs)
+    assert (f"{ids.FLUSH_NETWORK_GRAPH}.figure" in outputs)
 
 
 @pytest.mark.parametrize(
@@ -84,6 +87,7 @@ def test_dash_dependencies_include_main_callbacks(client) -> None:
         ("network/load", "page load-page"),
         ("network/partitioning", "page partition-page"),
         ("analysis/hydraulic", "page hydro-page"),
+        ("analysis/flushing", "page flush-page"),
     ],
 )
 def test_dash_renders_main_routes(

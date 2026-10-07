@@ -7,7 +7,10 @@ from src.config import RUN_ROOT
 
 _RUN_ID_PATTERN = re.compile(r"^[a-f0-9]{12}$")
 
-def resolve_run_dir(run_id: str, run_type: Literal["hydraulic", "partition"]) -> Path:
+def resolve_run_dir(
+    run_id: str, 
+    run_type: Literal["hydraulic", "partition", "flushing"]
+    ) -> Path:
     if not _RUN_ID_PATTERN.fullmatch(run_id):
         raise ValueError(f"Invalid run id: {run_id!r}")
 

@@ -1,4 +1,5 @@
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -30,6 +31,53 @@ def test_resolve_uploaded_model_returns_existing_model_path(
     )
 
     assert resolved_path == model_path.resolve()
+
+
+def test_store_uploaded_model_writes_bytes_and_returns_metadata(
+    upload_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        model_storage.uuid,
+        "uuid4",
+        lambda: SimpleNamespace(hex=f"{VALID_MODEL_ID}ffff"),
+    )
+    file_bytes = b"[TITLE]\nTest network\n"
+
+    stored = model_storage.store_uploaded_model(
+        "network.inp",
+        file_bytes,
+    )
+
+    expected_path = upload_root / VALID_MODEL_ID / "network.inp"
+    assert stored == {
+        "model_id": VALID_MODEL_ID,
+        "filename": "network.inp",
+        "path": str(expected_path),
+        "size_bytes": len(file_bytes),
+    }
+    assert expected_path.read_bytes() == file_bytes
+
+
+def test_store_uploaded_model_sanitizes_filename_and_uses_only_name(
+    upload_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        model_storage.uuid,
+        "uuid4",
+        lambda: SimpleNamespace(hex=f"{VALID_MODEL_ID}ffff"),
+    )
+
+    stored = model_storage.store_uploaded_model(
+        "../../unsafe network!.inp",
+        b"[TITLE]\n",
+    )
+
+    expected_path = upload_root / VALID_MODEL_ID / "unsafe_network_.inp"
+    assert stored["filename"] == "unsafe_network_.inp"
+    assert stored["path"] == str(expected_path)
+    assert expected_path.is_file()
 
 
 @pytest.mark.parametrize(

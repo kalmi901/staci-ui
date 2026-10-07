@@ -14,3 +14,13 @@ Copied unchanged from the USEPA/WNTR repository:
 
 WNTR is distributed under the Revised BSD License. The upstream license and
 copyright notice are reproduced in `WNTR-LICENSE.md`.
+
+## staci_flush_network.inp
+
+Small synthetic three-hydrant network copied from the upstream STACI
+worked flushing example.
+
+- Source: `examples/flushing/network.inp`
+- Repository: https://github.com/hoscsaba/staci
+- Revision: `b215127e10acce0d404922dbcd2eda623f8f47e2`
+- Hydrant junctions: `A`, `B`, `C`
