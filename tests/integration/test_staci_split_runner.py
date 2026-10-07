@@ -71,7 +71,7 @@ def test_call_staci_split_service_runs_real_executable(
 
     settings_root = ET.parse(settings_path).getroot()
     settings = {element.tag: element.text for element in settings_root}
-    assert Path(settings["fname"]) == copied_input.resolve()
+    assert Path(settings["fname"]) == copied_input.resolve()    # type: ignore
     assert settings["n_comm"] == "3"
     assert settings["popsize"] == "8"
     assert settings["ngen"] == "10"
