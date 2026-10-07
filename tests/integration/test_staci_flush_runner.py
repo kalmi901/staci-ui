@@ -71,6 +71,8 @@ def test_run_staci_flush_runs_real_executable(tmp_path: Path) -> None:
     assert result.pipe_travel_times_path.is_file()
     assert result.pipes_above_threshold_path.is_file()
     assert result.pipe_coverage_path.is_file()
+    assert result.scenario_hydrants_path.is_file()
+    assert result.scenario_pipes_path.is_file()
 
     with result.plan_csv_path.open(
         encoding="utf-8",

@@ -92,6 +92,8 @@ def test_run_staci_flush_builds_command_and_collects_outputs(
             "pipe_travel_times.csv",
             "pipes_above_threshold.csv",
             "pipe_coverage.csv",
+            "scenario_hydrants.csv",
+            "scenario_pipes.csv",
         ):
             (output_dir / filename).touch()
 
@@ -134,6 +136,15 @@ def test_run_staci_flush_builds_command_and_collects_outputs(
     assert result.stderr_path.read_text(
         encoding="utf-8"
     ) == "flush stderr\n"
+    assert result.scenario_hydrants_path == (
+        output_dir.resolve()
+        / "scenario_hydrants.csv"
+    )
+
+    assert result.scenario_pipes_path == (
+        output_dir.resolve()
+        / "scenario_pipes.csv"
+    )
 
 
 def test_run_staci_flush_recognizes_partial_results(

@@ -26,6 +26,8 @@ class StaciFlushResults:
     pipe_travel_times_path: Path
     pipes_above_threshold_path: Path
     pipe_coverage_path: Path
+    scenario_hydrants_path: Path
+    scenario_pipes_path: Path
 
     @property
     def success(self) -> bool:
@@ -170,4 +172,6 @@ def run_staci_flush(
         pipe_travel_times_path=output_dir / "pipe_travel_times.csv",
         pipes_above_threshold_path=output_dir / "pipes_above_threshold.csv",
         pipe_coverage_path=output_dir / "pipe_coverage.csv",
+        scenario_hydrants_path=output_dir / "scenario_hydrants.csv",
+        scenario_pipes_path=output_dir / "scenario_pipes.csv"
     )

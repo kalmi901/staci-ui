@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from src.services import flushing_runner
+from src.services import flushing_runner, run_storage
 from src.staci.flush import StaciFlushResults
 
 
@@ -30,6 +30,7 @@ def run_root(
     root = tmp_path / "runs"
 
     monkeypatch.setattr(flushing_runner, "RUN_ROOT", root)
+    monkeypatch.setattr(run_storage, "RUN_ROOT", root)
     monkeypatch.setattr(
         flushing_runner.uuid,
         "uuid4",
@@ -61,6 +62,12 @@ def _flush_result(
             output_dir / "pipes_above_threshold.csv"
         ),
         pipe_coverage_path=output_dir / "pipe_coverage.csv",
+        scenario_hydrants_path=(
+            output_dir / "scenario_hydrants.csv"
+        ),
+        scenario_pipes_path=(
+            output_dir / "scenario_pipes.csv"
+        ),
     )
 
 
@@ -249,3 +256,69 @@ def test_call_staci_flush_service_rejects_invalid_hydrant_ids(
             total_loss_coefficient=2.0,
             velocity_threshold_mps=0.5,
         )
+        
+def test_load_flushing_scenario_returns_selected_typed_rows(
+    run_root: Path,
+) -> None:
+    results_dir = (
+        run_root
+        / "flushing"
+        / RUN_ID
+        / "results"
+    )
+    results_dir.mkdir(parents=True)
+
+    (results_dir / "scenario_pipes.csv").write_text(
+        (
+            "hydrant_id,node_id,pipe_id,flow_m3s,"
+            "velocity_mps,absolute_velocity_mps,"
+            "baseline_velocity_mps,above_threshold,"
+            "newly_above_threshold\n"
+            "J1,J1,P1,0.01,-0.5,0.5,0.02,1,1\n"
+            "J2,J2,P1,0.02,0.7,0.7,0.02,1,1\n"
+        ),
+        encoding="utf-8",
+    )
+
+    (
+        results_dir / "scenario_hydrants.csv"
+    ).write_text(
+        (
+            "scenario_id,node_id,status,flow_m3s,"
+            "pressure_head_m\n"
+            "J1,J1,ok,0.01,21.5\n"
+            "J2,J2,ok,0.02,20.0\n"
+        ),
+        encoding="utf-8",
+    )
+
+    scenario = (
+        flushing_runner.load_flushing_scenario(
+            RUN_ID,
+            "J1",
+        )
+    )
+
+    assert scenario["run_id"] == RUN_ID
+    assert scenario["scenario_id"] == "J1"
+
+    assert scenario["hydrants"] == [
+        {
+            "node_id": "J1",
+            "status": "ok",
+            "flow_m3s": pytest.approx(0.01),
+            "pressure_head_m": pytest.approx(21.5),
+        }
+    ]
+
+    assert scenario["pipes"] == [
+        {
+            "pipe_id": "P1",
+            "flow_m3s": pytest.approx(0.01),
+            "velocity_mps": pytest.approx(-0.5),
+            "absolute_velocity_mps": pytest.approx(0.5),
+            "baseline_velocity_mps": pytest.approx(0.02),
+            "above_threshold": True,
+            "newly_above_threshold": True,
+        }
+    ]
