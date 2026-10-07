@@ -1,6 +1,7 @@
-import logging
 import dash_bootstrap_components as dbc
 from dash import Dash
+
+from src.logging_setup import configure_logging
 
 from src.ui.app_shell import create_app_shell
 from src.ui.callbacks import register_callbacks
@@ -9,12 +10,7 @@ from src.config import (
     APP_URL_PREFIX,
 )
 
-logging.basicConfig(
-    level=logging.DEBUG if DASH_DEBUG else logging.INFO,
-    format=(
-        "%(asctime)s | %(levelname)-8s | "
-        "%(name)s | %(message)s")
-)
+configure_logging(debug=DASH_DEBUG)
 
 def create_app() -> Dash:
     app = Dash(
