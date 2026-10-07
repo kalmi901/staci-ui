@@ -1,0 +1,48 @@
+.flush-options-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.flush-options-grid label {
+  color: var(--text-section);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.flush-hydrant-input {
+  resize: vertical;
+}
+
+.flush-results-placeholder {
+  display: grid;
+  min-height: 520px;
+  place-content: center;
+  padding: 32px;
+  border: 1px dashed var(--panel-border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--panel-bg);
+  color: var(--text-soft);
+  text-align: center;
+}
+
+.flush-results-placeholder h3 {
+  margin: 10px 0 6px;
+  color: var(--ink-3);
+  font-size: 20px;
+}
+
+.flush-results-placeholder p {
+  max-width: 420px;
+  margin: 0;
+}
+
+.flush-placeholder-icon {
+  font-size: 42px;
+}
+
+@media (max-width: 700px) {
+  .flush-options-grid {
+    grid-template-columns: 1fr;
+  }
+}

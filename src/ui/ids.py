@@ -5,6 +5,7 @@ NETWORK_STORE = "network-store"
 NETWORK_VIEW_STORE = "network-view-store"
 HYD_RUN_STORE = "hyd-run-store"
 PART_RUN_STORE = "part-run-store"
+FLUSH_RUN_STORE = "flush-run-store"
 
 # --- Load Model Page ---
 UPLOAD_INP = "upload-inp"
@@ -38,6 +39,18 @@ PART_RUN_STATUS = "part-run-status"
 PART_COMMUNITY_FILTER = "part-community-filter"
 PART_SHOW_BOUNDARY_LINKS="part-show-boundary-links"
 
+# --- Flushing Page ---
+FLUSH_ACTIVE_MODEL_SUMMARY = "flush-active-model-summary"
+FLUSH_MODE = "flush-mode"
+FLUSH_HYDRANT_IDS = "flush-hydrant-ids"
+FLUSH_HYDRANT_AREA = "flush-hydrant-area"
+FLUSH_LOSS_COEFFICIENT = "flush-loss-coefficient"
+FLUSH_VELOCITY_THRESHOLD = "flush-velocity-threshold"
+FLUSH_MIN_PRESSURE_HEAD = "flush-min-pressure-head"
+FLUSH_WRITE_NETWORKS = "flush-write-networks"
+FLUSH_RUN_BUTTON = "flush-run-button"
+FLUSH_RUN_STATUS = "flush-run-status"
+FLUSH_RESULTS = "flush-results"
 
 # --- Hydraulic Analysis Page ---
 HYD_ACTIVE_MODEL_SUMMARY = "hyd-active-model-summary"
