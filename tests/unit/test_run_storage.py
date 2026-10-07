@@ -16,12 +16,12 @@ def run_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     return root
 
 
-@pytest.mark.parametrize("run_type", ["hydraulic", "partition"])
+@pytest.mark.parametrize("run_type", ["hydraulic", "partition", "flushing"])
 def test_resolve_run_dir_returns_path_for_supported_run_type(
     run_root: Path,
     run_type: str,
 ) -> None:
-    resolved_path = run_storage.resolve_run_dir(VALID_RUN_ID, run_type)
+    resolved_path = run_storage.resolve_run_dir(VALID_RUN_ID, run_type) # type: ignore[arg-type]
 
     assert resolved_path == (run_root / run_type / VALID_RUN_ID).resolve()
 
@@ -48,4 +48,4 @@ def test_resolve_run_dir_rejects_path_outside_run_root(
     run_root: Path,
 ) -> None:
     with pytest.raises(ValueError, match="Invalid run directory"):
-        run_storage.resolve_run_dir(VALID_RUN_ID, "../../escape")
+        run_storage.resolve_run_dir(VALID_RUN_ID, "../../escape")   # type: ignore[arg-type]
