@@ -51,6 +51,9 @@ FLUSH_WRITE_NETWORKS = "flush-write-networks"
 FLUSH_RUN_BUTTON = "flush-run-button"
 FLUSH_RUN_STATUS = "flush-run-status"
 FLUSH_RESULTS = "flush-results"
+FLUSH_SCENARIO = "flush-scenario"
+FLUSH_MAP_MODE = "flush-map-mode"
+FLUSH_NETWORK_GRAPH = "flush-network-graph"
 
 # --- Hydraulic Analysis Page ---
 HYD_ACTIVE_MODEL_SUMMARY = "hyd-active-model-summary"

@@ -7,6 +7,7 @@ import dash_bootstrap_components as dbc
 from dash.development.base_component import Component
 
 from src.ui import ids
+from src.visualisation.network_preview import make_empty_network_figure
 
 
 def _format_number(
@@ -37,6 +38,43 @@ def _metric(label: str, value: str):
     )
 
 
+def make_flushing_scenario_options(
+    run_state,
+) -> tuple[list[dict[str, str]], str | None]:
+    plan = run_state.get("plan") or []
+
+    if not plan:
+        return [], None
+
+    if run_state.get("mode") == "multi":
+        return [
+            {
+                "label": "Combined hydrant scenario",
+                "value": "multi",
+            }
+        ], "multi"
+
+    options = [
+        {
+            "label": (
+                f"#{row.get('rank', '?')} · "
+                f"{row['node_id']}"
+            ),
+            "value": str(row["node_id"]),
+        }
+        for row in plan
+        if row.get("node_id")
+    ]
+
+    selected = (
+        options[0]["value"]
+        if options
+        else None
+    )
+
+    return options, selected
+
+
 def _empty_results():
     return html.Div(
         className="flush-results-placeholder",
@@ -59,6 +97,9 @@ def render_flushing_results(run_state):
         return _empty_results()
 
     plan = run_state.get("plan") or []
+    
+    scenario_options, selected_scenario = \
+        make_flushing_scenario_options(run_state)
 
     final_coverage = (
         _format_number(
@@ -227,15 +268,61 @@ def render_flushing_results(run_state):
                     ],
                     bordered=False,
                     hover=True,
-                    responsive=True,
                     striped=True,
                     className="flush-plan-table",
                 ),
             ),
             html.Div(
-                "Scenario map and velocity inspection will appear "
-                "below the plan in the next step.",
-                className="soft-panel small-status mt-3",
+                className="plot-toolbar flush-plot-toolbar",
+                children=[
+                    html.Div(
+                        className="plot-control",
+                        children=[
+                            dbc.Label("Flushing scenario"),
+                            dcc.Dropdown(
+                                id=ids.FLUSH_SCENARIO,
+                                options=scenario_options,
+                                value=selected_scenario,
+                                clearable=False,
+                            ),
+                        ],
+                    ),
+                    html.Div(
+                        className="plot-control",
+                        children=[
+                            dbc.Label("Map view"),
+                            dbc.RadioItems(
+                                id=ids.FLUSH_MAP_MODE,
+                                options=[
+                                    {
+                                        "label": "Coverage",
+                                        "value": "coverage",
+                                    },
+                                    {
+                                        "label": "Velocity",
+                                        "value": "velocity",
+                                    },
+                                ],
+                                value="coverage",
+                                inline=True,
+                            ),
+                        ],
+                    ),
+                ],
+            ),
+            dcc.Loading(
+                type="dot",
+                color="blue",
+                children=dcc.Graph(
+                    id=ids.FLUSH_NETWORK_GRAPH,
+                    className=(
+                        "network-graph flush-network-graph"
+                    ),
+                    config={"displaylogo": False},
+                    figure=make_empty_network_figure(
+                        "Loading flushing scenario…"
+                    ),
+                ),
             ),
         ]
     )

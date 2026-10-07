@@ -52,7 +52,9 @@
 }
 
 .flush-plan-table-wrap {
-  overflow-x: auto;
+  max-height: 290px;
+  overflow: auto;
+  scrollbar-gutter: stable;
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-lg);
 }
@@ -63,14 +65,34 @@
   font-size: 0.88rem;
 }
 
+.flush-plan-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
 .flush-plan-table thead th {
+  background: var(--card-bg);
   color: var(--text-section);
   font-size: 0.70rem;
   letter-spacing: 0.02em;
   text-transform: uppercase;
   white-space: nowrap;
+  box-shadow: 0 1px 0 var(--panel-border);
 }
 
 .flush-plan-table td {
   vertical-align: middle;
+}
+
+.flush-plot-toolbar {
+  margin-top: 18px;
+}
+
+.flush-plot-toolbar .form-check-inline {
+  margin-top: 8px;
+}
+
+.flush-network-graph {
+  margin-top: 14px;
 }

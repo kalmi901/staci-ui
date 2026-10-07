@@ -8,11 +8,13 @@ import dash_bootstrap_components as dbc
 from dash import Input, Output, State, html
 from dash.exceptions import PreventUpdate
 
-from src.services.flushing_runner import call_staci_flush_service
+from src.services.flushing_runner import call_staci_flush_service, load_flushing_scenario
 from src.services.model_storage import resolve_uploaded_model
 from src.ui import ids
 from src.ui.pages.components import render_active_model_summary
 from src.ui.pages.flushing_analysis import render_flushing_results
+from src.visualisation.flushing import make_flushing_scenario_figure
+from src.visualisation.network_preview import make_empty_network_figure
 
 
 logger = logging.getLogger(__name__)
@@ -209,3 +211,56 @@ def register_flushing_callbacks(app):
     )
     def render_results(run_state):
         return render_flushing_results(run_state)
+
+    @app.callback(
+        Output(ids.FLUSH_NETWORK_GRAPH, "figure"),
+        Input(ids.FLUSH_SCENARIO, "value"),
+        Input(ids.FLUSH_MAP_MODE, "value"),
+        State(ids.FLUSH_RUN_STORE, "data"),
+        State(ids.NETWORK_VIEW_STORE, "data"),
+    )
+    def render_scenario_map(
+        scenario_id,
+        map_mode,
+        run_state,
+        network_view_state,
+    ):
+        if not run_state or not scenario_id:
+            return make_empty_network_figure(
+                "Run STACI Flush and select a scenario."
+            )
+
+        try:
+            scenario_state = load_flushing_scenario(
+                run_state["run_id"],
+                scenario_id,
+            )
+
+        except Exception as exc:
+            logger.exception(
+                "Flushing scenario load failed: "
+                "run_id=%s scenario_id=%s",
+                run_state.get("run_id", ""),
+                scenario_id,
+            )
+
+            return make_empty_network_figure(
+                f"Could not load flushing scenario: {exc}"
+            )
+
+        candidate_ids = (
+            [
+                str(row["node_id"])
+                for row in run_state.get("plan", [])
+                if row.get("node_id")
+            ]
+            if run_state.get("mode") == "single"
+            else []
+        )
+
+        return make_flushing_scenario_figure(
+            network_view_state,
+            scenario_state,
+            map_mode=map_mode,
+            candidate_hydrant_ids=candidate_ids,
+        )
