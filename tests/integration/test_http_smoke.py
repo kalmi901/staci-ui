@@ -76,6 +76,7 @@ def test_dash_dependencies_include_main_callbacks(client) -> None:
     assert f"{ids.PAGE_CONTENT}.children" in outputs
     assert any(ids.HYD_RUN_STORE in output for output in outputs)
     assert any(ids.PART_RUN_STORE in output for output in outputs)
+    assert any(ids.FLUSH_RUN_STORE in output for output in outputs)
 
 
 @pytest.mark.parametrize(

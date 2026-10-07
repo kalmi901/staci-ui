@@ -33,6 +33,7 @@ def register_network_callbacks(app):
         Output(ids.UPLOAD_STATUS, "children"),
         Output(ids.HYD_RUN_STORE, "data", allow_duplicate=True),
         Output(ids.PART_RUN_STORE, "data", allow_duplicate=True),
+        Output(ids.FLUSH_RUN_STORE, "data", allow_duplicate=True),
         Input(ids.UPLOAD_INP, "contents"),
         State(ids.UPLOAD_INP, "filename"),
         State(ids.NETWORK_STORE, "data"),
@@ -57,7 +58,7 @@ def register_network_callbacks(app):
                     color="warning",
                     className="upload-alert"
                 ), # pyright: ignore[reportCallIssue]
-                None, None
+                None, None, None
                 )
         try:
             file_bytes = _decode_upload(contents)
@@ -74,7 +75,7 @@ def register_network_callbacks(app):
                     color="danger",
                     className="upload-alert",
                 ), # pyright: ignore[reportCallIssue]
-                None, None
+                None, None, None
             )
         
         summary = {}
@@ -92,7 +93,7 @@ def register_network_callbacks(app):
                     color="danger",
                     className="upload-alert",
                 ), # pyright: ignore[reportCallIssue]
-                None, None
+                None, None, None
             )
         network_state = {
             "model_id" : saved["model_id"],
@@ -122,6 +123,7 @@ def register_network_callbacks(app):
             ),  # pyright: ignore[reportCallIssue]
             None, # invalidate previous hydraulic run
             None, # invalidate previous partition run
+            None, # invalidate previous flushing run
         )
             
     @app.callback(

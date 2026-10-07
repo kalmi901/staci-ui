@@ -46,3 +46,31 @@
     grid-template-columns: 1fr;
   }
 }
+
+.flush-meta-grid {
+  margin-bottom: 18px;
+}
+
+.flush-plan-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-lg);
+}
+
+.flush-plan-table {
+  min-width: 780px;
+  margin-bottom: 0;
+  font-size: 0.88rem;
+}
+
+.flush-plan-table thead th {
+  color: var(--text-section);
+  font-size: 0.70rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.flush-plan-table td {
+  vertical-align: middle;
+}

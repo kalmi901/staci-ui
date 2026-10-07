@@ -4,8 +4,243 @@ from __future__ import annotations
 
 from dash import dcc, html
 import dash_bootstrap_components as dbc
+from dash.development.base_component import Component
 
 from src.ui import ids
+
+
+def _format_number(
+    value,
+    *,
+    digits: int = 2,
+    scale: float = 1.0,
+    suffix: str = "",
+) -> str:
+    if value in (None, ""):
+        return "—"
+
+    try:
+        number = float(value) * scale
+    except (TypeError, ValueError):
+        return str(value)
+
+    return f"{number:.{digits}f}{suffix}"
+
+
+def _metric(label: str, value: str):
+    return html.Div(
+        className="meta-item",
+        children=[
+            html.Div(label, className="meta-label"),
+            html.Div(value, className="meta-value"),
+        ],
+    )
+
+
+def _empty_results():
+    return html.Div(
+        className="flush-results-placeholder",
+        children=[
+            html.Div(
+                "🚿",
+                className="flush-placeholder-icon",
+            ),
+            html.H3("No flushing plan yet"),
+            html.P(
+                "Select an active model, enter the hydrant "
+                "junction IDs and run STACI Flush."
+            ),
+        ],
+    )
+
+
+def render_flushing_results(run_state):
+    if not run_state:
+        return _empty_results()
+
+    plan = run_state.get("plan") or []
+
+    final_coverage = (
+        _format_number(
+            plan[-1].get("cumulative_volume_percent"),
+            digits=1,
+            suffix="%",
+        )
+        if plan
+        else "—"
+    )
+
+    content: list[Component] = [
+        html.Div(
+            className="meta-grid flush-meta-grid",
+            children=[
+                _metric(
+                    "Status",
+                    str(
+                        run_state.get("status", "—")
+                    ).title(),
+                ),
+                _metric(
+                    "Scenarios",
+                    str(run_state.get("scenario_count", "—")),
+                ),
+                _metric(
+                    "Plan steps",
+                    str(
+                        run_state.get(
+                            "plan_count",
+                            len(plan),
+                        )
+                    ),
+                ),
+                _metric(
+                    "Final coverage",
+                    final_coverage,
+                ),
+            ],
+        )
+    ]
+
+    if run_state.get("partial"):
+        content.append(
+            dbc.Alert(
+                "The run produced partial results. Invalid scenarios "
+                "are excluded from the actionable plan.",
+                color="warning",
+                className="mt-3",
+            )
+        )
+
+    if not plan:
+        content.append(
+            dbc.Alert(
+                "No actionable flushing-plan rows were produced.",
+                color="secondary",
+                className="mt-3",
+            )
+        )
+        return content
+
+    headers = [
+        "Rank",
+        "Hydrant",
+        "Flow [L/s]",
+        "Qualifying [m³]",
+        "Additional [m³]",
+        "Coverage [%]",
+        "Travel time [min]",
+        "Volume/flow [min]",
+        "Status",
+    ]
+
+    rows = []
+
+    for row in plan:
+        redundant = str(
+            row.get("redundant", "0")
+        ).lower() in {
+            "1",
+            "true",
+            "yes",
+        }
+
+        rows.append(
+            html.Tr(
+                children=[
+                    html.Td(row.get("rank", "—")),
+                    html.Td(row.get("node_id", "—")),
+                    html.Td(
+                        _format_number(
+                            row.get("hydrant_flow_m3s"),
+                            scale=1000.0,
+                        )
+                    ),
+                    html.Td(
+                        _format_number(
+                            row.get(
+                                "qualifying_volume_m3"
+                            )
+                        )
+                    ),
+                    html.Td(
+                        _format_number(
+                            row.get(
+                                "additional_volume_m3"
+                            )
+                        )
+                    ),
+                    html.Td(
+                        _format_number(
+                            row.get(
+                                "cumulative_volume_percent"
+                            ),
+                            digits=1,
+                        )
+                    ),
+                    html.Td(
+                        _format_number(
+                            row.get("opening_time_min"),
+                            digits=1,
+                        )
+                    ),
+                    html.Td(
+                        _format_number(
+                            row.get(
+                                "volume_over_flow_time_min"
+                            ),
+                            digits=1,
+                        )
+                    ),
+                    html.Td(
+                        dbc.Badge(
+                            (
+                                "Redundant"
+                                if redundant
+                                else "Selected"
+                            ),
+                            color=(
+                                "secondary"
+                                if redundant
+                                else "success"
+                            ),
+                        )
+                    ),
+                ]
+            )
+        )
+
+    content.extend(
+        [
+            html.Div(
+                className="flush-plan-table-wrap",
+                children=dbc.Table(
+                    children=[
+                        html.Thead(
+                            html.Tr(
+                                [
+                                    html.Th(header)
+                                    for header in headers
+                                ]
+                            )
+                        ),
+                        html.Tbody(rows),
+                    ],
+                    bordered=False,
+                    hover=True,
+                    responsive=True,
+                    striped=True,
+                    className="flush-plan-table",
+                ),
+            ),
+            html.Div(
+                "Scenario map and velocity inspection will appear "
+                "below the plan in the next step.",
+                className="soft-panel small-status mt-3",
+            ),
+        ]
+    )
+
+    return content
 
 
 def _number_field(
@@ -200,22 +435,7 @@ def _create_results_card():
             dbc.CardHeader("Flushing Plan"),
             dbc.CardBody(
                 id=ids.FLUSH_RESULTS,
-                children=[
-                    html.Div(
-                        className="flush-results-placeholder",
-                        children=[
-                            html.Div(
-                                "🚿",
-                                className="flush-placeholder-icon",
-                            ),
-                            html.H3("No flushing plan yet"),
-                            html.P(
-                                "Select an active model, enter the "
-                                "hydrant junction IDs and run STACI Flush."
-                            ),
-                        ],
-                    )
-                ],
+                children=_empty_results(),
             ),
         ],
     )
