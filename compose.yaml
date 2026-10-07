@@ -6,9 +6,12 @@ services:
       STACI_UI_URL_PREFIX: /staci-app/
       PORT: "8050"
       DASH_DEBUG: "0"
+      STACI_LOG_DIR: /var/log/staci
+      STACI_LOG_READER_GID: "33"
       STACI_TIMEOUT_SECONDS: ${STACI_TIMEOUT_SECONDS:-300}
     volumes:
       - staci-data:/data
+      - staci-logs:/var/log/staci
     networks:
       - solver
 
@@ -45,6 +48,7 @@ services:
     volumes:
       - wordpress-data:/var/www/html
       - ./deploy/wordpress/staci-tool:/var/www/html/wp-content/plugins/staci-tool:ro
+      - staci-logs:/var/log/staci:ro
     networks:
       - default
       - database
@@ -105,6 +109,7 @@ networks:
     internal: true
 
 volumes:
+  staci-logs:
   staci-data:
   caddy-data:
   caddy-config:

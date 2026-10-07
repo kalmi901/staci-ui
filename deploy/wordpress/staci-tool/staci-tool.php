@@ -2,7 +2,7 @@
 /**
  * Plugin Name: STACI Tool
  * Description: Embeds STACI and verifies WordPress sessions for the reverse proxy.
- * Version: 1.1.0
+ * Version: 1.1.1
  */
 
 defined('ABSPATH') || exit;
@@ -10,7 +10,9 @@ defined('ABSPATH') || exit;
 function staci_tool_access() {
     nocache_headers();
     $cookie = wp_parse_auth_cookie('', 'logged_in');
-    if (!$cookie || (int) $cookie['expiration'] <= time() || !wp_validate_auth_cookie('', 'logged_in')) {
+    $user_id = wp_validate_auth_cookie('', 'logged_in');
+    $user = $user_id ? get_userdata($user_id) : false;
+    if (!$cookie || (int) $cookie['expiration'] <= time() || !$user) {
         status_header(401);
         exit('Please sign in to WordPress and reload the tool page.');
     }
@@ -35,6 +37,8 @@ function staci_tool_access() {
     }
 
     header('X-Staci-Access: allowed');
+    header('X-Staci-User-Id: ' . (int) $user->ID);
+    header('X-Staci-User-Login: ' . rawurlencode($user->user_login));
     status_header(204);
     exit;
 }
@@ -62,3 +66,5 @@ function staci_tool_shortcode() {
 }
 
 add_shortcode('staci_tool', 'staci_tool_shortcode');
+
+require_once __DIR__ . '/logs.php';

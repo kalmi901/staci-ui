@@ -10,9 +10,11 @@
         }
         route {
             request_header -X-Staci-Access
+            request_header -X-Staci-User-Id
+            request_header -X-Staci-User-Login
             forward_auth wordpress:80 {
                 uri /wp-admin/admin-ajax.php?action=staci_tool_access
-                copy_headers X-Staci-Access
+                copy_headers X-Staci-Access X-Staci-User-Id X-Staci-User-Login
             }
             @denied not header X-Staci-Access allowed
             respond @denied "WordPress access verification failed." 403
