@@ -81,19 +81,22 @@ def test_dash_dependencies_include_main_callbacks(client) -> None:
 
 
 @pytest.mark.parametrize(
-    ("run_store_id", "run_status_id"),
+    ("run_store_id", "run_status_id", "run_button_id"),
     [
         (
             ids.HYD_RUN_STORE,
             ids.HYD_RUN_STATUS,
+            ids.HYD_RUN_BUTTON,
         ),
         (
             ids.PART_RUN_STORE,
             ids.PART_RUN_STATUS,
+            ids.PART_RUN_BUTTON,
         ),
         (
             ids.FLUSH_RUN_STORE,
             ids.FLUSH_RUN_STATUS,
+            ids.FLUSH_RUN_BUTTON,
         ),
     ],
 )
@@ -101,6 +104,7 @@ def test_solver_runs_use_background_callbacks(
     client,
     run_store_id: str,
     run_status_id: str,
+    run_button_id: str,
 ) -> None:
     response = client.get(
         _url("_dash-dependencies")
@@ -119,7 +123,17 @@ def test_solver_runs_use_background_callbacks(
     ]
 
     assert len(matching_callbacks) == 1
-    assert matching_callbacks[0].get("background")
+
+    callback = matching_callbacks[0]
+    assert callback.get("background")
+
+    running = callback.get("running")
+    assert running is not None
+
+    disabled_output = f"{run_button_id}.disabled"
+
+    assert running["running"][disabled_output] is True
+    assert running["runningOff"][disabled_output] is False
 
 
 @pytest.mark.parametrize(
