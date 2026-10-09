@@ -80,6 +80,29 @@ def test_dash_dependencies_include_main_callbacks(client) -> None:
     assert (f"{ids.FLUSH_NETWORK_GRAPH}.figure" in outputs)
 
 
+def test_hydraulic_run_uses_background_callback(
+    client,
+) -> None:
+    response = client.get(
+        _url("_dash-dependencies")
+    )
+
+    assert response.status_code == 200
+    assert response.is_json
+
+    hydraulic_callbacks = [
+        dependency
+        for dependency in response.get_json()
+        if (
+            ids.HYD_RUN_STORE in dependency["output"]
+            and ids.HYD_RUN_STATUS in dependency["output"]
+        )
+    ]
+
+    assert len(hydraulic_callbacks) == 1
+    assert hydraulic_callbacks[0].get("background")
+
+
 @pytest.mark.parametrize(
     ("path", "expected_class_name"),
     [

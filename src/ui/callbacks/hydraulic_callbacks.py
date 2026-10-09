@@ -78,6 +78,7 @@ def register_hydraulic_callbacks(app):
         State(ids.HYD_OVERRIDE_OPTIONS, "value"),
         State(ids.HYD_DURATION_HOURS, "value"),
         State(ids.HYD_TIMESTEP_MINUTES, "value"),
+        background=True,
         prevent_initial_call=True)
     def run_hydraulic_simulation(
         n_clicks,
