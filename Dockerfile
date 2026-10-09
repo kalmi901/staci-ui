@@ -57,6 +57,14 @@ RUN test -x /build/staci/build/staci \
 # ----------------------
 FROM python:3.13-slim-bookworm AS runtime
 
+RUN groupadd --gid 10001 staci \
+    && useradd \
+        --uid 10001 \
+        --gid staci \
+        --create-home \
+        --shell /usr/sbin/nologin \
+        staci
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libumfpack5 \
     libhdf5-103-1 \
@@ -121,7 +129,8 @@ ENV STACI_UI_DATA_DIR=/data
 ENV PORT=8050
 ENV DASH_DEBUG=0
 
-RUN mkdir -p /data/uploads /data/runs
+RUN mkdir -p /data/uploads /data/runs \
+    && chown -R staci:staci /app /data
 
 EXPOSE 8050
 
@@ -147,3 +156,7 @@ CMD ["python", "-m", "pytest", "-vv"]
 # Stage 4: PRODUCTION
 # ----------------------
 FROM runtime AS production
+
+ENV HOME=/home/staci
+
+USER staci

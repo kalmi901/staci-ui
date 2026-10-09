@@ -8,6 +8,10 @@ from src.config import (
     DASH_DEBUG,
     APP_URL_PREFIX,
 )
+from src.background_jobs import (
+    background_callback_manager,
+    celery_app,
+)
 
 logging.basicConfig(
     level=logging.DEBUG if DASH_DEBUG else logging.INFO,
@@ -22,7 +26,8 @@ def create_app() -> Dash:
         external_stylesheets=[dbc.themes.BOOTSTRAP],
         suppress_callback_exceptions=True,
         url_base_pathname=APP_URL_PREFIX,
-        update_title=""
+        update_title="",
+        background_callback_manager=background_callback_manager,
     )
     
     app.title = "STACI Dashboard"
