@@ -169,7 +169,7 @@ jobs:
               --app app:celery_app \
               inspect ping \
               --timeout=2 |
-              grep -q pong
+              grep pong >/dev/null
             then
               break
             fi
@@ -182,7 +182,7 @@ jobs:
             --app app:celery_app \
             inspect ping \
             --timeout=10 |
-            grep -q pong
+            grep pong >/dev/null
 
       - name: Verify background callback registration
         run: |
