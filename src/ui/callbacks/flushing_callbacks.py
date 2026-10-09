@@ -87,6 +87,14 @@ def register_flushing_callbacks(app):
         State(ids.FLUSH_VELOCITY_THRESHOLD, "value"),
         State(ids.FLUSH_MIN_PRESSURE_HEAD, "value"),
         State(ids.FLUSH_WRITE_NETWORKS, "value"),
+        background=True,
+        running=[
+            (
+                Output(ids.FLUSH_RUN_BUTTON, "disabled"),
+                True,
+                False,
+            ),
+        ],
         prevent_initial_call=True,
     )
     def run_flushing(

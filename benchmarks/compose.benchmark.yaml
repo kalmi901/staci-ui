@@ -1,0 +1,32 @@
+services:
+  app:
+    cpus: 0.50
+    mem_limit: 512m
+    ports:
+      - target: 8050
+        published: "8050"
+        host_ip: 127.0.0.1
+        protocol: tcp
+    volumes:
+      - type: bind
+        source: "${BENCHMARK_DATA_DIR:?Set BENCHMARK_DATA_DIR}"
+        target: /data
+    networks:
+      solver: {}
+      benchmark: {}
+
+  worker:
+    cpus: 1.25
+    mem_limit: 1280m
+    volumes:
+      - type: bind
+        source: "${BENCHMARK_DATA_DIR:?Set BENCHMARK_DATA_DIR}"
+        target: /data
+
+  redis:
+    cpus: 0.25
+    mem_limit: 256m
+
+networks:
+  benchmark:
+    driver: bridge

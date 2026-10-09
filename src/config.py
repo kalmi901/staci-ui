@@ -17,6 +17,25 @@ if (
 
 DASH_DEBUG = os.getenv("DASH_DEBUG", "0") == "1"
 
+CELERY_BROKER_URL = os.getenv(
+    "CELERY_BROKER_URL",
+    "redis://localhost:6379/0",
+)
+
+CELERY_RESULT_BACKEND = os.getenv(
+    "CELERY_RESULT_BACKEND",
+    "redis://localhost:6379/1",
+)
+
+CELERY_RESULT_EXPIRES_SECONDS = int(
+    os.getenv("CELERY_RESULT_EXPIRES_SECONDS", "3600")
+)
+
+if CELERY_RESULT_EXPIRES_SECONDS <= 0:
+    raise ValueError(
+        "CELERY_RESULT_EXPIRES_SECONDS must be positive."
+    )
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 _data_root_env = os.getenv("STACI_UI_DATA_DIR")

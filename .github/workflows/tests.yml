@@ -65,3 +65,164 @@ jobs:
 
       - name: Run full test suite in Docker
         run: docker run --rm staci-ui:test
+
+      - name: Create background stack resources
+        run: |
+          set -euo pipefail
+
+          docker network create staci-ui-ci
+          docker volume create staci-ui-ci-data
+
+          docker run --rm \
+            --volume staci-ui-ci-data:/data \
+            staci-ui:test \
+            sh -c 'chown -R 10001:10001 /data'
+
+      - name: Start Redis
+        run: |
+          set -euo pipefail
+
+          docker run --rm -d \
+            --name staci-ui-ci-redis \
+            --network staci-ui-ci \
+            --network-alias redis \
+            redis:7.4.11-alpine
+
+          for attempt in {1..30}; do
+            if docker exec staci-ui-ci-redis \
+              redis-cli ping |
+              grep -q PONG
+            then
+              break
+            fi
+
+            sleep 1
+          done
+
+          docker exec staci-ui-ci-redis \
+            redis-cli ping |
+            grep -q PONG
+
+      - name: Start Dash application
+        run: |
+          set -euo pipefail
+
+          docker run --rm -d \
+            --name staci-ui-ci-app \
+            --network staci-ui-ci \
+            --user 10001:10001 \
+            --publish 127.0.0.1:8050:8050 \
+            --volume staci-ui-ci-data:/data \
+            --env HOME=/home/staci \
+            --env STACI_UI_DATA_DIR=/data \
+            --env STACI_UI_URL_PREFIX=/staci-app/ \
+            --env CELERY_BROKER_URL=redis://redis:6379/0 \
+            --env CELERY_RESULT_BACKEND=redis://redis:6379/1 \
+            --entrypoint sh \
+            staci-ui:test \
+            -c 'exec gunicorn --bind 0.0.0.0:8050 --worker-class gthread --workers 1 --threads 4 --timeout 600 app:server'
+
+          for attempt in {1..30}; do
+            if curl \
+              --fail \
+              --silent \
+              --show-error \
+              http://127.0.0.1:8050/staci-app/_dash-layout \
+              > /dev/null
+            then
+              break
+            fi
+
+            sleep 1
+          done
+
+          curl \
+            --fail \
+            --silent \
+            --show-error \
+            http://127.0.0.1:8050/staci-app/_dash-layout \
+            > /dev/null
+
+      - name: Start Celery worker
+        run: |
+          set -euo pipefail
+
+          docker run --rm -d \
+            --name staci-ui-ci-worker \
+            --network staci-ui-ci \
+            --user 10001:10001 \
+            --volume staci-ui-ci-data:/data \
+            --env HOME=/home/staci \
+            --env STACI_UI_DATA_DIR=/data \
+            --env CELERY_BROKER_URL=redis://redis:6379/0 \
+            --env CELERY_RESULT_BACKEND=redis://redis:6379/1 \
+            --entrypoint celery \
+            staci-ui:test \
+            --app app:celery_app \
+            worker \
+            --loglevel=INFO \
+            --concurrency=1
+
+          for attempt in {1..30}; do
+            if docker exec staci-ui-ci-worker \
+              celery \
+              --app app:celery_app \
+              inspect ping \
+              --timeout=2 |
+              grep pong >/dev/null
+            then
+              break
+            fi
+
+            sleep 1
+          done
+
+          docker exec staci-ui-ci-worker \
+            celery \
+            --app app:celery_app \
+            inspect ping \
+            --timeout=10 |
+            grep pong >/dev/null
+
+      - name: Verify background callback registration
+        run: |
+          set -euo pipefail
+
+          registered="$(
+            docker exec staci-ui-ci-worker \
+              celery \
+              --app app:celery_app \
+              inspect registered \
+              --timeout=10
+          )"
+
+          printf '%s\n' "$registered"
+
+          task_count="$(
+            printf '%s\n' "$registered" |
+              awk '/background_callback_/ {count++} END {print count + 0}'
+          )"
+
+          if [ "$task_count" -ne 3 ]; then
+            echo "Expected 3 background callback tasks, found $task_count."
+            exit 1
+          fi
+
+      - name: Show background stack logs on failure
+        if: failure()
+        run: |
+          docker logs staci-ui-ci-redis || true
+          docker logs staci-ui-ci-app || true
+          docker logs staci-ui-ci-worker || true
+
+      - name: Remove background stack resources
+        if: always()
+        run: |
+          docker rm --force \
+            staci-ui-ci-worker \
+            staci-ui-ci-app \
+            staci-ui-ci-redis \
+            2>/dev/null || true
+
+          docker network rm staci-ui-ci 2>/dev/null || true
+          docker volume rm staci-ui-ci-data 2>/dev/null || true
