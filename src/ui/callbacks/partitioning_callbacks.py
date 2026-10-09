@@ -40,7 +40,9 @@ def register_partitioning_callbacks(app):
         State(ids.PART_NGEN, "value"),
         State(ids.PART_PMUT, "value"),
         State(ids.PART_PCROSS, "value"),
-        State(ids.PART_SEED, "value")
+        State(ids.PART_SEED, "value"),
+        background=True,
+        prevent_initial_call=True,
     )
     def run_partitioning(
         n_clicks,

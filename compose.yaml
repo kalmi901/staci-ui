@@ -19,7 +19,7 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-  
+
   worker:
     build: .
     restart: unless-stopped
@@ -52,7 +52,7 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
-  
+
   database:
     image: mariadb:11.4
     restart: unless-stopped
