@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 import json
 import math
 import shutil
@@ -14,6 +15,7 @@ from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
+from urllib.parse import urlencode
 
 
 def _http_request(
@@ -68,6 +70,45 @@ def _http_request(
     }
 
     return metric, body
+
+
+def _load_dash_end_id(
+    index_url: str,
+    *,
+    timeout_seconds: float,
+) -> str:
+    metric, body = _http_request(
+        index_url,
+        timeout_seconds=timeout_seconds,
+    )
+
+    if metric["status"] != 200:
+        raise RuntimeError(
+            "Could not load the Dash index page: "
+            f"{metric}"
+        )
+
+    match = re.search(
+        rb"<script[^>]*\bid=['\"]_dash-config['\"][^>]*>"
+        rb"(.*?)</script>",
+        body,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+
+    if match is None:
+        raise RuntimeError(
+            "Dash index page did not contain _dash-config"
+        )
+
+    config = json.loads(match.group(1))
+    end_id = config.get("end_id")
+
+    if not isinstance(end_id, str) or not end_id:
+        raise RuntimeError(
+            "Dash configuration did not contain end_id"
+        )
+
+    return end_id
 
 
 def _find_hydraulic_callback_output(
@@ -200,12 +241,14 @@ def _make_hydraulic_payload(
 
 def _run_callback(
     update_url: str,
+    end_id: str,
     callback_output: str,
     network_state: dict[str, str],
     start_event: threading.Event,
     *,
     duration_hours: float,
     timestep_minutes: float,
+    poll_interval_seconds: float,
     timeout_seconds: float,
 ) -> dict[str, Any]:
     payload = _make_hydraulic_payload(
@@ -216,22 +259,143 @@ def _run_callback(
     )
 
     start_event.wait()
+    started = time.perf_counter()
+    deadline = started + timeout_seconds
+
+    initial_url = (
+        f"{update_url}?"
+        + urlencode({"endId": end_id})
+    )
 
     metric, body = _http_request(
-        update_url,
+        initial_url,
         method="POST",
         payload=payload,
         timeout_seconds=timeout_seconds,
     )
 
     metric["model_id"] = network_state["model_id"]
+    metric["enqueue_latency_ms"] = metric["latency_ms"]
+    metric["poll_count"] = 0
 
     if metric["status"] != 200:
         metric["response_preview"] = body[
             :1000
         ].decode("utf-8", errors="replace")
+        return metric
 
-    return metric
+    enqueue_latency_ms = metric["enqueue_latency_ms"]
+    initial_response = json.loads(body)
+
+    cache_key = initial_response.get("cacheKey")
+    job = initial_response.get("job")
+
+    if not isinstance(cache_key, str) or not isinstance(
+        job,
+        str,
+    ):
+        raise RuntimeError(
+            "Background callback start response did not "
+            "contain cacheKey and job handles: "
+            f"{initial_response}"
+        )
+
+    # The Dash renderer also clears input/state values during
+    # polling because the background task already owns them.
+    poll_payload = {
+        **payload,
+        "inputs": [
+            {**item, "value": None}
+            for item in payload["inputs"]
+        ],
+        "state": [
+            {**item, "value": None}
+            for item in payload["state"]
+        ],
+    }
+
+    poll_url = (
+        f"{update_url}?"
+        + urlencode(
+            {
+                "endId": end_id,
+                "cacheKey": cache_key,
+                "job": job,
+            }
+        )
+    )
+
+    poll_count = 0
+
+    while True:
+        remaining_seconds = deadline - time.perf_counter()
+
+        if remaining_seconds <= 0:
+            return {
+                "model_id": network_state["model_id"],
+                "status": None,
+                "latency_ms": round(
+                    (time.perf_counter() - started)
+                    * 1000.0,
+                    3,
+                ),
+                "enqueue_latency_ms": enqueue_latency_ms,
+                "poll_count": poll_count,
+                "response_bytes": 0,
+                "error": (
+                    "Background callback did not finish "
+                    f"within {timeout_seconds} seconds"
+                ),
+            }
+
+        time.sleep(
+            min(
+                poll_interval_seconds,
+                remaining_seconds,
+            )
+        )
+
+        remaining_seconds = deadline - time.perf_counter()
+
+        if remaining_seconds <= 0:
+            continue
+
+        metric, body = _http_request(
+            poll_url,
+            method="POST",
+            payload=poll_payload,
+            timeout_seconds=remaining_seconds,
+        )
+
+        poll_count += 1
+        last_request_latency_ms = metric["latency_ms"]
+
+        metric.update(
+            {
+                "model_id": network_state["model_id"],
+                "latency_ms": round(
+                    (time.perf_counter() - started)
+                    * 1000.0,
+                    3,
+                ),
+                "enqueue_latency_ms": enqueue_latency_ms,
+                "poll_count": poll_count,
+                "last_request_latency_ms": (
+                    last_request_latency_ms
+                ),
+            }
+        )
+
+        if metric["status"] != 200:
+            metric["response_preview"] = body[
+                :1000
+            ].decode("utf-8", errors="replace")
+            return metric
+
+        poll_response = json.loads(body)
+
+        if "response" in poll_response:
+            return metric
 
 
 def _run_probe(
@@ -382,6 +546,11 @@ def _parse_args() -> argparse.Namespace:
         default=0.25,
     )
     parser.add_argument(
+        "--callback-poll-interval-seconds",
+        type=float,
+        default=0.5,
+    )
+    parser.add_argument(
         "--request-timeout-seconds",
         type=float,
         default=660.0,
@@ -396,6 +565,12 @@ def main() -> None:
     if args.jobs <= 0:
         raise ValueError("--jobs must be positive")
 
+    if args.callback_poll_interval_seconds <= 0:
+        raise ValueError(
+            "--callback-poll-interval-seconds must be "
+            "positive"
+        )
+
     model_path = args.model.expanduser().resolve()
     data_root = args.data_root.expanduser().resolve()
 
@@ -407,12 +582,20 @@ def main() -> None:
     data_root.mkdir(parents=True, exist_ok=True)
 
     base_url = args.base_url.rstrip("/")
+    index_url = f"{base_url}/"
     dependencies_url = (
         f"{base_url}/_dash-dependencies"
     )
     layout_url = f"{base_url}/_dash-layout"
     update_url = (
         f"{base_url}/_dash-update-component"
+    )
+
+    end_id = _load_dash_end_id(
+        index_url,
+        timeout_seconds=(
+            args.request_timeout_seconds
+        ),
     )
 
     callback_output = (
@@ -454,6 +637,7 @@ def main() -> None:
             executor.submit(
                 _run_callback,
                 update_url,
+                end_id,
                 callback_output,
                 network_state,
                 start_event,
@@ -462,6 +646,9 @@ def main() -> None:
                 ),
                 timestep_minutes=(
                     args.timestep_minutes
+                ),
+                poll_interval_seconds=(
+                    args.callback_poll_interval_seconds
                 ),
                 timeout_seconds=(
                     args.request_timeout_seconds
@@ -550,6 +737,9 @@ def main() -> None:
             "loaded_probes": (
                 args.loaded_probes
             ),
+            "callback_poll_interval_seconds": (
+                args.callback_poll_interval_seconds
+            )
         },
         "benchmark_seconds": round(
             benchmark_seconds,
