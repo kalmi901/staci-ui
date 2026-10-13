@@ -13,7 +13,9 @@ import shutil
 
 from src.staci.eps import run_staci_eps
 from src.services.inp_model_reader import set_model_options
-from src.config import RUN_ROOT
+from src.config import RUN_ROOT, STACI_EXECUTABLE
+from src.run_logging import log_prepared_input
+from src.services.inp_model_reader import read_model_options
 
 
 # -- Helpers --
@@ -273,6 +275,11 @@ def call_hydraulic_simulator(
         run_inp_path = run_dir / "input.inp"
         shutil.copy2(inp_path, run_inp_path)
     
+    log_prepared_input(
+        run_inp_path, run_id, options_reader=read_model_options,
+        executable=STACI_EXECUTABLE if backend == "staci" else None,
+    )
+
     if backend == "wntr":
         return run_wntr(run_inp_path, model_id, run_id, run_dir)
         

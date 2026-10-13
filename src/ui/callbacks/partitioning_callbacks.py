@@ -10,6 +10,8 @@ from src.services.model_storage import resolve_uploaded_model
 from src.services.partition_runner import call_staci_split_service
 from src.visualisation.network_preview import make_partitioned_network_figure
 
+from src.run_logging import logged_run
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -42,6 +44,7 @@ def register_partitioning_callbacks(app):
         State(ids.PART_PCROSS, "value"),
         State(ids.PART_SEED, "value")
     )
+    @logged_run("partition")
     def run_partitioning(
         n_clicks,
         network_state,

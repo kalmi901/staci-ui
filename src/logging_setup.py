@@ -16,9 +16,12 @@ from urllib.parse import unquote
 
 from flask import has_request_context, request
 
+from src.run_logging import execution_id
+
 
 class RequestUserFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
+        record.staci_execution_id = execution_id.get()
         record.staci_user_id = "-"
         record.staci_user_login = "-"
         if has_request_context():
@@ -59,7 +62,7 @@ def configure_logging(*, debug: bool = False) -> None:
 
     formatter = logging.Formatter(
         "%(asctime)sZ | %(levelname)-8s | %(name)s | "
-        "user_id=%(staci_user_id)s user=%(staci_user_login)s | %(message)s"
+        "execution_id=%(staci_execution_id)s | user_id=%(staci_user_id)s user=%(staci_user_login)s | %(message)s"
     )
     formatter.converter = time.gmtime
     for handler in handlers:
