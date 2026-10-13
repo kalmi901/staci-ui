@@ -11,6 +11,8 @@ from src.services.model_storage import resolve_uploaded_model
 from src.services.inp_model_reader import read_model_options
 from src.visualisation.network_preview import make_hydraulic_timestep_figure
 
+from src.run_logging import logged_run
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -87,6 +89,7 @@ def register_hydraulic_callbacks(app):
             ),
         ],
         prevent_initial_call=True)
+    @logged_run("hydraulic")
     def run_hydraulic_simulation(
         n_clicks,
         network_state,

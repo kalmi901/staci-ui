@@ -75,8 +75,9 @@ grant access. Failed authentication returns 401; a failed origin check returns
 requests, but does not cancel a computation already running or erase results
 already displayed in the browser.
 
-Dash has no login or user identity logic. Its container is reachable only on a
-private Docker network shared with Caddy. Never publish port 8050 or attach an
+Dash relies on WordPress/Caddy for login and uses the verified user headers only
+to attribute application logs. Its container is reachable only on a
+private Docker network shared with Caddy, Redis and the Celery worker. Never publish port 8050 or attach an
 untrusted container to that network. WordPress cookies are removed before
 requests reach Dash. Force Login protects WordPress pages; Caddy and the STACI
 Tool plugin protect the separately running application.
@@ -113,8 +114,95 @@ unless stopped; the initialization service exits after completing its check.
 Models/results are not assigned to users, and there is no previous-run browser.
 Logged-in users are trusted with the shared tool; their data is not isolated.
 
+## User-attributed application logs
+
+Dash 4.4.1 transfers server-side request headers into the background callback
+context. Worker log filters read that context when no Flask request is active;
+identity is never taken from model data or user-supplied callback arguments.
+Celery's logging setup signal installs the same handlers/formatter as the web
+process. Keep Redis and workers private on the solver network.
+
+STACI Tool 1.2.0 returns `X-Staci-User-Id` and a URL-encoded
+`X-Staci-User-Login` after validating the WordPress session. Caddy removes any
+client-supplied values and forwards only the verified headers. Keep the app
+private on the solver network; these headers are not standalone credentials.
+
+Existing Python logs now include the user ID/login and explicit UTC timestamps.
+Events outside a request have `user_id=- user=-`. Solver execution, result
+classification and browser workflows are unchanged. Filenames remain in upload
+events and are linked to run events by `model_id`; this is not a run database.
+
+Compose enables a rotating `/var/log/staci/application.log`: 5 MiB per file,
+five backups (approximately 30 MiB total, apart from an oversized single event).
+Docker console output is retained for both app and worker. A POSIX file lock
+serializes appends and rotation across Gunicorn and Celery worker processes.
+Each writer reopens the current file under that lock to avoid writing into an
+already rotated archive.
+Local development without `STACI_LOG_DIR` keeps console-only logging.
+
+The `staci-logs` volume is writable in app/worker and mounted read-only in
+WordPress. The network-isolated `logs-init` service prepares ownership for
+UID 10001 (`staci`), GID 33 (`www-data`), directory mode 2750 and file mode 0640,
+including existing archives. App and worker wait for initialization and run
+under the unprivileged application user with supplementary group 33. Existing
+setgid permissions are preserved when already configured. Files use mode 0640.
+Include this volume in future backups.
+
+Administrators can open **Tools → STACI napló**. The default run list supports
+user/file/ID search, state and local-date filters, 50 rows per page and a copyable
+per-run reproduction summary. Display dates use Europe/Budapest (including DST);
+raw records remain UTC. The page uses `manage_options`, allows only the six known
+filenames and escapes all log content. Refresh is manual. The raw viewer remains
+available and reads at most the last 256 KiB / 500 lines.
+
+Hydraulic, partitioning and flushing callbacks receive a task-local
+`execution_id` before validation. This is distinct from the solver's `run_id`, which is allocated later. Existing log
+messages keep their text and gain this correlation field; additional `STACI_RUN`
+JSON events record requested settings, source/Python/WNTR fingerprints, timeout,
+prepared input SHA-256, effective hydraulic options, partition XML or flushing
+JSON, solver binary SHA-256 (for STACI), elapsed time and completion information. No solver
+arguments, results or browser callback return values are changed. Metadata
+inspection failures produce warnings without cancelling a calculation. The
+source digest covers app.py, Python source and requirements files; it identifies
+code but is not a stored checkout, image or environment lockfile.
+
+The list scans at most 6 MiB per known log file, keeps at most 500 attempts/legacy
+events and 24 KiB of log detail per attempt, with explicit truncation notices.
+Legacy records without correlation IDs remain separate events; overlapping runs
+are never paired by user/model/time guesses. Missing start or finish events are
+labelled incomplete, not running or successful. Completion with reported failed
+frames, STACI warnings or partial flushing results is labelled with a warning.
+Completion alone does not certify numerical correctness.
+
+Run input copies already produced by the services remain in the data volume;
+the dashboard does not expose that volume or add downloads or automatic reruns.
+Reproduction requires retaining those inputs and matching code/binaries as well
+as the displayed settings. Log rotation can remove this history; this feature is
+not a durable audit database. The volume is outside the web root;
+there is no public log endpoint. Historical Docker logs are not imported.
+
+Deploy the plugin, Caddy configuration and Python changes together; recreate
+app/worker/WordPress to apply the volume mounts and environment. No database
+migration is required. Build the merged image with the STACI revision pinned
+in Dockerfile before deployment. When upgrading an existing root-owned data
+volume to main's non-root runtime, stop app/worker and migrate `/data` ownership
+to UID/GID 10001 before starting the new services. `logs-init` only initializes
+the log volume; it does not modify uploaded models or solver results.
+Check two user identities, forged headers,
+anonymous requests, administrator/subscriber access and rotated-file readability.
+
 After code updates, run `docker compose up -d --build` during a maintenance
 window; replacing the app can interrupt simulations. Do not run
 `docker compose down -v` unless intentionally deleting all stored data and
 certificate state. Pin/update container image versions according to your VPS
 maintenance policy.
+
+### Run dashboard verification
+
+Run `python -m unittest discover -s tests -p 'test_*.py'` in the application
+environment. Run `tests/test_log_viewer.php` and `tests/test_run_dashboard.php`
+in separate disposable PHP 8 containers with an empty writable `/var/log/staci`;
+these tests write synthetic logs and must never run against production volumes.
+The tests cover concurrent attempt IDs, unchanged callback arguments/results,
+prepared input fingerprints, rotation, incomplete/legacy events, escaping,
+filters, time zones, access control and bounded reads.

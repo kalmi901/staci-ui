@@ -8,7 +8,8 @@ import uuid
 from collections import Counter
 
 from src.staci.split import write_split_settings, run_staci_split
-from src.config import RUN_ROOT
+from src.config import RUN_ROOT, STACI_SPLIT_EXECUTABLE
+from src.run_logging import log_prepared_input
 
 
 @dataclass
@@ -123,6 +124,10 @@ def call_staci_split_service(
         overrides=optimizer_settings
     )
     
+    log_prepared_input(
+        run_inp, run_id, settings_path=settings_path, executable=STACI_SPLIT_EXECUTABLE,
+    )
+
     split_results = run_staci_split(
         run_inp,
         settings_path,

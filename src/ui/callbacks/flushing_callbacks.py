@@ -8,6 +8,7 @@ import dash_bootstrap_components as dbc
 from dash import Input, Output, State, html
 from dash.exceptions import PreventUpdate
 
+from src.run_logging import logged_run
 from src.services.flushing_runner import call_staci_flush_service, load_flushing_scenario
 from src.services.model_storage import resolve_uploaded_model
 from src.ui import ids
@@ -97,6 +98,7 @@ def register_flushing_callbacks(app):
         ],
         prevent_initial_call=True,
     )
+    @logged_run("flushing")
     def run_flushing(
         n_clicks,
         network_state,

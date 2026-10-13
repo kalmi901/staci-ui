@@ -7,7 +7,8 @@ import uuid
 from pathlib import Path
 from typing import Any, Literal, Sequence
 
-from src.config import RUN_ROOT
+from src.config import RUN_ROOT, STACI_FLUSH_EXECUTABLE
+from src.run_logging import log_prepared_input
 from src.staci.flush import run_staci_flush, write_flush_config
 from src.services.run_storage import resolve_run_dir
 
@@ -226,6 +227,9 @@ def call_staci_flush_service(
         write_network_files=write_network_files,
     )
 
+    log_prepared_input(
+        run_inp, run_id, settings_path=config_path, executable=STACI_FLUSH_EXECUTABLE,
+    )
     flush_result = run_staci_flush(run_inp, config_path)
 
     if not flush_result.success and not flush_result.partial:
