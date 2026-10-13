@@ -1,6 +1,7 @@
 <?php
 /** Read-only viewer for the application's bounded, rotated log files. */
 defined('ABSPATH') || exit;
+require_once __DIR__ . '/run-log-page.php';
 
 function staci_tool_log_names() {
     return array('application.log', 'application.log.1', 'application.log.2',
@@ -16,13 +17,13 @@ function staci_tool_read_log_tail($name) {
     $resolved = realpath($path);
     if (is_link($path) || !$resolved || dirname($resolved) !== realpath($directory)
         || !is_file($resolved) || !is_readable($resolved)) {
-        return new WP_Error('missing_log', 'A napló még nem létezik, vagy nem olvasható.');
+        return new WP_Error('missing_log', 'A naplófájl nem érhető el.');
     }
     // Never load a complete rotated log into PHP memory. Rotation may happen
     // between selection and opening: a missing file is a harmless refresh case.
     $handle = @fopen($resolved, 'rb');
     if (!$handle) {
-        return new WP_Error('unavailable_log', 'A napló nem nyitható meg. Próbáld frissíteni az oldalt.');
+        return new WP_Error('unavailable_log', 'A naplófájl nem nyitható meg. Frissítse az oldalt.');
     }
     $stat = fstat($handle);
     $offset = max(0, $stat['size'] - 262144);
@@ -47,15 +48,20 @@ function staci_tool_logs_page() {
     if (!current_user_can('manage_options')) {
         wp_die('Nincs jogosultságod a napló megtekintéséhez.', '', array('response' => 403));
     }
+    if (staci_run_query('view') !== 'raw') {
+        staci_run_page();
+        return;
+    }
     nocache_headers();
     $name = isset($_GET['log']) && is_string($_GET['log'])
         ? sanitize_text_field(wp_unslash($_GET['log'])) : 'application.log';
     $content = staci_tool_read_log_tail($name);
     echo '<div class="wrap"><h1>STACI napló</h1>';
-    echo '<p>A meglévő alkalmazásnapló, felhasználóazonosítóval és bejelentkezési névvel. '
-        . 'Az időpontok UTC szerint szerepelnek; a Z jelölés ezt jelenti.</p>';
+    echo '<p><a class="button" href="' . esc_url(admin_url('tools.php?page=staci-tool-logs')) . '">Futáslista</a></p>';
+    echo '<p>Alkalmazásnapló. Időzóna: UTC (Z). '
+        . 'A user_id=- jelölés hiányzó felhasználói azonosítót jelent.</p>';
     echo '<form method="get" action="' . esc_url(admin_url('tools.php')) . '">';
-    echo '<input type="hidden" name="page" value="staci-tool-logs">';
+    echo '<input type="hidden" name="page" value="staci-tool-logs"><input type="hidden" name="view" value="raw">';
     echo '<label for="staci-log-file">Naplófájl: </label>';
     echo '<select id="staci-log-file" name="log">';
     foreach (staci_tool_log_names() as $option) {
@@ -65,14 +71,14 @@ function staci_tool_logs_page() {
     }
     echo '</select> ';
     submit_button('Frissítés', 'secondary', 'submit', false);
-    echo '</form><p>Legfeljebb az utolsó 500 sor, a fájl utolsó 256 KiB-jából. '
-        . 'Az .1 a legutóbbi korábbi fájl. A régi Docker-naplók itt nem jelennek meg.</p>';
+    echo '</form><p>Legfeljebb 500 sor a fájl utolsó 256 KiB-jából. '
+        . 'Az .1 a legutóbbi archív fájl; a korábbi Docker-naplók nem részei ennek a nézetnek.</p>';
     if (is_wp_error($content)) {
         echo '<div class="notice notice-info"><p>' . esc_html($content->get_error_message()) . '</p></div>';
     } else {
         echo '<pre style="background:#fff;border:1px solid #c3c4c7;padding:16px;max-height:65vh;'
             . 'overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;">'
-            . esc_html($content !== '' ? $content : 'Még nincs naplóbejegyzés.') . '</pre>';
+            . esc_html($content !== '' ? $content : 'Nincs naplóbejegyzés.') . '</pre>';
     }
     echo '</div>';
 }
