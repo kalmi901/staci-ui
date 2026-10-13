@@ -161,8 +161,9 @@ Gunicorn and application logs remain available through Docker. Compose also
 writes Python application logs to `/var/log/staci/application.log` on the
 `staci-logs` volume, with five rotated backups of 5 MiB each. Application events
 include the proxy-verified WordPress user ID/login; timestamps are UTC.
-Administrators can view the latest lines under **Tools → STACI napló** in
-WordPress. The log directory is mounted read-only in WordPress and is outside
+Administrators can browse and filter runs under **Tools → STACI napló** in
+WordPress, open a run’s log and copy a reproduction summary. The raw log viewer
+remains available. The log directory is mounted read-only in WordPress and is outside
 the public web root. Existing Docker history is not imported. See the
 [deployment guide](deploy/README.md#user-attributed-application-logs) for details.
 

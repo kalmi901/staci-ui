@@ -38,9 +38,7 @@ function staci_run_page() {
         . 'A befejezett futás nem feltétlenül jelent numerikusan érvényes eredményt.</p>';
     echo '<p><a class="button" href="' . esc_url(add_query_arg(array('page' => 'staci-tool-logs', 'view' => 'raw'), $base))
         . '">Nyers napló</a></p>';
-    echo '<p>Legfeljebb 500 megőrzött futás vagy esemény. '
-        . 'A futásazonosító nélküli korábbi események külön szerepelnek.</p>';
-    echo '<p>Felhasználó: „Nem rögzített” — a napló nem tartalmaz felhasználói azonosítót. Ez korábbi vagy kéréstől független eseményeknél fordulhat elő.</p>';
+    echo '<p>Legfeljebb 500 megőrzött futás vagy esemény.</p>';
     if ($limited) { echo '<div class="notice notice-warning"><p>A megjelenített adatok olvasási korlát vagy fájlhozzáférési hiba miatt hiányosak.</p></div>'; }
     echo '<form method="get"><input type="hidden" name="page" value="staci-tool-logs">';
     echo '<p><label>Keresés (név, fájl, azonosító) <input type="search" name="q" value="' . esc_attr($q) . '"></label> ';

@@ -116,7 +116,7 @@ Logged-in users are trusted with the shared tool; their data is not isolated.
 
 ## User-attributed application logs
 
-STACI Tool 1.1.1 returns `X-Staci-User-Id` and a URL-encoded
+STACI Tool 1.2.0 returns `X-Staci-User-Id` and a URL-encoded
 `X-Staci-User-Login` after validating the WordPress session. Caddy removes any
 client-supplied values and forwards only the verified headers. Keep the app
 private on the solver network; these headers are not standalone credentials.
@@ -136,9 +136,37 @@ The new `staci-logs` volume is writable only in the app and mounted read-only
 in WordPress. The app sets its directory group to GID 33 (`www-data`), mode 2750,
 and creates files with mode 0640. Include this volume in future backups.
 
-Administrators can open **Tools → STACI napló**. The page uses `manage_options`,
-allows only the six known filenames, escapes log content, and reads at most the
-last 256 KiB / 500 lines. Refresh is manual. The volume is outside the web root;
+Administrators can open **Tools → STACI napló**. The default run list supports
+user/file/ID search, state and local-date filters, 50 rows per page and a copyable
+per-run reproduction summary. Display dates use Europe/Budapest (including DST);
+raw records remain UTC. The page uses `manage_options`, allows only the six known
+filenames and escapes all log content. Refresh is manual. The raw viewer remains
+available and reads at most the last 256 KiB / 500 lines.
+
+New run callbacks receive a request-local `execution_id` before validation. This
+is distinct from the solver's `run_id`, which is allocated later. Existing log
+messages keep their text and gain this correlation field; additional `STACI_RUN`
+JSON events record requested settings, source/Python/WNTR fingerprints, timeout,
+prepared input SHA-256, effective hydraulic options or partition XML, solver
+binary SHA-256 (for STACI), elapsed time and completion information. No solver
+arguments, results or browser callback return values are changed. Metadata
+inspection failures produce warnings without cancelling a calculation. The
+source digest covers app.py, Python source and requirements files; it identifies
+code but is not a stored checkout, image or environment lockfile.
+
+The list scans at most 6 MiB per known log file, keeps at most 500 attempts/legacy
+events and 24 KiB of log detail per attempt, with explicit truncation notices.
+Legacy records without correlation IDs remain separate events; overlapping runs
+are never paired by user/model/time guesses. Missing start or finish events are
+labelled incomplete, not running or successful. Completion with reported failed
+frames or STACI warnings is labelled with a warning. Completion alone does not
+certify numerical correctness.
+
+Run input copies already produced by the services remain in the data volume;
+the dashboard does not expose that volume or add downloads or automatic reruns.
+Reproduction requires retaining those inputs and matching code/binaries as well
+as the displayed settings. Log rotation can remove this history; this feature is
+not a durable audit database. The volume is outside the web root;
 there is no public log endpoint. Historical Docker logs are not imported.
 
 Deploy the plugin, Caddy configuration and Python changes together; recreate
@@ -151,3 +179,13 @@ window; replacing the app can interrupt simulations. Do not run
 `docker compose down -v` unless intentionally deleting all stored data and
 certificate state. Pin/update container image versions according to your VPS
 maintenance policy.
+
+### Run dashboard verification
+
+Run `python -m unittest discover -s tests -p 'test_*.py'` in the application
+environment. Run `tests/test_log_viewer.php` and `tests/test_run_dashboard.php`
+in separate disposable PHP 8 containers with an empty writable `/var/log/staci`;
+these tests write synthetic logs and must never run against production volumes.
+The tests cover concurrent attempt IDs, unchanged callback arguments/results,
+prepared input fingerprints, rotation, incomplete/legacy events, escaping,
+filters, time zones, access control and bounded reads.

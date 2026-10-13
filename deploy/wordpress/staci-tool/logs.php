@@ -58,8 +58,7 @@ function staci_tool_logs_page() {
     $content = staci_tool_read_log_tail($name);
     echo '<div class="wrap"><h1>STACI napló</h1>';
     echo '<p><a class="button" href="' . esc_url(admin_url('tools.php?page=staci-tool-logs')) . '">Futáslista</a></p>';
-    echo '<p>Alkalmazásnapló. Időzóna: UTC (Z). '
-        . 'A user_id=- jelölés hiányzó felhasználói azonosítót jelent.</p>';
+    echo '<p>Alkalmazásnapló. Időzóna: UTC (Z).</p>';
     echo '<form method="get" action="' . esc_url(admin_url('tools.php')) . '">';
     echo '<input type="hidden" name="page" value="staci-tool-logs"><input type="hidden" name="view" value="raw">';
     echo '<label for="staci-log-file">Naplófájl: </label>';
@@ -72,7 +71,7 @@ function staci_tool_logs_page() {
     echo '</select> ';
     submit_button('Frissítés', 'secondary', 'submit', false);
     echo '</form><p>Legfeljebb 500 sor a fájl utolsó 256 KiB-jából. '
-        . 'Az .1 a legutóbbi archív fájl; a korábbi Docker-naplók nem részei ennek a nézetnek.</p>';
+        . 'Az .1 a legutóbbi archív fájl.</p>';
     if (is_wp_error($content)) {
         echo '<div class="notice notice-info"><p>' . esc_html($content->get_error_message()) . '</p></div>';
     } else {
