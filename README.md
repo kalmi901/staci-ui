@@ -122,7 +122,7 @@ Dash application
 The image currently pins STACI to revision:
 
 ```text
-c52ec0424ed5e088a47c7e2a629216d777bab5c4
+b215127e10acce0d404922dbcd2eda623f8f47e2
 ```
 
 The build enables the STACI optimizer targets required for `staci_split` and verifies the runtime shared-library dependencies before completing the image.
@@ -154,11 +154,11 @@ users, without per-user ownership or a history browser.
 Application workflow events and callback exceptions are written through Python logging to the process output. With Docker they can be inspected using:
 
 ```bash
-docker compose logs -f app
+docker compose logs -f app worker
 ```
 
 Gunicorn and application logs remain available through Docker. Compose also
-writes Python application logs to `/var/log/staci/application.log` on the
+writes app and Celery-worker Python logs to `/var/log/staci/application.log` on the
 `staci-logs` volume, with five rotated backups of 5 MiB each. Application events
 include the proxy-verified WordPress user ID/login; timestamps are UTC.
 Administrators can browse and filter runs under **Tools → STACI napló** in

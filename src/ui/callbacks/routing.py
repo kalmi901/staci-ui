@@ -9,7 +9,8 @@ from src.ui.pages import(
     home,
     network_load,
     network_partitioning,
-    hydraulic_analysis
+    hydraulic_analysis,
+    flushing_analysis
 )
 
 def _placeholder_page(title: str, subtitle: str):
@@ -51,6 +52,8 @@ def register_routing_callbacks(app):
             return network_partitioning.create_layout()
         elif pathname == "/analysis/hydraulic":
             return hydraulic_analysis.create_layout()
+        elif pathname == "/analysis/flushing":
+            return flushing_analysis.create_layout()
         elif pathname == "/analysis/quality":
             return _placeholder_page("Analysis · Quality", "Water quality simulation settings and results will be placed here.")
         elif pathname == "/analysis/biofilm":

@@ -33,6 +33,7 @@ def create_sidebar():
             nav_link("Partitioning", "/network/partitioning", "🧩"),
             html.Div("Analysis", className="sidebar-section-title sidebar-section-spaced"),
             nav_link("Hydraulic", "/analysis/hydraulic", "💧"),
+            nav_link("Flushing", "/analysis/flushing", "🚿"),
             nav_link("Quality", "/analysis/quality", "🧪"),
             nav_link("Biofilm", "/analysis/biofilm", "🦠"),
             html.Hr(className="sidebar-separator"),

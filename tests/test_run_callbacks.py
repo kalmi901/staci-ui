@@ -48,6 +48,7 @@ class RunCallbackTests(unittest.TestCase):
 
     def test_dash_http_callback_still_accepts_original_payload(self):
         from app import app
+        from src.background_jobs import background_callback_manager
         key, callback = next((key, value) for key, value in app.callback_map.items()
                              if 'hyd-run-store.data' in key and 'hyd-run-status.children' in key)
         values = [None, 'wntr', False, 1, 5]
@@ -58,9 +59,14 @@ class RunCallbackTests(unittest.TestCase):
             'state': [dict(item, value=value) for item, value in zip(callback['state'], values)],
             'changedPropIds': ['hyd-run-button.n_clicks'],
         }
-        response = app.server.test_client().post('/staci-app/_dash-update-component', json=body)
+        with patch.object(background_callback_manager, 'call_job_fn', return_value='fixture-job') as submit, \
+             patch.object(app, '_get_signing_secret', return_value=b'fixture-secret' * 4):
+            response = app.server.test_client().post('/staci-app/_dash-update-component', json=body,
+                headers={'X-Staci-User-Id': '7', 'X-Staci-User-Login': 'worker-test'})
         self.assertEqual(response.status_code, 200)
-        self.assertIsNone(response.get_json()['response']['hyd-run-store']['data'])
+        self.assertIn('job', response.get_json())
+        self.assertEqual(submit.call_args.args[2], [1, *values])
+        self.assertEqual(submit.call_args.args[3]['headers']['X-Staci-User-Id'], '7')
 
     def test_hydraulic_runner_records_effective_copied_input_before_solver(self):
         from src.services import hydraulic_runner

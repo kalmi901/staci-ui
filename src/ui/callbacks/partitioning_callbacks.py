@@ -42,7 +42,16 @@ def register_partitioning_callbacks(app):
         State(ids.PART_NGEN, "value"),
         State(ids.PART_PMUT, "value"),
         State(ids.PART_PCROSS, "value"),
-        State(ids.PART_SEED, "value")
+        State(ids.PART_SEED, "value"),
+        background=True,
+        running=[
+            (
+                Output(ids.PART_RUN_BUTTON, "disabled"),
+                True,
+                False,
+            ),
+        ],
+        prevent_initial_call=True,
     )
     @logged_run("partition")
     def run_partitioning(

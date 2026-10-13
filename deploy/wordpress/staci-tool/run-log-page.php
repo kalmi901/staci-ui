@@ -97,7 +97,7 @@ HTML;
     foreach (array('Időpont', 'Felhasználó', 'Fájl', 'Számítás', 'Állapot', 'Részletek') as $label) { echo '<th>' . esc_html($label) . '</th>'; }
     echo '</tr></thead><tbody>';
     foreach (array_slice($filtered, ($page - 1) * 50, 50, true) as $id => $run) {
-        $type = $run['type'] === 'hydraulic' ? 'Hidraulika' : ($run['type'] === 'partition' ? 'Particionálás' : 'Ismeretlen');
+        $type = $run['type'] === 'hydraulic' ? 'Hidraulika' : ($run['type'] === 'partition' ? 'Particionálás' : ($run['type'] === 'flushing' ? 'Öblítés' : 'Ismeretlen'));
         echo '<tr><td>' . esc_html(staci_run_local_time($run['utc'])) . '</td><td>' . esc_html(staci_run_user_label($run))
             . '</td><td>' . esc_html($run['filename'] ?: 'Nem áll rendelkezésre')
             . '</td><td>' . esc_html($type) . '</td><td>' . esc_html($statuses[$run['status']])
@@ -118,7 +118,10 @@ function staci_run_parameters($run) {
     $labels = array('backend' => 'Szolver', 'override_enabled' => 'Időbeállítások felülírása',
         'duration' => 'Kért időtartam (óra)', 'hydraulic_timestep' => 'Kért időlépés (perc)',
         'n_comm' => 'Közösségek száma', 'obj_type' => 'Célfüggvény', 'weight_type' => 'Súlyozás',
-        'weight_type_mod' => 'Súlyozási mód', 'popsize' => 'Populációméret', 'ngen' => 'Generációk száma',
+        'hydrant_text' => 'Öblítési csomópontok', 'mode' => 'Öblítési mód',
+        'hydrant_area' => 'Kifolyási keresztmetszet (m²)', 'loss_coefficient' => 'Veszteségtényező',
+        'velocity_threshold' => 'Sebességküszöb (m/s)', 'min_pressure_head' => 'Minimális nyomásmagasság (m)',
+        'write_networks' => 'Hálózati fájlok mentése', 'weight_type_mod' => 'Súlyozási mód', 'popsize' => 'Populációméret', 'ngen' => 'Generációk száma',
         'pmut' => 'Mutáció valószínűsége', 'pcross' => 'Keresztezés valószínűsége', 'seed' => 'Véletlenszám-generátor kezdőértéke');
     echo '<h3>Beállítások</h3><table class="widefat striped"><tbody>';
     foreach ($requested as $key => $value) {

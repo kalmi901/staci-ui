@@ -62,7 +62,8 @@ def log_prepared_input(inp_path, run_id, *, options_reader=None, settings_path=N
         if options_reader:
             data["effective_options"] = options_reader(inp_path)
         if settings_path:
-            data["settings_xml"] = Path(settings_path).read_text(encoding="utf-8")
+            settings_key = "settings_json" if Path(settings_path).suffix == ".json" else "settings_xml"
+            data[settings_key] = Path(settings_path).read_text(encoding="utf-8")
         if executable:
             path = Path(executable)
             stat = path.stat()
@@ -107,7 +108,7 @@ def logged_run(run_type):
                 status = "failed" if not isinstance(state, dict) else "completed"
                 summary = state.get("summary", {}) if isinstance(state, dict) else {}
                 warnings = state.get("staci", {}).get("warnings", []) if isinstance(state, dict) else []
-                if status == "completed" and (summary.get("failed_frames", 0) or warnings):
+                if status == "completed" and (summary.get("failed_frames", 0) or warnings or state.get("partial")):
                     status = "completed_with_warnings"
                 event("finished", status=status,
                       run_id=state.get("run_id", "") if isinstance(state, dict) else "",

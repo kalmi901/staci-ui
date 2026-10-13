@@ -1,19 +1,89 @@
+x-staci-environment: &staci-environment
+  STACI_UI_URL_PREFIX: /staci-app/
+  PORT: "8050"
+  DASH_DEBUG: "0"
+  STACI_LOG_DIR: /var/log/staci
+  STACI_LOG_READER_GID: "33"
+  STACI_TIMEOUT_SECONDS: "${STACI_TIMEOUT_SECONDS:-300}"
+  CELERY_BROKER_URL: "${CELERY_BROKER_URL:-redis://redis:6379/0}"
+  CELERY_RESULT_BACKEND: "${CELERY_RESULT_BACKEND:-redis://redis:6379/1}"
+  CELERY_RESULT_EXPIRES_SECONDS: "${CELERY_RESULT_EXPIRES_SECONDS:-3600}"
+
 services:
   app:
     build: .
     restart: unless-stopped
-    environment:
-      STACI_UI_URL_PREFIX: /staci-app/
-      PORT: "8050"
-      DASH_DEBUG: "0"
-      STACI_LOG_DIR: /var/log/staci
-      STACI_LOG_READER_GID: "33"
-      STACI_TIMEOUT_SECONDS: ${STACI_TIMEOUT_SECONDS:-300}
+    environment: *staci-environment
+    group_add: ["33"]
     volumes:
       - staci-data:/data
       - staci-logs:/var/log/staci
     networks:
       - solver
+    depends_on:
+      logs-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  worker:
+    build: .
+    restart: unless-stopped
+    command:
+      - celery
+      - --app
+      - app:celery_app
+      - worker
+      - --loglevel=INFO
+      - "--concurrency=${CELERY_WORKER_CONCURRENCY:-2}"
+    environment: *staci-environment
+    group_add: ["33"]
+    volumes:
+      - staci-data:/data
+      - staci-logs:/var/log/staci
+    networks:
+      - solver
+    depends_on:
+      logs-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  logs-init:
+    build: .
+    restart: "no"
+    user: "0:0"
+    network_mode: none
+    volumes:
+      - staci-logs:/var/log/staci
+    command:
+      - python
+      - -c
+      - |
+        import os
+        from pathlib import Path
+        directory = Path('/var/log/staci')
+        os.chown(directory, 10001, 33)
+        os.chmod(directory, 0o2750)
+        for path in [directory / 'application.log', directory / '.application.lock',
+                     *(directory / f'application.log.{i}' for i in range(1, 6))]:
+            if path.is_file() and not path.is_symlink():
+                os.chown(path, 10001, 33)
+                os.chmod(path, 0o640)
+
+  redis:
+    image: redis:7.4.11-alpine
+    restart: unless-stopped
+    command: [redis-server, --appendonly, "yes"]
+    volumes:
+      - redis-data:/data
+    networks:
+      - solver
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
   database:
     image: mariadb:11.4
@@ -111,6 +181,7 @@ networks:
 volumes:
   staci-logs:
   staci-data:
+  redis-data:
   caddy-data:
   caddy-config:
   wordpress-data:

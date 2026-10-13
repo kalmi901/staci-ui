@@ -1,9 +1,6 @@
 from __future__ import annotations
 import base64
-import re
-import uuid
 from datetime import datetime, timezone
-from pathlib import Path
 
 from dash import Input, Output, State, no_update, ctx
 from dash.exceptions import PreventUpdate
@@ -11,19 +8,15 @@ import dash_bootstrap_components as dbc
 
 from src.ui import ids
 from src.ui.paths import local_path
-from src.services.model_storage import resolve_uploaded_model
+from src.services.model_storage import resolve_uploaded_model, store_uploaded_model
 from src.services.inp_model_reader import read_model_summary, read_water_network_model
 from src.ui.pages.network_load import render_model_summary
 from src.visualisation.network_preview import make_node_preview_figure
-from src.config import UPLOAD_ROOT
+
 
 import logging
 logger = logging.getLogger(__name__)
 
-def _safe_filename(filename: str) -> str:
-    name = Path(filename or "network.inp").name
-    name = re.sub(r"[^A-Za-z0-9_.-]+", "_", name)
-    return name or "network.inp"
 
 def _decode_upload(contents: str) -> bytes:
     if not contents:
@@ -32,22 +25,6 @@ def _decode_upload(contents: str) -> bytes:
     _header, encoded = contents.split(",", 1)
     return base64.b64decode(encoded)
 
-def _save_uploaded_file(filename: str, file_bytes: bytes) -> dict:
-    model_id = uuid.uuid4().hex[:12]
-    safe_name = _safe_filename(filename)
-
-    model_dir = UPLOAD_ROOT / model_id
-    model_dir.mkdir(parents=True, exist_ok=True)
-
-    stored_path = model_dir / safe_name
-    stored_path.write_bytes(file_bytes)
-
-    return {
-        "model_id": model_id,
-        "filename": safe_name,
-        "path": str(stored_path),
-        "size_bytes": len(file_bytes),
-    }
     
 def register_network_callbacks(app):
     
@@ -56,6 +33,7 @@ def register_network_callbacks(app):
         Output(ids.UPLOAD_STATUS, "children"),
         Output(ids.HYD_RUN_STORE, "data", allow_duplicate=True),
         Output(ids.PART_RUN_STORE, "data", allow_duplicate=True),
+        Output(ids.FLUSH_RUN_STORE, "data", allow_duplicate=True),
         Input(ids.UPLOAD_INP, "contents"),
         State(ids.UPLOAD_INP, "filename"),
         State(ids.NETWORK_STORE, "data"),
@@ -80,11 +58,11 @@ def register_network_callbacks(app):
                     color="warning",
                     className="upload-alert"
                 ), # pyright: ignore[reportCallIssue]
-                None, None
+                None, None, None
                 )
         try:
             file_bytes = _decode_upload(contents)
-            saved = _save_uploaded_file(filename, file_bytes)
+            saved = store_uploaded_model(filename, file_bytes)
         except Exception as exc:
             logger.exception(
                 "Model upload failed: filename=%s",
@@ -97,7 +75,7 @@ def register_network_callbacks(app):
                     color="danger",
                     className="upload-alert",
                 ), # pyright: ignore[reportCallIssue]
-                None, None
+                None, None, None
             )
         
         summary = {}
@@ -115,7 +93,7 @@ def register_network_callbacks(app):
                     color="danger",
                     className="upload-alert",
                 ), # pyright: ignore[reportCallIssue]
-                None, None
+                None, None, None
             )
         network_state = {
             "model_id" : saved["model_id"],
@@ -145,6 +123,7 @@ def register_network_callbacks(app):
             ),  # pyright: ignore[reportCallIssue]
             None, # invalidate previous hydraulic run
             None, # invalidate previous partition run
+            None, # invalidate previous flushing run
         )
             
     @app.callback(

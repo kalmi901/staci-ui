@@ -4,7 +4,12 @@ from typing import Literal
 import os
 from pathlib import Path
 
-def default_staci_executable(module: Literal["staci", "staci_split"] = "staci") -> Path:
+def default_staci_executable(
+    module: Literal[
+        "staci",
+        "staci_split",
+        "staci_calibrate",
+        "staci_flush"] = "staci") -> Path:
 
     bin_dir = Path(__file__).resolve().parents[1] / "bin" / "staci"
 

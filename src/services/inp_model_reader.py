@@ -25,7 +25,7 @@ def _as_wn(inp_or_wn) -> wntr.network.WaterNetworkModel:
         raise ValueError(f"Could not load water network model: {e}")
     
     
-def read_model_summary(inp_or_wn: Path | wntr.network.WaterNetworkModel) -> Dict[str, Any]:
+def read_model_summary(inp_or_wn: Path | str | wntr.network.WaterNetworkModel) -> Dict[str, Any]:
     wn = _as_wn(inp_or_wn)
     return wn.describe(level=1)
 
