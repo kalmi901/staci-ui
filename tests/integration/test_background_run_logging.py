@@ -1,6 +1,8 @@
 """Verify real Dash-to-Celery context transfer using an isolated in-memory backend."""
+import os
 import json
 import logging
+import pytest
 from pathlib import Path
 from unittest.mock import patch
 
@@ -14,7 +16,10 @@ from src.run_logging import execution_id
 from src.ui.callbacks import hydraulic_callbacks, flushing_callbacks
 from tests.test_run_callbacks import CallbackRegistry
 
-
+@pytest.mark.skipif(
+    os.name != "posix",
+    reason="Application file logging uses POSIX flock",
+)
 def test_background_task_preserves_verified_user_and_run_context(tmp_path, monkeypatch):
     old_handlers = logging.root.handlers[:]
     old_level = logging.root.level
