@@ -1,0 +1,97 @@
+name: staci-ui-dev
+
+x-staci-environment: &staci-environment
+  STACI_UI_URL_PREFIX: /staci-app/
+  STACI_UI_DATA_DIR: /data
+  STACI_TIMEOUT_SECONDS: "300"
+  CELERY_BROKER_URL: redis://redis:6379/0
+  CELERY_RESULT_BACKEND: redis://redis:6379/1
+  CELERY_RESULT_EXPIRES_SECONDS: "3600"
+  PYTHONDONTWRITEBYTECODE: "1"
+
+x-staci-build: &staci-build
+  context: .
+  target: production
+
+x-staci-volumes: &staci-volumes
+  - type: bind
+    source: ./app.py
+    target: /app/app.py
+    read_only: true
+
+  - type: bind
+    source: ./src
+    target: /app/src
+    read_only: true
+
+  - type: bind
+    source: ./assets
+    target: /app/assets
+    read_only: true
+
+  - type: bind
+    source: ./data
+    target: /data
+
+services:
+  app:
+    image: staci-ui:dev
+    build: *staci-build
+    init: true
+    environment:
+      <<: *staci-environment
+      DASH_DEBUG: "0"
+    command:
+      - sh
+      - -c
+      - >
+        exec gunicorn
+        --reload
+        --bind 0.0.0.0:8050
+        --worker-class gthread
+        --workers 1
+        --threads 4
+        --timeout 600
+        app:server
+    ports:
+      - "127.0.0.1:8050:8050"
+    volumes: *staci-volumes
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  worker:
+    image: staci-ui:dev
+    build: *staci-build
+    init: true
+    environment:
+      <<: *staci-environment
+      DASH_DEBUG: "0"
+    command:
+      - celery
+      - --app
+      - app:celery_app
+      - worker
+      - --loglevel=INFO
+      - --concurrency=2
+    volumes: *staci-volumes
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  redis:
+    image: redis:7.4.11-alpine
+    command:
+      - redis-server
+      - --save
+      - ""
+      - --appendonly
+      - "no"
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - ping
+      interval: 2s
+      timeout: 2s
+      retries: 20
