@@ -51,6 +51,7 @@ RUN_ROOT    = DATA_ROOT / "runs"
 
 _staci_executable = os.getenv("STACI_EXECUTABLE")
 _staci_split_executable = os.getenv("STACI_SPLIT_EXECUTABLE")
+_staci_calibrate_executable = os.getenv("STACI_CALIBRATE_EXECUTABLE")
 _staci_flush_executable = os.getenv("STACI_FLUSH_EXECUTABLE")
 
 STACI_EXECUTABLE = (
@@ -62,6 +63,12 @@ STACI_SPLIT_EXECUTABLE = (
     Path(_staci_split_executable).expanduser().resolve()
     if _staci_split_executable
     else default_staci_executable("staci_split"))
+
+STACI_CALIBRATE_EXECUTABLE = (
+    Path(_staci_calibrate_executable).expanduser().resolve()
+    if _staci_calibrate_executable
+    else default_staci_executable("staci_calibrate")
+)
 
 STACI_FLUSH_EXECUTABLE = (
     Path(_staci_flush_executable).expanduser().resolve()
