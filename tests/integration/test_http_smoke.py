@@ -5,6 +5,8 @@ import pytest
 from app import app
 from src.config import APP_URL_PREFIX
 from src.ui import ids
+from src.ui.paths import app_path
+from src.ui.sidebar import WORDPRESS_HOME_URL
 
 
 pytestmark = pytest.mark.integration
@@ -26,6 +28,30 @@ def _component_ids(value: Any) -> Iterator[str]:
     elif isinstance(value, list):
         for item in value:
             yield from _component_ids(item)
+
+
+def _component_links(
+    value: Any,
+) -> Iterator[tuple[str, str | None]]:
+    if isinstance(value, dict):
+        props = value.get("props")
+
+        if isinstance(props, dict):
+            href = props.get("href")
+            target = props.get("target")
+
+            if isinstance(href, str):
+                yield (
+                    href,
+                    target if isinstance(target, str) else None,
+                )
+
+        for nested_value in value.values():
+            yield from _component_links(nested_value)
+
+    elif isinstance(value, list):
+        for item in value:
+            yield from _component_links(item)
 
 
 @pytest.fixture
@@ -137,19 +163,80 @@ def test_solver_runs_use_background_callbacks(
 
 
 @pytest.mark.parametrize(
-    ("path", "expected_class_name"),
+    (
+        "path",
+        "expected_class_name",
+        "expected_component_ids",
+    ),
     [
-        ("", "page home-page"),
-        ("network/load", "page load-page"),
-        ("network/partitioning", "page partition-page"),
-        ("analysis/hydraulic", "page hydro-page"),
-        ("analysis/flushing", "page flush-page"),
+        (
+            "",
+            "page load-page",
+            (),
+        ),
+        (
+            "network/load",
+            "page load-page",
+            (
+                ids.UPLOAD_INP,
+                ids.ACTIVE_MODEL_SUMMARY,
+                ids.NETWORK_GRAPH,
+                ids.NODE_COLOR_MIN,
+                ids.NODE_COLOR_MAX,
+                ids.LINK_COLOR_MIN,
+                ids.LINK_COLOR_MAX,
+                ids.NETWORK_LINE_WIDTH,
+                ids.NETWORK_MARKER_SIZE,
+                ids.NETWORK_HIDE_NODES,
+            ),
+        ),
+        (
+            "analysis/partitioning",
+            "page partition-page",
+            (
+                ids.PART_ACTIVE_MODEL_SUMMARY,
+                ids.PART_RUN_BUTTON,
+                ids.PART_RUN_STATUS,
+                ids.PART_NETWORK_GRAPH,
+                ids.PART_LINE_WIDTH,
+                ids.PART_MARKER_SIZE,
+                ids.PART_HIDE_NODES,
+            ),
+        ),
+        (
+            "analysis/hydraulic",
+            "page hydro-page",
+            (
+                ids.HYD_ACTIVE_MODEL_SUMMARY,
+                ids.HYD_RUN_BUTTON,
+                ids.HYD_RUN_STATUS,
+                ids.HYD_NETWORK_GRAPH,
+                ids.HYD_NODE_COLOR_MIN,
+                ids.HYD_NODE_COLOR_MAX,
+                ids.HYD_LINK_COLOR_MIN,
+                ids.HYD_LINK_COLOR_MAX,
+                ids.HYD_LINE_WIDTH,
+                ids.HYD_MARKER_SIZE,
+                ids.HYD_HIDE_NODES,
+            ),
+        ),
+        (
+            "analysis/flushing",
+            "page flush-page",
+            (
+                ids.FLUSH_ACTIVE_MODEL_SUMMARY,
+                ids.FLUSH_RUN_BUTTON,
+                ids.FLUSH_RUN_STATUS,
+                ids.FLUSH_RESULTS,
+            ),
+        ),
     ],
 )
 def test_dash_renders_main_routes(
     client,
     path: str,
     expected_class_name: str,
+    expected_component_ids: tuple[str, ...],
 ) -> None:
     response = client.post(
         _url("_dash-update-component"),
@@ -170,7 +257,6 @@ def test_dash_renders_main_routes(
             "changedPropIds": [f"{ids.URL}.pathname"],
         },
     )
-
     assert response.status_code == 200
 
     page = response.get_json()[
@@ -178,6 +264,12 @@ def test_dash_renders_main_routes(
     ][ids.PAGE_CONTENT]["children"]
 
     assert page["props"]["className"] == expected_class_name
+
+    component_ids = set(_component_ids(page))
+
+    assert set(expected_component_ids).issubset(
+        component_ids
+    )
 
 
 def test_dash_serves_application_stylesheet(client) -> None:

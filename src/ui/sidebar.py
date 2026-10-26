@@ -1,9 +1,25 @@
 from __future__ import annotations
 from dash import dcc, html
 from src.ui.paths import app_path
+from collections.abc import Sequence
+
+WORDPRESS_HOME_URL = "https://hydroreact.org/"
+
+NavItem = tuple[str, str, str]
 
 
-def nav_link(label: str, href: str, icon: str = ""):
+WATER_NETWORK_LINKS: tuple[NavItem, ...] = (
+    ("Load Model", "/network/load","📁"),
+)
+
+ANALYSIS_LINKS: tuple[NavItem, ...] = (
+    ("Hydraulic", "/analysis/hydraulic", "💧"),
+    ("Partitioning", "/analysis/partitioning", "🧩"),
+    ("Flushing", "/analysis/flushing", "🚿"),
+)
+
+
+def internal_nav_link(label: str, href: str, icon: str = ""):
     return dcc.Link(
         className="sidebar-link",
         href=app_path(href),
@@ -11,37 +27,68 @@ def nav_link(label: str, href: str, icon: str = ""):
             html.Span(icon, className="sidebar-link-icon"),
             html.Span(label)]
     )
-    
+
+
+def external_nav_link(
+    label: str,
+    href: str,
+    icon: str = "",
+):
+    return html.A(
+        className="sidebar-link",
+        href=href,
+        target="_top",
+        children=[
+            html.Span(
+                icon,
+                className="sidebar-link-icon",
+            ),
+            html.Span(label),
+        ],
+    )
+
+
+def navigation_section(
+    title: str,
+    links: Sequence[NavItem],
+    *,
+    spaced: bool = False,
+):
+    title_class = "sidebar-section-title"
+
+    if spaced:
+        title_class += " sidebar-section-spaced"
+
+    return [
+        html.Div(
+            title,
+            className=title_class,
+        ),
+        *[
+            internal_nav_link(
+                label,
+                href,
+                icon,
+            )
+            for label, href, icon in links
+        ],
+    ]
+
+
 def create_sidebar():
-    sidebar = html.Aside(
+    return html.Aside(
         className="sidebar",
         children=[
-            html.Div(
-                className="sidebar-logo-block",
-                children=[
-                    html.Img(
-                        src=app_path("/assets/images/logo_gpt2.png"),
-                        className="sidebar-logo-image",
-                        alt="STACI EPS Dashboard"
-                    )
-                ]
+            external_nav_link("Home", WORDPRESS_HOME_URL,"🏠"),
+            html.Hr(className="sidebar-separator"),
+            *navigation_section("Water Network", WATER_NETWORK_LINKS),
+            *navigation_section("Analysis", ANALYSIS_LINKS, spaced=True),
+            html.Hr(className="sidebar-separator"),
+            html.Div(className="sidebar-footer",
+                children=(
+                    "STACI UI · Hydraulic simulation interface"
+                    "\nBME · Department of Hydrodynamic Systems"
+                ),
             ),
-            nav_link("Home", "/", "📊"),
-            html.Hr(className="sidebar-separator"),
-            html.Div("Water Network", className="sidebar-section-title"),
-            nav_link("Load Model", "/network/load", "📁"),
-            nav_link("Partitioning", "/network/partitioning", "🧩"),
-            html.Div("Analysis", className="sidebar-section-title sidebar-section-spaced"),
-            nav_link("Hydraulic", "/analysis/hydraulic", "💧"),
-            nav_link("Flushing", "/analysis/flushing", "🚿"),
-            nav_link("Quality", "/analysis/quality", "🧪"),
-            nav_link("Biofilm", "/analysis/biofilm", "🦠"),
-            html.Hr(className="sidebar-separator"),
-            html.Div(
-                className="sidebar-footer",
-                children="STACI UI · Hydraulic simulation interface\n BME · Department of Hydrodynamic Systems",
-            ),  
-        ]
+        ],
     )
-    
-    return sidebar

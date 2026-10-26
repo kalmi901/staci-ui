@@ -166,18 +166,27 @@ def register_partitioning_callbacks(app):
         Input(ids.PART_RUN_STORE, "data"),
         Input(ids.PART_COMMUNITY_FILTER, "value"),
         Input(ids.PART_SHOW_BOUNDARY_LINKS, "value"),
-        State(ids.NETWORK_VIEW_STORE, "data")
+        State(ids.NETWORK_VIEW_STORE, "data"),
+        Input(ids.PART_LINE_WIDTH, "value"),
+        Input(ids.PART_MARKER_SIZE, "value"),
+        Input(ids.PART_HIDE_NODES, "value"),
     )
     def render_partitioned_network_graph(
         partition_stace,
         selected_communities,
         show_boundary_links,
         network_view_state,
+        line_width_scale,
+        marker_size,
+        hide_nodes,
     ):
         return make_partitioned_network_figure(
             network_view_state=network_view_state,
             partition_state=partition_stace,
             selected_communities=selected_communities,
-            show_boundary_links=show_boundary_links
+            show_boundary_links=show_boundary_links,
+            line_width_scale=line_width_scale,
+            marker_size=marker_size,
+            hide_nodes=hide_nodes,
         )    
     

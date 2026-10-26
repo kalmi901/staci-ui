@@ -6,6 +6,7 @@ import dash_bootstrap_components as dbc
 from src.ui import ids
 from src.ui.pages.components import render_active_model_summary
 from src.ui.pages.hydraulic_analysis import render_success_alert
+from src.ui.pages.components import round_color_range_value
 from src.services.hydraulic_runner import call_hydraulic_simulator
 from src.services.model_storage import resolve_uploaded_model
 from src.services.inp_model_reader import read_model_options
@@ -101,7 +102,6 @@ def register_hydraulic_callbacks(app):
             raise PreventUpdate
         
         if not network_state:
-            #raise PreventUpdate
             return None, dbc.Alert(
                 "No active INP file. Upload a model first",
                 color="warning",
@@ -271,8 +271,8 @@ def register_hydraulic_callbacks(app):
         
         def _get_range(attribute):
             info = ranges.get(attribute, {})
-            vmin = info.get("min")
-            vmax = info.get("max")
+            vmin = round_color_range_value(attribute, info.get("min"))
+            vmax = round_color_range_value(attribute, info.get("max"))
             disabled = vmin is None or vmax is None
 
             return vmin, vmax, disabled, disabled
@@ -299,7 +299,10 @@ def register_hydraulic_callbacks(app):
         Input(ids.HYD_NODE_COLOR_MAX, "value"),
         Input(ids.HYD_LINK_COLOR_MIN, "value"),
         Input(ids.HYD_LINK_COLOR_MAX, "value"),
-        State(ids.NETWORK_VIEW_STORE, "data")
+        State(ids.NETWORK_VIEW_STORE, "data"),
+        Input(ids.HYD_LINE_WIDTH, "value"),
+        Input(ids.HYD_MARKER_SIZE, "value"),
+        Input(ids.HYD_HIDE_NODES, "value"),
     )
     def render_hydraulic_network_graph(
         run_state,
@@ -310,7 +313,10 @@ def register_hydraulic_callbacks(app):
         node_cmax,
         link_cmin,
         link_cmax,
-        network_view_state
+        network_view_state,
+        line_width_scale,
+        marker_size,
+        hide_nodes
     ):  
         return make_hydraulic_timestep_figure(
             network_view_state=network_view_state,
@@ -321,5 +327,8 @@ def register_hydraulic_callbacks(app):
             node_cmin=node_cmin,
             node_cmax=node_cmax,
             link_cmin=link_cmin,
-            link_cmax=link_cmax   
+            link_cmax=link_cmax,
+            line_width_scale=line_width_scale,
+            marker_size=marker_size,
+            hide_nodes=hide_nodes
         )
