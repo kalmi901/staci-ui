@@ -12,7 +12,7 @@ from src.ui.pages.components import (
     create_page_header,
     render_empty_model_summary
 )
-from src.visualisation.network_preview import make_empty_network_figure
+from src.visualisation.common import make_empty_network_figure
 
 
 def _create_preview_toolbar():

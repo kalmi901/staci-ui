@@ -12,7 +12,7 @@ from src.ui.pages.components import (
     create_page_header,
     create_run_section
 )
-from src.visualisation.network_preview import make_empty_network_figure
+from src.visualisation.common import make_empty_network_figure
 
 
 def render_success_alert(run_state: Dict[str, Any]):

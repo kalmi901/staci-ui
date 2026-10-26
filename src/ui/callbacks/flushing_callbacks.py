@@ -15,7 +15,7 @@ from src.ui import ids
 from src.ui.pages.components import render_active_model_summary
 from src.ui.pages.flushing_analysis import render_flushing_results
 from src.visualisation.flushing import make_flushing_scenario_figure
-from src.visualisation.network_preview import make_empty_network_figure
+from src.visualisation.common import make_empty_network_figure
 
 
 logger = logging.getLogger(__name__)
