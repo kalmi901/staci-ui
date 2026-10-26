@@ -6,6 +6,11 @@ import dash_bootstrap_components as dbc
 from typing import Dict, Any
 
 from src.ui import ids
+from src.ui.pages.components import (
+    create_active_model_section,
+    create_page_header,
+    create_run_section
+)
 from src.visualisation.network_preview import make_empty_network_figure
 
 
@@ -66,22 +71,6 @@ def _label_with_help(
 
 # Setup Card
 def _create_setup_card():
-    
-    def _create_active_model_section():
-        return html.Div(
-            className="setup-section",
-            children=[
-                html.H3("Model summary"),
-                html.Div(
-                    id=ids.PART_ACTIVE_MODEL_SUMMARY,
-                    className="part-active-model-box",
-                    children=[
-                        html.Div("No active model", className="model-summary-title"),
-                        html.P("Go to Load Model and upload an EPANET .inp file first.")
-                    ]
-                )
-            ]
-        )
     
     def _create_partition_setup():
         return html.Div(
@@ -267,35 +256,6 @@ def _create_setup_card():
                 ),
             ]
         )
-        
-    def _create_run_section():
-        return html.Div(
-            className="setup-section",
-            children=[
-                dbc.Button(
-                    "Run Optimization",
-                    id=ids.PART_RUN_BUTTON,
-                    color="primary",
-                    n_clicks=0,
-                    disabled=True,
-                    className="primary-action-button"
-                ),
-                html.Div(
-                    className="run-feedback-area",
-                    children=[
-                        dcc.Loading(
-                            type="dot",
-                            color="blue",
-                            show_initially=False,
-                            children=html.Div(
-                                id=ids.PART_RUN_STATUS,
-                                className="small-status part-run-status"
-                            )
-                        )
-                    ]
-                )
-            ]
-        )
     
     return dbc.Card(
         className="app-card partition-setup-card",
@@ -303,13 +263,20 @@ def _create_setup_card():
             dbc.CardHeader("Partition Setup"),
             dbc.CardBody(
                 children=[
-                    _create_active_model_section(),
+                    create_active_model_section(
+                        ids.PART_ACTIVE_MODEL_SUMMARY,
+                    ),
                     html.Hr(),
                     _create_partition_setup(),
                     html.Hr(),
                     _create_ga_setup(),
                     html.Hr(),
-                    _create_run_section()
+                    create_run_section(
+                        "Run Optimization",
+                        ids.PART_RUN_BUTTON,
+                        ids.PART_RUN_STATUS,
+                        status_class_name="part-run-status",
+                    ),
                 ]
             )
         ] 
@@ -380,23 +347,18 @@ def create_layout():
         className="page partition-page",
         children=[
             # ---- Header ----
-            html.Div(
-                className="page-header",
-                children=[
-                    html.Div(
-                        children=[
-                            html.H1("Network Partitioning"),
-                            html.P("Partition a hydraulic network into sub-networks "
-                                   "based on specific criteria, such as topology, "
-                                   "sensitivity, or pressure.")
-                        ]
-                    ),
-                    dbc.Badge("Network Partitioning", color="info", className="page-badge")
-                ]
+            create_page_header(
+                "Network Partitioning",
+                (
+                    "Partition a hydraulic network into sub-networks "
+                    "based on specific criteria, such as topology, "
+                    "sensitivity, or pressure."
+                ),
+                "Network Partitioning",
             ),
             # ---- Workspace ---
             html.Div(
-                className="partition-workspace",
+                className="analysis-workspace partition-workspace",
                 children=[
                     _create_setup_card(),
                     _create_network_partition_card()

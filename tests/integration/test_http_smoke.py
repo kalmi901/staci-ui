@@ -137,19 +137,71 @@ def test_solver_runs_use_background_callbacks(
 
 
 @pytest.mark.parametrize(
-    ("path", "expected_class_name"),
+    (
+        "path",
+        "expected_class_name",
+        "expected_component_ids",
+    ),
     [
-        ("", "page home-page"),
-        ("network/load", "page load-page"),
-        ("network/partitioning", "page partition-page"),
-        ("analysis/hydraulic", "page hydro-page"),
-        ("analysis/flushing", "page flush-page"),
+        (
+            "",
+            "page home-page",
+            (),
+        ),
+        (
+            "network/load",
+            "page load-page",
+            (
+                ids.UPLOAD_INP,
+                ids.ACTIVE_MODEL_SUMMARY,
+                ids.NETWORK_GRAPH,
+                ids.NODE_COLOR_MIN,
+                ids.NODE_COLOR_MAX,
+                ids.LINK_COLOR_MIN,
+                ids.LINK_COLOR_MAX,
+            ),
+        ),
+        (
+            "network/partitioning",
+            "page partition-page",
+            (
+                ids.PART_ACTIVE_MODEL_SUMMARY,
+                ids.PART_RUN_BUTTON,
+                ids.PART_RUN_STATUS,
+                ids.PART_NETWORK_GRAPH,
+            ),
+        ),
+        (
+            "analysis/hydraulic",
+            "page hydro-page",
+            (
+                ids.HYD_ACTIVE_MODEL_SUMMARY,
+                ids.HYD_RUN_BUTTON,
+                ids.HYD_RUN_STATUS,
+                ids.HYD_NETWORK_GRAPH,
+                ids.HYD_NODE_COLOR_MIN,
+                ids.HYD_NODE_COLOR_MAX,
+                ids.HYD_LINK_COLOR_MIN,
+                ids.HYD_LINK_COLOR_MAX,
+            ),
+        ),
+        (
+            "analysis/flushing",
+            "page flush-page",
+            (
+                ids.FLUSH_ACTIVE_MODEL_SUMMARY,
+                ids.FLUSH_RUN_BUTTON,
+                ids.FLUSH_RUN_STATUS,
+                ids.FLUSH_RESULTS,
+            ),
+        ),
     ],
 )
 def test_dash_renders_main_routes(
     client,
     path: str,
     expected_class_name: str,
+    expected_component_ids: tuple[str, ...],
 ) -> None:
     response = client.post(
         _url("_dash-update-component"),
@@ -170,7 +222,6 @@ def test_dash_renders_main_routes(
             "changedPropIds": [f"{ids.URL}.pathname"],
         },
     )
-
     assert response.status_code == 200
 
     page = response.get_json()[
@@ -178,6 +229,12 @@ def test_dash_renders_main_routes(
     ][ids.PAGE_CONTENT]["children"]
 
     assert page["props"]["className"] == expected_class_name
+
+    component_ids = set(_component_ids(page))
+
+    assert set(expected_component_ids).issubset(
+        component_ids
+    )
 
 
 def test_dash_serves_application_stylesheet(client) -> None:

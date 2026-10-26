@@ -6,6 +6,12 @@ import dash_bootstrap_components as dbc
 from typing import Dict, Any
 
 from src.ui import ids
+from src.ui.pages.components import (
+    create_active_model_section,
+    create_color_range_control,
+    create_page_header,
+    create_run_section
+)
 from src.visualisation.network_preview import make_empty_network_figure
 
 
@@ -36,23 +42,6 @@ def render_success_alert(run_state: Dict[str, Any]):
 
 # Setup Card
 def _create_setup_card():
-    
-    def _create_active_model_section():
-        return html.Div(
-            className="setup-section",
-            children=[
-                html.H3("Model Summary"),
-                html.Div(
-                    id=ids.HYD_ACTIVE_MODEL_SUMMARY,
-                    className="hyd-active-model-box",
-                    children=[
-                        html.Div("No active model", className="model-summary-title"),
-                        html.P("Go to Load Model and upload an EPANET .inp file first."),
-                    ]
-                ),
-            ],
-        )
-    
     def _create_backend_selection():
         return html.Div(
             className="setup-section",
@@ -132,33 +121,6 @@ def _create_setup_card():
             ]
         )
     
-    def _create_run_section():
-        return html.Div(
-            className="setup-section",
-            children=[
-                dbc.Button(
-                    "Run Hydraulic Simulation",
-                    id=ids.HYD_RUN_BUTTON,
-                    color="primary",
-                    n_clicks=0,
-                    disabled=True,
-                    className="primary-action-button"
-                ),
-                html.Div(
-                    className="run-feedback-area",
-                    children=[
-                        dcc.Loading(
-                            type="dot",
-                            color="blue",
-                            children=html.Div(
-                                id=ids.HYD_RUN_STATUS,
-                                className="small-status hyd-run-status",
-                            )
-                        )
-                    ]
-                )
-            ]
-        )
     
     return dbc.Card(
         className="app-card hydro-setup-card",
@@ -166,13 +128,21 @@ def _create_setup_card():
             dbc.CardHeader("EPS Simulation Setup"),
             dbc.CardBody(
                 children=[
-                    _create_active_model_section(),
+                    create_active_model_section(
+                        ids.HYD_ACTIVE_MODEL_SUMMARY,
+                    ),
                     html.Hr(),
                     _create_backend_selection(),
                     html.Hr(),
                     _create_simulation_options(),
                     html.Hr(),
-                    _create_run_section()
+                    create_run_section(
+                        "Run Hydraulic Simulation",
+                        ids.HYD_RUN_BUTTON,
+                        ids.HYD_RUN_STATUS,
+                        status_class_name="hyd-run-status",
+                        show_initially=True,
+                    ),
                 ]
             )
         ]
@@ -180,7 +150,6 @@ def _create_setup_card():
 
 # Network Results Card
 def _create_network_results_card():
-    
     def _create_plot_toolbar():
         return html.Div(
             className="plot-toolbar",
@@ -221,60 +190,18 @@ def _create_network_results_card():
                         )
                     ]
                 ),
-                html.Div(
-                    className="plot-control color-range-inputs",
-                    children=[
-                        dbc.Label("Node min / max"),
-                        html.Div(
-                            className="color-range-row",
-                            children=[
-                                dbc.Input(
-                                    id=ids.HYD_NODE_COLOR_MIN,
-                                    type="number",
-                                    step="any",
-                                    placeholder="node-min",
-                                    persistence=True,
-                                    persistence_type="memory"
-                                ),
-                                dbc.Input(
-                                    id=ids.HYD_NODE_COLOR_MAX,
-                                    type="number",
-                                    step="any",
-                                    placeholder="node-max",
-                                    persistence=True,
-                                    persistence_type="memory"
-                                ),
-                            ]
-                        )
-                    ]
+                create_color_range_control(
+                    "Node min / max",
+                    ids.HYD_NODE_COLOR_MIN,
+                    ids.HYD_NODE_COLOR_MAX,
+                    placeholder_prefix="node",
                 ),
-                html.Div(
-                    className="plot-control color-range-inputs",
-                    children=[
-                        dbc.Label("Link min / max"),
-                        html.Div(
-                            className="color-range-row",
-                            children=[
-                                dbc.Input(
-                                    id=ids.HYD_LINK_COLOR_MIN,
-                                    type="number",
-                                    step="any",
-                                    placeholder="link-min",
-                                    persistence=True,
-                                    persistence_type="memory"
-                                ),
-                                dbc.Input(
-                                    id=ids.HYD_LINK_COLOR_MAX,
-                                    type="number",
-                                    step="any",
-                                    placeholder="link-max",
-                                    persistence=True,
-                                    persistence_type="memory"
-                                )
-                            ]
-                        )
-                    ]
-                )
+                create_color_range_control(
+                    "Link min / max",
+                    ids.HYD_LINK_COLOR_MIN,
+                    ids.HYD_LINK_COLOR_MAX,
+                    placeholder_prefix="link",
+                ),
             ]
         )
     
@@ -341,24 +268,17 @@ def create_layout():
         className="page hydro-page",
         children=[
             # ---- Header ----
-            html.Div(
-                className="page-header",
-                children=[
-                    html.Div(
-                        children=[
-                            html.H1("Hydraulic Simulations"),
-                            html.P(
-                                "Run hydraulic simulations for the active WN model "
-                                "and inspect time-dependent node and link results."
-                            )
-                        ]
-                    ),
-                    dbc.Badge("Hydraulic Analysis", color="info", className="page-badge")
-                ]
+            create_page_header(
+                "Hydraulic Simulations",
+                (
+                    "Run hydraulic simulations for the active WN model "
+                    "and inspect time-dependent node and link results."
+                ),
+                "Hydraulic Analysis",
             ),
             # ---- Workspace ---
             html.Div(
-                className="hydro-workspace",
+                className="analysis-workspace hydro-workspace",
                 children=[
                     _create_setup_card(),
                     _create_network_results_card()

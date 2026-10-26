@@ -141,10 +141,7 @@ a {
 
 /* Shared analysis-page layout */
 
-.load-workspace,
-.partition-workspace,
-.hydro-workspace,
-.flush-workspace {
+.analysis-workspace {
   display: grid;
   grid-template-columns: var(--workspace-left) var(--workspace-right);
   gap: var(--workspace-gap);
@@ -180,6 +177,10 @@ a {
 }
 
 /* Shared model summary */
+
+.active-model-box {
+  margin-top: 10px;
+}
 
 .model-summary {
   display: flex;
@@ -269,6 +270,12 @@ a {
   color: var(--text-section);
 }
 
+.color-range-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
 .network-graph {
   height: 470px;
   border: 1px solid var(--panel-border);
@@ -288,10 +295,7 @@ a {
 }
 
 @media (max-width: 1100px) {
-  .load-workspace,
-  .partition-workspace,
-  .hydro-workspace,
-  .flush-workspace {
+  .analysis-workspace {
     grid-template-columns: 1fr;
   }
 }

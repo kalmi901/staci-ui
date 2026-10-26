@@ -6,17 +6,14 @@ import dash_bootstrap_components as dbc
 from typing import Dict, Any
 
 from src.ui import ids
+from src.ui.pages.components import (
+    create_color_range_control,
+    create_metric_item,
+    create_page_header,
+    render_empty_model_summary
+)
 from src.visualisation.network_preview import make_empty_network_figure
 
-
-def _empty_summary():
-    return html.Div(
-        className="model-summary-empty",
-        children=[
-            html.Div("No active model", className="model-summary-title"),
-            html.P("Upload an EPANET .inp file")
-        ]
-    )
 
 def _create_preview_toolbar():
     return html.Div(
@@ -59,66 +56,26 @@ def _create_preview_toolbar():
                     )
                 ]
             ),
-            html.Div(
-                className="plot-control color-range-inputs",
-                children=[
-                    dbc.Label("Node min / max"),
-                    html.Div(
-                        className="color-range-row",
-                        children=[
-                            dbc.Input(
-                                id=ids.NODE_COLOR_MIN,
-                                type="number",
-                                step="any",
-                                placeholder="node-min",
-                                persistence=True,
-                                persistence_type="memory"
-                            ),
-                            dbc.Input(
-                                id=ids.NODE_COLOR_MAX,
-                                type="number",
-                                step="any",
-                                placeholder="node-max",
-                                persistence=True,
-                                persistence_type="memory"
-                            )
-                        ]
-                    )
-                ]
+            create_color_range_control(
+                "Node min / max",
+                ids.NODE_COLOR_MIN,
+                ids.NODE_COLOR_MAX,
+                placeholder_prefix="node",
             ),
-            html.Div(
-                className="plot-control color-range-inputs",
-                children=[
-                    dbc.Label("Link min / max"),
-                    html.Div(
-                        className="color-range-row",
-                        children=[
-                            dbc.Input(
-                                id=ids.LINK_COLOR_MIN,
-                                type="number",
-                                step="any",
-                                placeholder="link-min",
-                                persistence=True,
-                                persistence_type="memory"
-                            ),
-                            dbc.Input(
-                                id=ids.LINK_COLOR_MAX,
-                                type="number",
-                                step="any",
-                                placeholder="link-max",
-                                persistence=True,
-                                persistence_type="memory"
-                            )
-                        ]
-                    )
-                ]
-            )
+            create_color_range_control(
+                "Link min / max",
+                ids.LINK_COLOR_MIN,
+                ids.LINK_COLOR_MAX,
+                placeholder_prefix="link",
+            ),
         ]
     )
 
 def render_model_summary(network_state: Dict[str, Any] | None):
     if not network_state:
-        return _empty_summary()
+        return render_empty_model_summary(
+                "Upload an EPANET .inp file"
+            )
     
     summary = network_state.get("summary", {})
     nodes = summary.get("Nodes", {})
@@ -126,14 +83,6 @@ def render_model_summary(network_state: Dict[str, Any] | None):
     spatial = network_state.get("spatial", {})
     status  = network_state.get("status", "uploaded")
     
-    def _tile(label, value):
-        return html.Div(
-            className="meta-item",
-            children=[
-                html.Div(label, className="meta-label"),
-                html.Div(str(value), className="meta-value")
-            ]
-        )
         
     return html.Div(
         className="model-summary",
@@ -162,14 +111,38 @@ def render_model_summary(network_state: Dict[str, Any] | None):
             html.Div(
                 className="meta-grid",
                 children=[
-                    _tile("Junctions", nodes.get("Junctions", "—")),
-                    _tile("Pipes", links.get("Pipes", "—")),
-                    _tile("Tanks", nodes.get("Tanks", "—")),
-                    _tile("Reservoirs", nodes.get("Reservoirs", "—")),
-                    _tile("Patterns", summary.get("Patterns", "—")),
-                    _tile("Pumps", links.get("Pumps", "—")),
-                    _tile("Valves", links.get("Valves", "—")),
-                    _tile("Controls", summary.get("Controls", "—")),
+                    create_metric_item(
+                        "Junctions",
+                        nodes.get("Junctions", "—"),
+                    ),
+                    create_metric_item(
+                        "Pipes",
+                        links.get("Pipes", "—"),
+                    ),
+                    create_metric_item(
+                        "Tanks",
+                        nodes.get("Tanks", "—"),
+                    ),
+                    create_metric_item(
+                        "Reservoirs",
+                        nodes.get("Reservoirs", "—"),
+                    ),
+                    create_metric_item(
+                        "Patterns",
+                        summary.get("Patterns", "—"),
+                    ),
+                    create_metric_item(
+                        "Pumps",
+                        links.get("Pumps", "—"),
+                    ),
+                    create_metric_item(
+                        "Valves",
+                        links.get("Valves", "—"),
+                    ),
+                    create_metric_item(
+                        "Controls",
+                        summary.get("Controls", "—"),
+                    ),
                 ],
             ),
             html.Div(
@@ -187,24 +160,17 @@ def create_layout():
         className="page load-page",
         children=[
             # ----  Header -----
-            html.Div(
-                className="page-header",
-                children=[
-                    html.Div(
-                        children=[
-                            html.H1("Load Network Model"),
-                            html.P(
-                                "Upload, and inspect an EPANET network model for later hydraulic, "
-                                "quality and biofilm analysis."
-                            )
-                        ]
-                    ),
-                    dbc.Badge("Model setup", color="info", className="page-badge")
-                ]
+            create_page_header(
+                "Load Network Model",
+                (
+                    "Upload and inspect an EPANET network model for "
+                    "analysis using STACI tools."
+                ),
+                "Model setup",
             ),
             # ---- Workspace ----
             html.Div(
-                className="load-workspace",
+                className="analysis-workspace load-workspace",
                 children=[
                     # -- Setup --
                     dbc.Card(
@@ -244,7 +210,9 @@ def create_layout():
                                             html.H3("Active model"),
                                             html.Div(
                                                 id=ids.ACTIVE_MODEL_SUMMARY,
-                                                children=_empty_summary()
+                                                children=render_empty_model_summary(
+                                                        "Upload an EPANET .inp file"
+                                                    )
                                             )
                                         ]
                                     ),
