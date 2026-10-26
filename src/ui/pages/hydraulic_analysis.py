@@ -12,8 +12,6 @@ from src.visualisation.network_preview import make_empty_network_figure
 def render_success_alert(run_state: Dict[str, Any]):
     summary = run_state.get("summary", {})
     failed_frames = int(summary.get("failed_frames", 0) or 0)
-    #pressure = summary.get("pressures", {})
-    #flowrate = summary.get("flowrater", {})
     
     return dbc.Alert(
         children=[
@@ -155,7 +153,6 @@ def _create_setup_card():
                             children=html.Div(
                                 id=ids.HYD_RUN_STATUS,
                                 className="small-status hyd-run-status",
-                                #children="Upload a network model first.",
                             )
                         )
                     ]
@@ -216,7 +213,6 @@ def _create_network_results_card():
                                 {"label": "Flow rate", "value": "flowrate"},
                                 {"label": "Velocity", "value": "velocity"},
                                 {"label": "Headloss", "value": "headloss"},
-                                #{"label": "Status", "value": "status"}
                             ],
                             value="flowrate",
                             clearable=False,
@@ -368,6 +364,5 @@ def create_layout():
                     _create_network_results_card()
                 ]
             ),
-            #html.H2("TODO: create_results_card")
         ]
     )

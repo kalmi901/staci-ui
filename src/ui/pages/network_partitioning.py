@@ -10,7 +10,6 @@ from src.visualisation.network_preview import make_empty_network_figure
 
 
 def render_success_alert(partition_state: Dict[str, Any]):
-    #run_id = partition_state.get("run_id", "—")
     n_nodes = partition_state.get("n_nodes", '—')
     n_community_members = partition_state.get("n_community_members", {})
     n_communities = partition_state.get("n_communities", 0)
@@ -28,8 +27,6 @@ def render_success_alert(partition_state: Dict[str, Any]):
             html.Div("Network partitioning finished", style={"fontWeight": 800}),
             html.Div(
                 children=[
-                    #html.Span(f"Run ID: {run_id}"),
-                    #html.Span(" · "),
                     html.Span(
                         f"{n_nodes} nodes partitioned into "
                         f"{n_communities} communities"

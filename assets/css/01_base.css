@@ -32,10 +32,6 @@
   --panel-border: rgba(56, 132, 181, 0.12);
   --panel-border-strong: rgba(56, 132, 181, 0.22);
 
-  --note-bg: rgba(255, 251, 235, 0.75);
-  --note-border: rgba(245, 158, 11, 0.2);
-  --note-text: #7c5a12;
-
   --surface-soft: rgba(255, 255, 255, 0.70);
   --surface-card: rgba(255, 255, 255, 0.84);
   --surface-blue: var(--panel-bg-strong);
@@ -98,35 +94,18 @@ a {
   margin: 0 auto;
 }
 
-.page-header,
-.section-title-row {
+.page-header {
   display: flex;
   justify-content: space-between;
-}
-
-.page-header {
   align-items: flex-start;
   gap: 16px;
   margin-bottom: 18px;
 }
 
-.section-title-row {
-  align-items: baseline;
-  margin: 4px 0 10px;
-}
-
-.page-header h1,
-.section-title-row h3 {
-  margin: 0;
-}
-
 .page-header h1 {
+  margin: 0;
   font-size: 31px;
   font-weight: 760;
-}
-
-.section-title-row h3 {
-  font-weight: 720;
 }
 
 .page-header p,
@@ -160,10 +139,6 @@ a {
   font-size: 13px;
 }
 
-.results-section {
-  margin-top: 18px;
-}
-
 /* Shared analysis-page layout */
 
 .load-workspace,
@@ -190,13 +165,6 @@ a {
   font-size: 14px;
 }
 
-.action-row {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 16px;
-}
-
 .primary-action-button {
   width: 100%;
   border-radius: var(--radius-pill);
@@ -209,17 +177,6 @@ a {
   background: var(--panel-bg);
   border: 1px solid var(--panel-border);
   color: var(--text-soft);
-}
-
-.note-panel {
-  margin-top: 12px;
-  padding: 10px 12px;
-  border-radius: var(--radius-md);
-  background: var(--note-bg);
-  border: 1px solid var(--note-border);
-  color: var(--note-text);
-  font-size: 0.88rem;
-  line-height: 1.35;
 }
 
 /* Shared model summary */
@@ -306,8 +263,7 @@ a {
   border: 1px solid var(--panel-border);
 }
 
-.plot-control label,
-.inspector-toolbar label {
+.plot-control label {
   font-size: 0.82rem;
   font-weight: 800;
   color: var(--text-section);
@@ -321,36 +277,6 @@ a {
   background: #ffffff;
 }
 
-.inspector-detail-graph {
-  height: 240px;
-  margin-top: 16px;
-  border: 1px solid var(--panel-border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-}
-
-.inspector-card,
-.hydro-results-card {
-  margin-top: 18px;
-}
-
-.inspector-toolbar {
-  max-width: 320px;
-  margin-bottom: 16px;
-}
-
-.inspector-placeholder {
-  display: grid;
-  place-items: center;
-  min-height: 120px;
-  border: 1px dashed var(--panel-border-strong);
-  border-radius: var(--radius-lg);
-  background: var(--panel-bg);
-  color: var(--text-soft);
-  text-align: center;
-}
-
-
 .run-feedback-area {
   min-height: 54px;
   margin-top: 12px;
@@ -359,37 +285,6 @@ a {
 .run-feedback-area .dash-loading {
   min-height: 54px;
   margin-top: 12px
-}
-
-
-
-.upload-box {
-  padding: 24px 14px;
-  border: 1.5px dashed #94a3b8;
-  border-radius: 14px;
-  background: #f8fafc;
-  color: #334155;
-  text-align: center;
-  cursor: pointer;
-}
-
-.upload-box:hover {
-  border-color: var(--primary);
-  background: #eff6ff;
-}
-
-.run-status {
-  color: #374151;
-}
-
-.screen-log {
-  min-height: 122px;
-  margin: 0;
-  padding: 14px;
-  border-radius: 12px;
-  background: #0b1020;
-  color: #d1d5db;
-  white-space: pre-wrap;
 }
 
 @media (max-width: 1100px) {

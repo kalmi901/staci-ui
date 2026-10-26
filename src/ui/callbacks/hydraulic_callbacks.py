@@ -101,7 +101,6 @@ def register_hydraulic_callbacks(app):
             raise PreventUpdate
         
         if not network_state:
-            #raise PreventUpdate
             return None, dbc.Alert(
                 "No active INP file. Upload a model first",
                 color="warning",

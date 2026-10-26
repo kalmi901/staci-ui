@@ -17,10 +17,6 @@
   margin-top: 10px;
 }
 
-.hyd-selected-element {
-  margin-bottom: 14px;
-}
-
 @media (max-width: 900px) {
   .hyd-options-grid {
     grid-template-columns: 1fr;

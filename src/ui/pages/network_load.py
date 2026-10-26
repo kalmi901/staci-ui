@@ -32,7 +32,6 @@ def _create_preview_toolbar():
                             {"label": "None", "value" : "none"},
                             {"label": "Elevation", "value": "elevation"},
                             {"label": "Demand", "value": "demand"},
-                            #{"label": "Type", "value": "type"}
                         ],
                         value="none",
                         clearable=False,
@@ -52,7 +51,6 @@ def _create_preview_toolbar():
                             {"label": "Length", "value": "length"},
                             {"label": "Diameters", "value": "diameter"},
                             {"label": "Roughness", "value": "roughness"},
-                            #{"label": "Type", "value": "type"}
                         ],
                         value="none",
                         clearable=False,
@@ -236,7 +234,6 @@ def create_layout():
                                             html.Div(
                                                 id=ids.UPLOAD_STATUS,
                                                 className="small-status upload-status",
-                                                #children="No file uploaded yet"
                                             )   
                                         ]
                                     ), html.Hr(),
@@ -251,7 +248,6 @@ def create_layout():
                                             )
                                         ]
                                     ),
-                                    # --TODO --> coordinate system, map overlay etc.
                                     html.P(
                                             id=ids.LOAD_MODEL_STATUS,
                                             className="small-status",
@@ -281,10 +277,5 @@ def create_layout():
                     )
                 ]
             ),
-            # -- Property Inspector ---
-            #dbc.Card(
-            #    className="app-card inspector-card",
-            #    children = [html.P("Property Inspector")]
-            #)
         ]
     )

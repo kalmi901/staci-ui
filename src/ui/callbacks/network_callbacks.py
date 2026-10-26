@@ -235,8 +235,6 @@ def register_network_callbacks(app):
         node_cmax,
         link_cmin,
         link_cmax):
-        #if not network_view_state:
-        #    raise PreventUpdate
         
         return make_node_preview_figure(
             network_view_state, 
