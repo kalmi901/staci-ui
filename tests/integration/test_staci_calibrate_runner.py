@@ -14,7 +14,7 @@ from src.staci.calibrate import (
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
 NETWORK_FIXTURE = FIXTURE_DIR / "staci_calibrate_network_0.spr"
-TARGETS_FIXTURE = FIXTURE_DIR / "staci_calibrate_targets.csv"
+TARGETS_FIXTURE = FIXTURE_DIR / "staci_calibrate_targets.json"
 
 
 def _read_if_present(path: Path) -> str:
@@ -37,7 +37,7 @@ def test_run_staci_calibrate_runs_real_executable(
         )
 
     network_path = tmp_path / "calibrate_network_0.spr"
-    targets_path = tmp_path / "calibrate_targets.csv"
+    targets_path = tmp_path / "calibrate_targets.json"
     settings_path = tmp_path / "staci_calibrate_settings.json"
 
     shutil.copy2(NETWORK_FIXTURE, network_path)

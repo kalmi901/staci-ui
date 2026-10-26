@@ -4,7 +4,7 @@
 # C++ build environment
 FROM debian:bookworm-slim AS staci-builder
 
-ARG STACI_COMMIT=b215127e10acce0d404922dbcd2eda623f8f47e2
+ARG STACI_COMMIT=f1987bffcbeea5ae045e765b649ae5c9eca06ece
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
