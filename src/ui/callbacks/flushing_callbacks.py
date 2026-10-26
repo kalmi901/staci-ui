@@ -15,7 +15,7 @@ from src.ui import ids
 from src.ui.pages.components import render_active_model_summary
 from src.ui.pages.flushing_analysis import render_flushing_results
 from src.visualisation.flushing import make_flushing_scenario_figure
-from src.visualisation.network_preview import make_empty_network_figure
+from src.visualisation.common import make_empty_network_figure
 
 
 logger = logging.getLogger(__name__)
@@ -226,12 +226,18 @@ def register_flushing_callbacks(app):
         Output(ids.FLUSH_NETWORK_GRAPH, "figure"),
         Input(ids.FLUSH_SCENARIO, "value"),
         Input(ids.FLUSH_MAP_MODE, "value"),
+        Input(ids.FLUSH_LINE_WIDTH, "value"),
+        Input(ids.FLUSH_MARKER_SIZE, "value"),
+        Input(ids.FLUSH_HIDE_NODES, "value"),
         State(ids.FLUSH_RUN_STORE, "data"),
         State(ids.NETWORK_VIEW_STORE, "data"),
     )
     def render_scenario_map(
         scenario_id,
         map_mode,
+        line_width_scale,
+        marker_size,
+        hide_nodes,
         run_state,
         network_view_state,
     ):
@@ -273,4 +279,7 @@ def register_flushing_callbacks(app):
             scenario_state,
             map_mode=map_mode,
             candidate_hydrant_ids=candidate_ids,
+            line_width_scale=line_width_scale,
+            marker_size=marker_size,
+            hide_nodes=hide_nodes
         )

@@ -6,9 +6,13 @@ from typing import Any, Literal
 import plotly.graph_objects as go
 from plotly.colors import sample_colorscale
 
-from src.visualisation.network_preview import (
-    FIG_LAYOUT,
+from src.visualisation.common import (
+    append_line_segment,
+    apply_network_layout,
     make_empty_network_figure,
+    node_positions,
+    make_discrete_colorscale,
+    normalize_display_value
 )
 
 
@@ -38,40 +42,7 @@ _VELOCITY_COLORS = sample_colorscale(
     [0.05, 0.275, 0.5, 0.725, 0.95],
 )
 
-
-def _node_positions(
-    nodes: dict[str, Any],
-) -> dict[str, tuple[float, float]]:
-    positions: dict[str, tuple[float, float]] = {}
-
-    for node_id, x, y in zip(
-        nodes.get("id", []),
-        nodes.get("x", []),
-        nodes.get("y", []),
-    ):
-        if x is None or y is None:
-            continue
-
-        positions[str(node_id)] = (
-            float(x),
-            float(y),
-        )
-
-    return positions
-
-
-def _append_segment(
-    group: dict[str, list[float | None]],
-    start: tuple[float, float],
-    end: tuple[float, float],
-) -> None:
-    group["x"].extend(
-        [start[0], end[0], None]
-    )
-    group["y"].extend(
-        [start[1], end[1], None]
-    )
-
+_VELOCITY_COLORSCALE = make_discrete_colorscale(_VELOCITY_COLORS)   # type: ignore
 
 def _coverage_group(
     pipe: dict[str, Any] | None,
@@ -141,7 +112,25 @@ def make_flushing_scenario_figure(
     *,
     map_mode: MapMode = "coverage",
     candidate_hydrant_ids: Sequence[str] = (),
+    line_width_scale: float = 1.0,
+    marker_size: float = 4.0,
+    hide_nodes: bool = False,
 ) -> go.Figure:
+
+    line_width_scale = normalize_display_value(
+        line_width_scale,
+        default=1.0,
+        minimum=0.25,
+        maximum=4.0,
+    )
+
+    marker_size = normalize_display_value(
+        marker_size,
+        default=5.0,
+        minimum=1.0,
+        maximum=20.0,
+    )
+
     if not network_view_state:
         return make_empty_network_figure(
             "Upload a model to inspect flushing scenarios."
@@ -160,7 +149,7 @@ def make_flushing_scenario_figure(
 
     nodes = network_view_state.get("nodes", {})
     links = network_view_state.get("links", {})
-    positions = _node_positions(nodes)
+    positions = node_positions(nodes)
 
     if not positions:
         return make_empty_network_figure(
@@ -228,14 +217,14 @@ def make_flushing_scenario_figure(
         if map_mode == "coverage":
             group_name = _coverage_group(pipe)
 
-            _append_segment(
+            append_line_segment(
                 coverage_groups[group_name],
                 start,
                 end,
             )
 
         elif pipe is None:
-            _append_segment(
+            append_line_segment(
                 missing_velocity,
                 start,
                 end,
@@ -251,7 +240,7 @@ def make_flushing_scenario_figure(
                 maximum_velocity,
             )
 
-            _append_segment(
+            append_line_segment(
                 velocity_groups[bin_id],
                 start,
                 end,
@@ -286,7 +275,13 @@ def make_flushing_scenario_figure(
                     x=coordinates["x"],
                     y=coordinates["y"],
                     mode="lines",
-                    line=style,
+                    line={
+                        **style,
+                        "width": (
+                            float(style["width"])
+                            * line_width_scale
+                        ),
+                    },
                     hoverinfo="skip",
                     name=name,
                 )
@@ -301,7 +296,7 @@ def make_flushing_scenario_figure(
                     mode="lines",
                     line={
                         "color": "#cbd5e1",
-                        "width": 0.7,
+                        "width": 0.7 * line_width_scale,
                     },
                     hoverinfo="skip",
                     name="No scenario data",
@@ -325,7 +320,7 @@ def make_flushing_scenario_figure(
                                 bin_id
                             ]
                         ),
-                        "width": 1.7,
+                        "width": 1.7 * line_width_scale,
                     },
                     hoverinfo="skip",
                     name=(
@@ -336,6 +331,20 @@ def make_flushing_scenario_figure(
                 )
             )
 
+        velocity_scale_max = max(
+            maximum_velocity,
+            1e-9,
+        )
+
+        velocity_bin_edges = [
+            maximum_velocity
+            * index
+            / len(_VELOCITY_COLORS)
+            for index in range(
+                len(_VELOCITY_COLORS) + 1
+            )
+        ]
+
         figure.add_trace(
             go.Scatter(
                 x=[None, None],
@@ -344,18 +353,32 @@ def make_flushing_scenario_figure(
                 marker={
                     "color": [
                         0.0,
-                        maximum_velocity,
+                        velocity_scale_max,
                     ],
                     "cmin": 0.0,
-                    "cmax": max(
-                        maximum_velocity,
-                        1e-9,
+                    "cmax": velocity_scale_max,
+                    "colorscale": (
+                        _VELOCITY_COLORSCALE
                     ),
-                    "colorscale": "Turbo",
                     "showscale": True,
                     "colorbar": {
                         "title": "|v| [m/s]",
                         "thickness": 12,
+                        "tickmode": "array",
+                        "tickvals": (
+                            velocity_bin_edges
+                            if maximum_velocity > 0
+                            else [0.0]
+                        ),
+                        "ticktext": (
+                            [
+                                f"{value:.3g}"
+                                for value
+                                in velocity_bin_edges
+                            ]
+                            if maximum_velocity > 0
+                            else ["0"]
+                        ),
                     },
                 },
                 hoverinfo="skip",
@@ -400,35 +423,36 @@ def make_flushing_scenario_figure(
         if node_id in positions
     ]
 
-    figure.add_trace(
-        go.Scattergl(
-            x=[
-                positions[node_id][0]
-                for node_id in plotted_node_ids
-            ],
-            y=[
-                positions[node_id][1]
-                for node_id in plotted_node_ids
-            ],
-            mode="markers",
-            marker={
-                "size": 4,
-                "color": "#334155",
-                "opacity": 0.65,
-            },
-            text=[
-                (
-                    f"<b>{node_id}</b><br>"
-                    f"Type: "
-                    f"{node_type_by_id.get(node_id, 'node')}"
-                )
-                for node_id in plotted_node_ids
-            ],
-            hoverinfo="text",
-            name="Network nodes",
-            showlegend=False,
+    if not hide_nodes:
+        figure.add_trace(
+            go.Scattergl(
+                x=[
+                    positions[node_id][0]
+                    for node_id in plotted_node_ids
+                ],
+                y=[
+                    positions[node_id][1]
+                    for node_id in plotted_node_ids
+                ],
+                mode="markers",
+                marker={
+                    "size": marker_size,
+                    "color": "#334155",
+                    "opacity": 0.65,
+                },
+                text=[
+                    (
+                        f"<b>{node_id}</b><br>"
+                        f"Type: "
+                        f"{node_type_by_id.get(node_id, 'node')}"
+                    )
+                    for node_id in plotted_node_ids
+                ],
+                hoverinfo="text",
+                name="Network nodes",
+                showlegend=False,
+            )
         )
-    )
 
     active_hydrants = (
         scenario_state.get("hydrants", [])
@@ -532,20 +556,29 @@ def make_flushing_scenario_figure(
             )
         )
 
+    figure = apply_network_layout(
+            figure,
+            uirevision=(
+                f"flushing-"
+                f"{scenario_state.get('scenario_id', '')}-"
+                f"{map_mode}"
+            ),
+            legend={
+                "orientation": "h",
+                "x": 0.5,
+                "y": -0.08,
+                "xanchor": "center",
+                "yanchor": "top",
+            },
+        )
+
     figure.update_layout(
-        **FIG_LAYOUT,
-        legend={
-            "orientation": "h",
-            "x": 0.0,
-            "y": 1.02,
-            "xanchor": "left",
-            "yanchor": "bottom",
-        },
-        uirevision=(
-            f"flushing-"
-            f"{scenario_state.get('scenario_id', '')}-"
-            f"{map_mode}"
-        ),
+        margin={
+            "l": 10,
+            "r": 10,
+            "t": 10,
+            "b": 90,
+        }
     )
 
     return figure
