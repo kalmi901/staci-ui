@@ -13,29 +13,23 @@ from src.ui.pages import(
     flushing_analysis
 )
 
-def _placeholder_page(title: str, subtitle: str):
+def _not_found_page(pathname: str | None):
+    route = pathname or "/"
+
     return html.Div(
-        className="page",
+        className="page not-found-page",
         children=[
             html.Div(
                 className="page-header",
                 children=[
-                    html.Div(children=[html.H1(title), html.P(subtitle)]),
-                    dbc.Badge("Coming next", color="secondary", className="page-badge"),    # type: ignore
-                ],
-            ),
-            dbc.Card(
-                className="app-card",
-                children=[
-                    dbc.CardHeader("Placeholder"),
-                    dbc.CardBody(
+                    html.Div(
                         children=[
-                            html.P("Ez az oldal még csak routing placeholder."),
-                            html.P("Ugyanazt a sablont fogja használni, mint a Hydraulic analysis: settings + preview + run + results."),
+                            html.H1("Page not found"),
+                            html.P(f"Unknown route: {route}"),
                         ]
-                    ),
+                    )
                 ],
-            ),
+            )
         ],
     )
     
@@ -48,15 +42,11 @@ def register_routing_callbacks(app):
             return home.create_layout()
         elif pathname == "/network/load":
             return network_load.create_layout()
-        elif pathname == "/network/partitioning":
+        elif pathname == "/analysis/partitioning":
             return network_partitioning.create_layout()
         elif pathname == "/analysis/hydraulic":
             return hydraulic_analysis.create_layout()
         elif pathname == "/analysis/flushing":
             return flushing_analysis.create_layout()
-        elif pathname == "/analysis/quality":
-            return _placeholder_page("Analysis · Quality", "Water quality simulation settings and results will be placed here.")
-        elif pathname == "/analysis/biofilm":
-            return _placeholder_page("Analysis · Biofilm", "Biofilm solver settings and animated results will be placed here.")
         
-        return _placeholder_page("404", f"Unknown route: {pathname}")
+        return _not_found_page(pathname)

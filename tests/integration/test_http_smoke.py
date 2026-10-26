@@ -5,6 +5,8 @@ import pytest
 from app import app
 from src.config import APP_URL_PREFIX
 from src.ui import ids
+from src.ui.paths import app_path
+from src.ui.sidebar import WORDPRESS_HOME_URL
 
 
 pytestmark = pytest.mark.integration
@@ -26,6 +28,30 @@ def _component_ids(value: Any) -> Iterator[str]:
     elif isinstance(value, list):
         for item in value:
             yield from _component_ids(item)
+
+
+def _component_links(
+    value: Any,
+) -> Iterator[tuple[str, str | None]]:
+    if isinstance(value, dict):
+        props = value.get("props")
+
+        if isinstance(props, dict):
+            href = props.get("href")
+            target = props.get("target")
+
+            if isinstance(href, str):
+                yield (
+                    href,
+                    target if isinstance(target, str) else None,
+                )
+
+        for nested_value in value.values():
+            yield from _component_links(nested_value)
+
+    elif isinstance(value, list):
+        for item in value:
+            yield from _component_links(item)
 
 
 @pytest.fixture
@@ -162,7 +188,7 @@ def test_solver_runs_use_background_callbacks(
             ),
         ),
         (
-            "network/partitioning",
+            "analysis/partitioning",
             "page partition-page",
             (
                 ids.PART_ACTIVE_MODEL_SUMMARY,
