@@ -11,6 +11,7 @@ from src.ui.paths import local_path
 from src.services.model_storage import resolve_uploaded_model, store_uploaded_model
 from src.services.inp_model_reader import read_model_summary, read_water_network_model
 from src.ui.pages.network_load import render_model_summary
+from src.ui.pages.components import round_color_range_value
 from src.visualisation.network_preview import make_node_preview_figure
 
 
@@ -199,8 +200,8 @@ def register_network_callbacks(app):
         ranges = network_view_state.get("ranges", {})
         def _get_range(attribute):
             info = ranges.get(attribute, {})
-            vmin = info.get("min")
-            vmax = info.get("max")
+            vmin = round_color_range_value(attribute, info.get("min"))
+            vmax = round_color_range_value(attribute, info.get("max"))
             disabled = vmin is None or vmax is None
 
             return vmin, vmax, disabled, disabled
@@ -225,7 +226,10 @@ def register_network_callbacks(app):
         Input(ids.NODE_COLOR_MIN, "value"),
         Input(ids.NODE_COLOR_MAX, "value"),
         Input(ids.LINK_COLOR_MIN, "value"),
-        Input(ids.LINK_COLOR_MAX, "value")
+        Input(ids.LINK_COLOR_MAX, "value"),
+        Input(ids.NETWORK_LINE_WIDTH, "value"),
+        Input(ids.NETWORK_MARKER_SIZE, "value"),
+        Input(ids.NETWORK_HIDE_NODES, "value"),
     )
     def render_network_grap(
         network_view_state, 
@@ -234,7 +238,10 @@ def register_network_callbacks(app):
         node_cmin,
         node_cmax,
         link_cmin,
-        link_cmax):
+        link_cmax,
+        line_width_scale,
+        marker_size,
+        hide_nodes):
         
         return make_node_preview_figure(
             network_view_state, 
@@ -243,4 +250,8 @@ def register_network_callbacks(app):
             node_cmin=node_cmin,
             node_cmax=node_cmax,
             link_cmin=link_cmin,
-            link_cmax=link_cmax)
+            link_cmax=link_cmax,
+            line_width_scale=line_width_scale,
+            marker_size=marker_size,
+            hide_nodes=hide_nodes
+            )

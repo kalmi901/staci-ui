@@ -10,7 +10,8 @@ from src.ui.pages.components import (
     create_active_model_section,
     create_color_range_control,
     create_page_header,
-    create_run_section
+    create_run_section,
+    create_network_display_controls
 )
 from src.visualisation.common import make_empty_network_figure
 
@@ -201,6 +202,11 @@ def _create_network_results_card():
                     ids.HYD_LINK_COLOR_MIN,
                     ids.HYD_LINK_COLOR_MAX,
                     placeholder_prefix="link",
+                ),
+                create_network_display_controls(
+                    ids.HYD_LINE_WIDTH,
+                    ids.HYD_MARKER_SIZE,
+                    ids.HYD_HIDE_NODES,
                 ),
             ]
         )

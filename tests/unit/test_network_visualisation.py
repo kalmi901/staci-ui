@@ -32,6 +32,18 @@ NETWORK_VIEW_STATE = {
         "length": [100.0, 200.0],
         "diameter": [0.2, 0.3],
     },
+    "ranges": {
+        "elevation": {
+            "min": 90.0,
+            "max": 100.0,
+            "unit": "m",
+        },
+        "length": {
+            "min": 100.0,
+            "max": 200.0,
+            "unit": "m",
+        },
+    },
 }
 
 
@@ -99,6 +111,18 @@ def test_node_preview_uses_shared_attribute_renderer() -> None:
     assert "length bin 1" in trace_names
     assert figure.layout.uirevision == "abcdef123456"
 
+    colorbar_titles = {
+        trace.marker.colorbar.title.text  # type: ignore[union-attr]
+        for trace in figure.data
+        if (
+            hasattr(trace, "marker")
+            and trace.marker.showscale  # type: ignore[union-attr]
+        )
+    }
+
+    assert "Elevation [m]" in colorbar_titles
+    assert "Length [m]" in colorbar_titles
+
 
 def test_node_preview_reports_invalid_color_range() -> None:
     figure = make_node_preview_figure(
@@ -122,6 +146,18 @@ def test_hydraulic_figure_uses_shared_renderer() -> None:
     run_state = {
         "run_id": "123456abcdef",
         "model_id": "abcdef123456",
+        "ranges": {
+            "pressure": {
+                "min": 20.0,
+                "max": 22.0,
+                "unit": "m",
+            },
+            "flowrate": {
+                "min": 0.01,
+                "max": 0.02,
+                "unit": "m3/s",
+            },
+        },
     }
 
     with patch(
@@ -148,6 +184,18 @@ def test_hydraulic_figure_uses_shared_renderer() -> None:
         trace.name  # type: ignore[arg-type]
         for trace in figure.data
     }
+
+    colorbar_titles = {
+        trace.marker.colorbar.title.text  # type: ignore[union-attr]
+        for trace in figure.data
+        if (
+            hasattr(trace, "marker")
+            and trace.marker.showscale  # type: ignore[union-attr]
+        )
+    }
+
+    assert "Pressure head [m]" in colorbar_titles
+    assert "Flow rate [m³/s]" in colorbar_titles
 
 
 def test_partition_figure_marks_boundary_links() -> None:

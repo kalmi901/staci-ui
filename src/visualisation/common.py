@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-from typing import Any
+import math
 import plotly.graph_objects as go
+
+from typing import Any
 from collections.abc import Sequence
 
 
@@ -27,6 +29,27 @@ NETWORK_FIGURE_LAYOUT = {
         "zeroline": False,
     },
 }
+
+
+def normalize_display_value(
+    value: Any,
+    *,
+    default: float,
+    minimum: float,
+    maximum: float,
+) -> float:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return default
+
+    if not math.isfinite(number):
+        return default
+
+    return max(
+        minimum,
+        min(number, maximum),
+    )
 
 
 def make_discrete_colorscale(

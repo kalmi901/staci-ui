@@ -11,7 +11,8 @@ from src.visualisation.common import (
     apply_network_layout,
     make_empty_network_figure,
     node_positions,
-    make_discrete_colorscale
+    make_discrete_colorscale,
+    normalize_display_value
 )
 
 
@@ -111,7 +112,25 @@ def make_flushing_scenario_figure(
     *,
     map_mode: MapMode = "coverage",
     candidate_hydrant_ids: Sequence[str] = (),
+    line_width_scale: float = 1.0,
+    marker_size: float = 4.0,
+    hide_nodes: bool = False,
 ) -> go.Figure:
+
+    line_width_scale = normalize_display_value(
+        line_width_scale,
+        default=1.0,
+        minimum=0.25,
+        maximum=4.0,
+    )
+
+    marker_size = normalize_display_value(
+        marker_size,
+        default=5.0,
+        minimum=1.0,
+        maximum=20.0,
+    )
+
     if not network_view_state:
         return make_empty_network_figure(
             "Upload a model to inspect flushing scenarios."
@@ -256,7 +275,13 @@ def make_flushing_scenario_figure(
                     x=coordinates["x"],
                     y=coordinates["y"],
                     mode="lines",
-                    line=style,
+                    line={
+                        **style,
+                        "width": (
+                            float(style["width"])
+                            * line_width_scale
+                        ),
+                    },
                     hoverinfo="skip",
                     name=name,
                 )
@@ -271,7 +296,7 @@ def make_flushing_scenario_figure(
                     mode="lines",
                     line={
                         "color": "#cbd5e1",
-                        "width": 0.7,
+                        "width": 0.7 * line_width_scale,
                     },
                     hoverinfo="skip",
                     name="No scenario data",
@@ -295,7 +320,7 @@ def make_flushing_scenario_figure(
                                 bin_id
                             ]
                         ),
-                        "width": 1.7,
+                        "width": 1.7 * line_width_scale,
                     },
                     hoverinfo="skip",
                     name=(
@@ -398,35 +423,36 @@ def make_flushing_scenario_figure(
         if node_id in positions
     ]
 
-    figure.add_trace(
-        go.Scattergl(
-            x=[
-                positions[node_id][0]
-                for node_id in plotted_node_ids
-            ],
-            y=[
-                positions[node_id][1]
-                for node_id in plotted_node_ids
-            ],
-            mode="markers",
-            marker={
-                "size": 4,
-                "color": "#334155",
-                "opacity": 0.65,
-            },
-            text=[
-                (
-                    f"<b>{node_id}</b><br>"
-                    f"Type: "
-                    f"{node_type_by_id.get(node_id, 'node')}"
-                )
-                for node_id in plotted_node_ids
-            ],
-            hoverinfo="text",
-            name="Network nodes",
-            showlegend=False,
+    if not hide_nodes:
+        figure.add_trace(
+            go.Scattergl(
+                x=[
+                    positions[node_id][0]
+                    for node_id in plotted_node_ids
+                ],
+                y=[
+                    positions[node_id][1]
+                    for node_id in plotted_node_ids
+                ],
+                mode="markers",
+                marker={
+                    "size": marker_size,
+                    "color": "#334155",
+                    "opacity": 0.65,
+                },
+                text=[
+                    (
+                        f"<b>{node_id}</b><br>"
+                        f"Type: "
+                        f"{node_type_by_id.get(node_id, 'node')}"
+                    )
+                    for node_id in plotted_node_ids
+                ],
+                hoverinfo="text",
+                name="Network nodes",
+                showlegend=False,
+            )
         )
-    )
 
     active_hydrants = (
         scenario_state.get("hydrants", [])

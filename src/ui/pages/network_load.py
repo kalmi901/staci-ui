@@ -10,7 +10,8 @@ from src.ui.pages.components import (
     create_color_range_control,
     create_metric_item,
     create_page_header,
-    render_empty_model_summary
+    render_empty_model_summary,
+    create_network_display_controls
 )
 from src.visualisation.common import make_empty_network_figure
 
@@ -67,6 +68,11 @@ def _create_preview_toolbar():
                 ids.LINK_COLOR_MIN,
                 ids.LINK_COLOR_MAX,
                 placeholder_prefix="link",
+            ),
+            create_network_display_controls(
+                ids.NETWORK_LINE_WIDTH,
+                ids.NETWORK_MARKER_SIZE,
+                ids.NETWORK_HIDE_NODES,
             ),
         ]
     )

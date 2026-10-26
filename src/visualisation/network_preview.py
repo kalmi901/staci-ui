@@ -14,7 +14,8 @@ from src.visualisation.common import (
     make_empty_network_figure,
     model_ids_are_compatible,
     node_positions,
-    make_discrete_colorscale
+    make_discrete_colorscale,
+    normalize_display_value
 )
 
 
@@ -26,6 +27,27 @@ LINK_BIN_COLORS = sample_colorscale(
 )
 
 LINK_COLORSCALE = make_discrete_colorscale(LINK_BIN_COLORS) # type: ignore
+
+_ATTRIBUTE_LABELS = {
+    "elevation": "Elevation",
+    "demand": "Demand",
+    "length": "Length",
+    "diameter": "Diameter",
+    "roughness": "Roughness",
+    "pressure": "Pressure head",
+    "head": "Hydraulic head",
+    "flowrate": "Flow rate",
+    "velocity": "Velocity",
+    "headloss": "Head loss",
+}
+
+_DISPLAY_UNITS = {
+    "m^3/h": "m³/h",
+    "m3/h": "m³/h",
+    "m^3/s": "m³/s",
+    "m3/s": "m³/s",
+}
+
 
 # ---- Format Helpers ----
 def _format_time_seconds(value) -> str:
@@ -55,6 +77,25 @@ def _format_value(value) -> str:
     except (TypeError, ValueError):
         return str(value)
 
+def _format_colorbar_title(
+    attribute: str,
+    unit: str | None,
+) -> str:
+    label = _ATTRIBUTE_LABELS.get(
+        attribute,
+        attribute.replace("_", " ").title(),
+    )
+
+    if not unit or unit.lower() == "none":
+        return label
+
+    display_unit = _DISPLAY_UNITS.get(
+        unit,
+        unit,
+    )
+
+    return f"{label} [{display_unit}]"
+
 def _make_link_bin_edges(
     data_range: tuple[float | None, float | None],
     n_bins: int,
@@ -75,6 +116,7 @@ def _make_link_bin_edges(
 def _make_link_colorbar_trace(
     *,
     link_attribute: str,
+    link_unit: str | None,
     cmin: float | None,
     cmax: float | None
 ) -> go.Scatter | None:
@@ -98,7 +140,10 @@ def _make_link_colorbar_trace(
             "colorscale": LINK_COLORSCALE,
             "showscale": True,
             "colorbar": {
-                "title": link_attribute,
+                "title": _format_colorbar_title(
+                    link_attribute,
+                    link_unit,
+                ),
                 "x": 1.02,
                 "y": 0.24,
                 "len": 0.38,
@@ -131,8 +176,10 @@ def _make_node_trace(
     nodes: Dict[str, Any],
     node_values: pd.Series,
     node_attribute: str,
+    node_unit: str | None,
     cmin: float | None,
-    cmax: float | None
+    cmax: float | None,
+    marker_size: float,
 ) -> go.Scattergl:
     node_ids = nodes.get("id", [])
     node_types = nodes.get("type", [])
@@ -170,7 +217,7 @@ def _make_node_trace(
 
     if node_attribute == "none":
         marker = {
-            "size" : 5,
+            "size" : marker_size,
             "opacity" : 0.9,
             "color" : "#104dc7",
             "line": {"width" : 0.5, "color" : "white"}
@@ -178,7 +225,7 @@ def _make_node_trace(
         
     else:
         marker={
-            "size" : 5,
+            "size" : marker_size,
             "opacity" : 0.9,
             "color" : plot_color,
             "colorscale" : "Viridis",
@@ -186,7 +233,10 @@ def _make_node_trace(
             "cmax" : cmax,
             "showscale": True,
             "colorbar" : {
-                "title" : node_attribute,
+                "title": _format_colorbar_title(
+                    node_attribute,
+                    node_unit,
+                ),
                 "x"     : 1.02,
                 "y"     : 0.76,
                 "len"   : 0.38,
@@ -213,8 +263,9 @@ def _make_link_traces(
     link_values: pd.Series | None,
     link_attribute: str,
     bin_edges: np.ndarray | None,
-    n_bins: int
-) -> list[go.Scatter]:
+    n_bins: int,
+    line_width_scale: float
+) -> list[go.Scatter | go.Scattergl]:
     node_x = nodes.get("x", [])
     node_y = nodes.get("y", [])
     
@@ -283,7 +334,7 @@ def _make_link_traces(
                 y=bin_y[i],
                 mode="lines",
                 line={
-                    "width": 1.4,
+                    "width": 1.4 * line_width_scale,
                     "color": LINK_BIN_COLORS[i]
                 },
                 hoverinfo="skip",
@@ -300,7 +351,7 @@ def _make_link_traces(
                 y=missing_y,
                 mode="lines",
                 line={
-                    "width":1,
+                    "width": 1.0 * line_width_scale,
                     "color" : "#343841"
                 },
                 hoverinfo="skip",
@@ -318,13 +369,33 @@ def _make_attribute_network_figure(
     link_values: pd.Series | None,
     node_attribute: str,
     link_attribute: str,
+    node_unit: str | None,
+    link_unit: str | None,
     node_cmin: float | None,
     node_cmax: float | None,
     link_cmin: float | None,
     link_cmax: float | None,
     uirevision: str,
     title: dict[str, Any] | None = None,
+    line_width_scale: float = 1.0,
+    marker_size: float = 5.0,
+    hide_nodes: bool = False,
 ) -> go.Figure:
+
+    line_width_scale = normalize_display_value(
+        line_width_scale,
+        default=1.0,
+        minimum=0.25,
+        maximum=4.0,
+    )
+
+    marker_size = normalize_display_value(
+        marker_size,
+        default=5.0,
+        minimum=1.0,
+        maximum=20.0,
+    )
+
     nodes = network_view_state.get("nodes", {})
     links = network_view_state.get("links", {})
 
@@ -340,18 +411,19 @@ def _make_attribute_network_figure(
             "The loaded model has no valid node coordinates."
         )
 
-    try:
-        node_cmin, node_cmax = (
-            _validate_normalize_color_range(
-                node_cmin,
-                node_cmax,
+    if not hide_nodes:
+        try:
+            node_cmin, node_cmax = (
+                _validate_normalize_color_range(
+                    node_cmin,
+                    node_cmax,
+                )
             )
-        )
-    except ValueError:
-        return make_empty_network_figure(
-            "Node color minimum must not be greater "
-            "than maximum."
-        )
+        except ValueError:
+            return make_empty_network_figure(
+                "Node color minimum must not be greater "
+                "than maximum."
+            )
 
     try:
         link_cmin, link_cmax = (
@@ -366,14 +438,6 @@ def _make_attribute_network_figure(
             "than maximum."
         )
 
-    node_trace = _make_node_trace(
-        nodes=nodes,
-        node_values=node_values,
-        node_attribute=node_attribute,
-        cmin=node_cmin,
-        cmax=node_cmax,
-    )
-
     link_bin_edges = _make_link_bin_edges(
         (link_cmin, link_cmax),
         N_LINK_BINS,
@@ -386,15 +450,30 @@ def _make_attribute_network_figure(
         link_attribute=link_attribute,
         bin_edges=link_bin_edges,
         n_bins=N_LINK_BINS,
+        line_width_scale=line_width_scale
     )
 
     link_colorbar_trace = _make_link_colorbar_trace(
         link_attribute=link_attribute,
+        link_unit=link_unit,
         cmin=link_cmin,
         cmax=link_cmax,
     )
 
-    traces = [*link_traces, node_trace]
+    traces: list[go.Scatter | go.Scattergl] = [*link_traces]
+    if not hide_nodes:
+        node_trace = _make_node_trace(
+                nodes=nodes,
+                node_values=node_values,
+                node_attribute=node_attribute,
+                node_unit=node_unit,
+                cmin=node_cmin,
+                cmax=node_cmax,
+                marker_size=marker_size
+            )
+
+        traces.append(node_trace)
+
 
     if link_colorbar_trace is not None:
         traces.append(link_colorbar_trace)
@@ -415,15 +494,22 @@ def make_node_preview_figure(
     node_cmax: float | None = None,
     link_cmin: float | None = None,
     link_cmax: float | None = None,
+    line_width_scale: float = 1.0,
+    marker_size: float = 5.0,
+    hide_nodes: bool = False,
 ) -> go.Figure:
     if not network_view_state:
         return make_empty_network_figure()
 
     nodes = network_view_state.get("nodes", {})
     links = network_view_state.get("links", {})
+    ranges = network_view_state.get("ranges", {})
 
     node_ids = nodes.get("id", [])
     link_ids = links.get("id", [])
+
+    node_unit = ranges.get(node_color_by, {}).get("unit")
+    link_unit = ranges.get(link_color_by, {}).get("unit")
 
     node_values = pd.Series(
         data=nodes.get(node_color_by),
@@ -441,10 +527,15 @@ def make_node_preview_figure(
         link_values=link_values,
         node_attribute=node_color_by,
         link_attribute=link_color_by,
+        node_unit=node_unit,
+        link_unit=link_unit,
         node_cmin=node_cmin,
         node_cmax=node_cmax,
         link_cmin=link_cmin,
         link_cmax=link_cmax,
+        line_width_scale = line_width_scale,
+        marker_size = marker_size,
+        hide_nodes = hide_nodes,
         uirevision=str(
             network_view_state.get(
                 "model_id",
@@ -465,7 +556,10 @@ def make_hydraulic_timestep_figure(
     node_cmin: float | None = None,
     node_cmax: float | None = None,
     link_cmin: float | None = None,
-    link_cmax: float | None = None
+    link_cmax: float | None = None,
+    line_width_scale: float = 1.0,
+    marker_size: float = 5.0,
+    hide_nodes: bool = False,
 ) -> go.Figure:
     
     if not run_state:
@@ -506,10 +600,14 @@ def make_hydraulic_timestep_figure(
       
     nodes = network_view_state.get("nodes", {})
     links = network_view_state.get("links", {})
+    ranges = run_state.get("ranges", {})
 
     node_ids = nodes.get("id", [])
     link_ids = links.get("id", [])
-    
+
+    node_unit = ranges.get(node_result, {}).get("unit")
+    link_unit = ranges.get(link_result, {}).get("unit")
+
     if time_index is None:
         time_index = 0
 
@@ -556,10 +654,15 @@ def make_hydraulic_timestep_figure(
         link_values=link_values,
         node_attribute=node_result,
         link_attribute=link_result,
+        node_unit=node_unit,
+        link_unit=link_unit,
         node_cmin=node_cmin,
         node_cmax=node_cmax,
         link_cmin=link_cmin,
         link_cmax=link_cmax,
+        line_width_scale = line_width_scale,
+        marker_size = marker_size,
+        hide_nodes = hide_nodes,
         uirevision=str(
             run_state.get(
                 "run_id",
@@ -576,7 +679,25 @@ def make_partitioned_network_figure(
     partition_state: Dict[str, Any],
     selected_communities: list[str],
     show_boundary_links: bool = False,
+    line_width_scale: float = 1.0,
+    marker_size: float = 5.0,
+    hide_nodes: bool = False,
 ) -> go.Figure:
+
+    line_width_scale = normalize_display_value(
+        line_width_scale,
+        default=1.0,
+        minimum=0.25,
+        maximum=4.0,
+    )
+
+    marker_size = normalize_display_value(
+        marker_size,
+        default=5.0,
+        minimum=1.0,
+        maximum=20.0,
+    )
+
     if not partition_state:
         return make_empty_network_figure(
             "Run optimization to view network partitions."
@@ -730,7 +851,7 @@ def make_partitioned_network_figure(
         y=link_coordinates["y"],
         mode="lines",
         line={
-            "width": 1,
+            "width": 1.0 * line_width_scale,
             "color": LINK_BIN_COLORS[0],
         },
         hoverinfo="skip",
@@ -742,7 +863,7 @@ def make_partitioned_network_figure(
         y=boundary_coordinates["y"],
         mode="lines",
         line={
-            "width": 3,
+            "width": 3.0 * line_width_scale,
             "color": "red",
         },
         hoverinfo="skip",
@@ -812,7 +933,7 @@ def make_partitioned_network_figure(
         hovertext=node_hover,
         hoverinfo="text",
         marker={
-            "size": 5,
+            "size": marker_size,
             "color": node_colors,
             "colorscale": colorscale,
             "cmin": -0.5,
@@ -838,12 +959,12 @@ def make_partitioned_network_figure(
         showlegend=False,
     )
 
+    traces = [link_trace, boundary_trace]
+    if not hide_nodes:
+        traces.append(node_trace)
+
     figure = go.Figure(
-        data=[
-            link_trace,
-            boundary_trace,
-            node_trace,
-        ]
+        data=traces
     )
 
     return apply_network_layout(

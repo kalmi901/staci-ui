@@ -284,6 +284,21 @@ a {
   background: #ffffff;
 }
 
+.network-display-controls {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  align-items: end;
+}
+
+.network-display-toggle {
+  min-height: 62px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
 .run-feedback-area {
   min-height: 54px;
   margin-top: 12px;
@@ -302,7 +317,8 @@ a {
 
 @media (max-width: 900px) {
   .plot-toolbar,
-  .meta-grid {
+  .meta-grid
+  .network-display-controls {
     grid-template-columns: 1fr;
   }
 }

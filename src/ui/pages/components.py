@@ -8,6 +8,41 @@ from dash import dcc, html
 import dash_bootstrap_components as dbc
 
 
+_COLOR_RANGE_DIGITS = {
+    "elevation": 2,
+    "length": 2,
+    "roughness": 2,
+    "head": 2,
+    "pressure": 2,
+    "diameter": 4,
+    "velocity": 4,
+    "headloss": 4,
+    "demand": 6,
+    "flowrate": 6,
+}
+
+
+def round_color_range_value(
+    attribute: str | None,
+    value: Any,
+) -> float | None:
+    if value is None:
+        return None
+
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+
+    digits = _COLOR_RANGE_DIGITS.get(
+        str(attribute),
+        4,
+    )
+
+    return round(number, digits)
+
+
+
 def create_page_header(
     title: str,
     subtitle: str,
@@ -160,6 +195,67 @@ def create_color_range_control(
                         type="number",
                         step="any",
                         placeholder=f"{placeholder_prefix}-max",
+                        persistence=True,
+                        persistence_type="memory",
+                    ),
+                ],
+            ),
+        ],
+    )
+
+
+def create_network_display_controls(
+    line_width_id: str,
+    marker_size_id: str,
+    hide_nodes_id: str,
+    *,
+    default_marker_size: float = 5,
+):
+    return html.Div(
+        className="network-display-controls",
+        children=[
+            html.Div(
+                className="plot-control",
+                children=[
+                    dbc.Label("Line width scale"),
+                    dbc.Input(
+                        id=line_width_id,
+                        type="number",
+                        value=1.0,
+                        min=0.25,
+                        max=4.0,
+                        step=0.25,
+                        persistence=True,
+                        persistence_type="memory",
+                    ),
+                ],
+            ),
+            html.Div(
+                className="plot-control",
+                children=[
+                    dbc.Label("Marker size"),
+                    dbc.Input(
+                        id=marker_size_id,
+                        type="number",
+                        value=default_marker_size,
+                        min=1,
+                        max=20,
+                        step=1,
+                        persistence=True,
+                        persistence_type="memory",
+                    ),
+                ],
+            ),
+            html.Div(
+                className=(
+                    "plot-control network-display-toggle"
+                ),
+                children=[
+                    dbc.Label("Network nodes"),
+                    dbc.Switch(
+                        id=hide_nodes_id,
+                        label="Hide nodes",
+                        value=False,
                         persistence=True,
                         persistence_type="memory",
                     ),

@@ -171,7 +171,7 @@ def test_solver_runs_use_background_callbacks(
     [
         (
             "",
-            "page home-page",
+            "page load-page",
             (),
         ),
         (
@@ -185,6 +185,9 @@ def test_solver_runs_use_background_callbacks(
                 ids.NODE_COLOR_MAX,
                 ids.LINK_COLOR_MIN,
                 ids.LINK_COLOR_MAX,
+                ids.NETWORK_LINE_WIDTH,
+                ids.NETWORK_MARKER_SIZE,
+                ids.NETWORK_HIDE_NODES,
             ),
         ),
         (
@@ -195,6 +198,9 @@ def test_solver_runs_use_background_callbacks(
                 ids.PART_RUN_BUTTON,
                 ids.PART_RUN_STATUS,
                 ids.PART_NETWORK_GRAPH,
+                ids.PART_LINE_WIDTH,
+                ids.PART_MARKER_SIZE,
+                ids.PART_HIDE_NODES,
             ),
         ),
         (
@@ -209,6 +215,9 @@ def test_solver_runs_use_background_callbacks(
                 ids.HYD_NODE_COLOR_MAX,
                 ids.HYD_LINK_COLOR_MIN,
                 ids.HYD_LINK_COLOR_MAX,
+                ids.HYD_LINE_WIDTH,
+                ids.HYD_MARKER_SIZE,
+                ids.HYD_HIDE_NODES,
             ),
         ),
         (

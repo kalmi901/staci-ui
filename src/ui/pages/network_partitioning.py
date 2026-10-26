@@ -9,7 +9,8 @@ from src.ui import ids
 from src.ui.pages.components import (
     create_active_model_section,
     create_page_header,
-    create_run_section
+    create_run_section,
+    create_network_display_controls
 )
 from src.visualisation.common import make_empty_network_figure
 
@@ -327,6 +328,11 @@ def _create_network_partition_card():
             dbc.CardBody(
                 children=[
                     _create_plot_toolbar(),
+                    create_network_display_controls(
+                        ids.PART_LINE_WIDTH,
+                        ids.PART_MARKER_SIZE,
+                        ids.PART_HIDE_NODES,
+                    ),
                     dcc.Graph(
                         id=ids.PART_NETWORK_GRAPH,
                         className="network-graph",
