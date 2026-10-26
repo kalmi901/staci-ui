@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import subprocess
 import xml.etree.ElementTree as ET
@@ -18,7 +19,8 @@ from src.staci.runtime import _stream_to_text
 _DEFAULT_SETTINGS: dict[str, Any] = {
     "global_debug_level": 1,
     "Staci_debug_level": 0,
-    "fname_prefix": "calibrate_network_",
+    "fname_prefix": "network_",
+    "network_extension": ".inp",
     "logfilename": "calibrate.log",
     "best_logfilename": "calibrate-best.log",
     "Start_of_Periods": 0,
@@ -38,6 +40,8 @@ _PIPE_SELECTION_TYPES = {
     "Dmin",
     "most_sensitive",
     "largest_diameter",
+    "list",
+    "all",
 }
 
 
@@ -63,10 +67,91 @@ class StaciCalibrateResults:
         )
 
 
+def _require_positive_number(
+    settings: dict[str, Any],
+    field: str,
+) -> float | None:
+    value = settings.get(field)
+
+    if value is None:
+        return None
+
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, (int, float))
+        or not math.isfinite(float(value))
+        or float(value) <= 0.0
+    ):
+        raise ValueError(f"STACI Calibrate setting {field!r} ""must be a positive finite number.")
+
+    return float(value)
+
+
+def _validate_pipe_selection(
+    settings: dict[str, Any],
+) -> None:
+    pipe_selection = settings.get("type_of_pipe_selection")
+
+    if pipe_selection not in _PIPE_SELECTION_TYPES:
+        raise ValueError("Unsupported STACI Calibrate pipe selection type: f{pipe_selection!r}")
+
+    if pipe_selection == "list":
+        pipe_ids = settings.get("pipe_ids")
+
+        if (
+            not isinstance(pipe_ids, list)
+            or not pipe_ids
+            or any(
+                not isinstance(pipe_id, str)
+                or not pipe_id
+                or pipe_id != pipe_id.strip()
+                for pipe_id in pipe_ids
+            )
+        ):
+            raise ValueError("pipe_ids must be a non-empty list of non-empty pipe ID strings.")
+
+        if len(set(pipe_ids)) != len(pipe_ids):
+            raise ValueError("pipe_ids must not contain duplicate pipe IDs.")
+
+        settings.pop("num_of_active_pipes", None)
+        settings.pop("Dmin", None)
+        return
+
+    settings.pop("pipe_ids", None)
+
+    if pipe_selection == "all":
+        settings.pop("num_of_active_pipes", None)
+        settings.pop("Dmin", None)
+        return
+
+    if pipe_selection == "Dmin":
+        if _require_positive_number(settings, "Dmin") is None:
+            raise ValueError(
+                "Dmin is required when "
+                "type_of_pipe_selection is 'Dmin'."
+            )
+
+        settings.pop("num_of_active_pipes", None)
+        return
+
+    settings.pop("Dmin", None)
+
+    num_of_active_pipes = settings.get("num_of_active_pipes")
+
+    if (
+        isinstance(num_of_active_pipes, bool)
+        or not isinstance(num_of_active_pipes, int)
+        or num_of_active_pipes < 1
+    ):
+        raise ValueError("num_of_active_pipes must be a positive integer.")
+
+
+
 def write_calibrate_settings(
     output_path: Path,
     *,
     measurements_path: Path,
+    snapshot_count: int,
     overrides: dict[str, Any] | None = None,
 ) -> None:
     output_path = output_path.resolve()
@@ -74,42 +159,61 @@ def write_calibrate_settings(
     run_dir = output_path.parent
 
     if output_path.suffix.lower() != ".json":
-        raise ValueError(
-            "STACI Calibrate settings must use the .json extension."
-        )
+        raise ValueError("STACI Calibrate settings must use the .json extension.")
+
+    if (
+        isinstance(snapshot_count, bool)
+        or not isinstance(snapshot_count, int)
+        or snapshot_count < 1
+    ):
+        raise ValueError("STACI Calibrate requires at least one INP snapshot.")
+
+    if not measurements_path.is_file():
+        raise FileNotFoundError(f"STACI Calibrate measurements file not found: {measurements_path}")
+
+    if measurements_path.suffix.lower() != ".json":
+        raise ValueError("STACI Calibrate measurements must use JSON.")
 
     if measurements_path.parent != run_dir:
-        raise ValueError(
-            "STACI Calibrate measurements must be located "
-            "beside the settings file."
-        )
+        raise ValueError("STACI Calibrate measurements must be located beside the settings file.")
+
+    for index in range(snapshot_count):
+        snapshot_path = run_dir / f"network_{index}.inp"
+
+        if not snapshot_path.is_file():
+            raise FileNotFoundError(f"STACI Calibrate INP snapshot not found: {snapshot_path}")
 
     settings = {
         **_DEFAULT_SETTINGS,
         **(overrides or {}),
     }
 
-    # These paths are controlled by the wrapper so that every input and
-    # output remains inside the isolated run directory.
+    # Input paths and period numbering are controlled by the wrapper.
     settings["dir_name"] = str(run_dir) + os.sep
     settings["sollwert_dfile"] = measurements_path.name
+    settings["fname_prefix"] = "network_"
+    settings["network_extension"] = ".inp"
+    settings["Start_of_Periods"] = 0
+    settings["Num_of_Periods"] = snapshot_count
+    settings.pop("network_file", None)
 
-    pipe_selection = settings.get("type_of_pipe_selection")
+    _validate_pipe_selection(settings)
 
-    if pipe_selection not in _PIPE_SELECTION_TYPES:
-        raise ValueError(
-            "Unsupported STACI Calibrate pipe selection type: "
-            f"{pipe_selection!r}"
-        )
+    min_diameter = _require_positive_number(
+        settings,
+        "min_diameter_m",
+    )
+    max_diameter = _require_positive_number(
+        settings,
+        "max_diameter_m",
+    )
 
-    if pipe_selection == "Dmin":
-        if "Dmin" not in settings:
-            raise ValueError(
-                "Dmin is required when type_of_pipe_selection is 'Dmin'."
-            )
-        settings.pop("num_of_active_pipes", None)
-    else:
-        settings.pop("Dmin", None)
+    if (
+        min_diameter is not None
+        and max_diameter is not None
+        and min_diameter >= max_diameter
+    ):
+        raise ValueError("min_diameter_m must be less than max_diameter_m.")
 
     output_path.write_text(
         json.dumps(settings, indent=2) + "\n",
@@ -124,9 +228,7 @@ def _read_settings(path: Path) -> dict[str, Any]:
         settings = json.loads(path.read_text(encoding="utf-8"))
 
         if not isinstance(settings, dict):
-            raise ValueError(
-                "STACI Calibrate JSON settings must contain an object."
-            )
+            raise ValueError("STACI Calibrate JSON settings must contain an object.")
 
         return settings
 
@@ -134,18 +236,14 @@ def _read_settings(path: Path) -> dict[str, Any]:
         root = ET.parse(path).getroot()
 
         if root.tag != "settings":
-            raise ValueError(
-                "STACI Calibrate XML root element must be 'settings'."
-            )
+            raise ValueError("STACI Calibrate XML root element must be 'settings'.")
 
         return {
             element.tag: element.text
             for element in root
         }
 
-    raise ValueError(
-        "STACI Calibrate settings must use .json or .xml."
-    )
+    raise ValueError("STACI Calibrate settings must use .json or .xml.")
 
 
 def _resolve_output_path(

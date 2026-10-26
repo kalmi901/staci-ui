@@ -11,10 +11,20 @@ from src.staci.calibrate import (
     write_calibrate_settings,
 )
 
+from src.results.calibration import (
+    parse_calibration_best,
+    parse_calibration_history
+)
+
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
-NETWORK_FIXTURE = FIXTURE_DIR / "staci_calibrate_network_0.spr"
-TARGETS_FIXTURE = FIXTURE_DIR / "staci_calibrate_targets.json"
+NETWORK_FIXTURES = (
+    FIXTURE_DIR / "staci_calibrate_network_0.inp",
+    FIXTURE_DIR / "staci_calibrate_network_1.inp",
+)
+MEASUREMENTS_FIXTURE = (
+    FIXTURE_DIR / "staci_calibrate_measurements.json"
+)
 
 
 def _read_if_present(path: Path) -> str:
@@ -36,21 +46,32 @@ def test_run_staci_calibrate_runs_real_executable(
             "Set STACI_CALIBRATE_EXECUTABLE to run this test."
         )
 
-    network_path = tmp_path / "calibrate_network_0.spr"
+
     targets_path = tmp_path / "calibrate_targets.json"
     settings_path = tmp_path / "staci_calibrate_settings.json"
 
-    shutil.copy2(NETWORK_FIXTURE, network_path)
-    shutil.copy2(TARGETS_FIXTURE, targets_path)
+    for index, fixture_path in enumerate(NETWORK_FIXTURES):
+        shutil.copy2(
+            fixture_path,
+            tmp_path / f"network_{index}.inp",
+        )
+    measurements_path = tmp_path / "measurements.json"
+    shutil.copy2(MEASUREMENTS_FIXTURE, measurements_path)
 
     write_calibrate_settings(
         settings_path,
-        measurements_path=targets_path,
+        measurements_path=measurements_path,
+        snapshot_count=2,
         overrides={
             "global_debug_level": 0,
-            "Num_of_Periods": 1,
-            "popsize": 4,
-            "ngen": 1,
+            "dt": 0.01,
+            "weight_p_err": 0.5,
+            "type_of_pipe_selection": "list",
+            "pipe_ids": ["Large"],
+            "min_diameter_m": 0.15,
+            "max_diameter_m": 0.25,
+            "popsize": 6,
+            "ngen": 10,
         },
     )
 
@@ -77,4 +98,17 @@ def test_run_staci_calibrate_runs_real_executable(
     assert "Optimization finished" in result.stdout_path.read_text(
         encoding="utf-8",
         errors="replace",
+    )
+
+    best = parse_calibration_best(result.best_data_path)
+    history = parse_calibration_history(result.history_path)
+
+    assert [pipe.pipe_id for pipe in best.pipes] == ["Large"]
+    assert 0.15 <= best.pipes[0].diameter_m <= 0.25
+    assert len(best.comparisons) == 4
+
+    assert history
+    assert all(
+        entry.function_evaluations >= 0
+        for entry in history
     )
