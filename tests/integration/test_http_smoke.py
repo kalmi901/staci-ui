@@ -230,6 +230,19 @@ def test_solver_runs_use_background_callbacks(
                 ids.FLUSH_RESULTS,
             ),
         ),
+        (
+            "analysis/calibration",
+            "page calibration-page",
+            (
+                ids.CAL_UPLOAD_SNAPSHOTS,
+                ids.CAL_SNAPSHOT_SELECTION,
+                ids.CAL_UPLOAD_MEASUREMENTS,
+                ids.CAL_MEASUREMENTS_TABLE,
+                ids.CAL_ADD_MEASUREMENT,
+                ids.CAL_INPUT_SUMMARY,
+                ids.CAL_RESULTS,
+            ),
+        ),
     ],
 )
 def test_dash_renders_main_routes(

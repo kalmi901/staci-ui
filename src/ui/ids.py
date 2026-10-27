@@ -6,6 +6,8 @@ NETWORK_VIEW_STORE = "network-view-store"
 HYD_RUN_STORE = "hyd-run-store"
 PART_RUN_STORE = "part-run-store"
 FLUSH_RUN_STORE = "flush-run-store"
+CAL_SNAPSHOT_STORE = "cal-snapshot-store"
+CAL_MEASUREMENT_STORE = "cal-measurement-store"
 
 # --- Load Model Page ---
 UPLOAD_INP = "upload-inp"
@@ -94,3 +96,14 @@ HYD_NODE_COLOR_MAX = "hyd-node-color-max"
 
 HYD_LINK_COLOR_MIN = "hyd-link-color-min"
 HYD_LINK_COLOR_MAX = "hyd-link-color-max"
+
+# --- Calibration Page ---
+CAL_UPLOAD_SNAPSHOTS = "cal-upload-snapshots"
+CAL_SNAPSHOT_UPLOAD_STATUS = "cal-snapshot-upload-status"
+CAL_SNAPSHOT_SELECTION = "cal-snapshot-selection"
+CAL_UPLOAD_MEASUREMENTS = "cal-upload-measurements"
+CAL_MEASUREMENTS_STATUS = "cal-measurements-status"
+CAL_MEASUREMENTS_TABLE = "cal-measurements-table"
+CAL_ADD_MEASUREMENT = "cal-add-measurement"
+CAL_INPUT_SUMMARY = "cal-input-summary"
+CAL_RESULTS = "cal-results"

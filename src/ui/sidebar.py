@@ -16,6 +16,7 @@ ANALYSIS_LINKS: tuple[NavItem, ...] = (
     ("Hydraulic", "/analysis/hydraulic", "💧"),
     ("Partitioning", "/analysis/partitioning", "🧩"),
     ("Flushing", "/analysis/flushing", "🚿"),
+    ("Calibration", "/analysis/calibration", "🎯"),
 )
 
 

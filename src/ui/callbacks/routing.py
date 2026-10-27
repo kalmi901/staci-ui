@@ -9,7 +9,8 @@ from src.ui.pages import(
     network_load,
     network_partitioning,
     hydraulic_analysis,
-    flushing_analysis
+    flushing_analysis,
+    calibration_analysis
 )
 
 def _not_found_page(pathname: str | None):
@@ -45,5 +46,7 @@ def register_routing_callbacks(app):
             return hydraulic_analysis.create_layout()
         if pathname == "/analysis/flushing":
             return flushing_analysis.create_layout()
+        if pathname == "/analysis/calibration":
+            return calibration_analysis.create_layout()
         
         return _not_found_page(pathname)
