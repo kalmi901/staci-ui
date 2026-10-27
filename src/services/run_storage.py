@@ -5,11 +5,18 @@ from typing import Literal
 
 from src.config import RUN_ROOT
 
+RunType = Literal[
+    "hydraulic",
+    "partition",
+    "flushing",
+    "calibration",
+]
+
 _RUN_ID_PATTERN = re.compile(r"^[a-f0-9]{12}$")
 
 def resolve_run_dir(
     run_id: str, 
-    run_type: Literal["hydraulic", "partition", "flushing"]
+    run_type: RunType
     ) -> Path:
     if not _RUN_ID_PATTERN.fullmatch(run_id):
         raise ValueError(f"Invalid run id: {run_id!r}")

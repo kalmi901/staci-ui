@@ -93,7 +93,7 @@ def _validate_pipe_selection(
     pipe_selection = settings.get("type_of_pipe_selection")
 
     if pipe_selection not in _PIPE_SELECTION_TYPES:
-        raise ValueError("Unsupported STACI Calibrate pipe selection type: f{pipe_selection!r}")
+        raise ValueError(f"Unsupported STACI Calibrate pipe selection type: {pipe_selection!r}")
 
     if pipe_selection == "list":
         pipe_ids = settings.get("pipe_ids")
