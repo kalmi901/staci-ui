@@ -21,6 +21,9 @@ NODE_COLOR_MIN = "node-color-min"
 NODE_COLOR_MAX = "node-color-max"
 LINK_COLOR_MIN = "link-color-min"
 LINK_COLOR_MAX = "link-color-max"
+NETWORK_LINE_WIDTH = "network-line-width"
+NETWORK_MARKER_SIZE = "network-marker-size"
+NETWORK_HIDE_NODES = "network-hide-nodes"
 
 # --- Partitioning Page ---
 PART_NETWORK_GRAPH = "partitioned-network-graph"
@@ -38,6 +41,9 @@ PART_RUN_BUTTON = "part-run-button"
 PART_RUN_STATUS = "part-run-status"
 PART_COMMUNITY_FILTER = "part-community-filter"
 PART_SHOW_BOUNDARY_LINKS="part-show-boundary-links"
+PART_LINE_WIDTH = "part-line-width"
+PART_MARKER_SIZE = "part-marker-size"
+PART_HIDE_NODES = "part-hide-nodes"
 
 # --- Flushing Page ---
 FLUSH_ACTIVE_MODEL_SUMMARY = "flush-active-model-summary"
@@ -54,6 +60,9 @@ FLUSH_RESULTS = "flush-results"
 FLUSH_SCENARIO = "flush-scenario"
 FLUSH_MAP_MODE = "flush-map-mode"
 FLUSH_NETWORK_GRAPH = "flush-network-graph"
+FLUSH_LINE_WIDTH = "flush-line-width"
+FLUSH_MARKER_SIZE = "flush-marker-size"
+FLUSH_HIDE_NODES = "flush-hide-nodes"
 
 # --- Hydraulic Analysis Page ---
 HYD_ACTIVE_MODEL_SUMMARY = "hyd-active-model-summary"
@@ -70,6 +79,9 @@ HYD_TIMESTEP_MINUTES = "hyd-timestep-minutes"
 HYD_NETWORK_GRAPH = "hyd-network-graph"
 HYD_NODE_RESULT = "hyd-node-result"
 HYD_LINK_RESULT = "hyd-link-result"
+HYD_LINE_WIDTH = "hyd-line-width"
+HYD_MARKER_SIZE = "hyd-marker-size"
+HYD_HIDE_NODES = "hyd-hide-nodes"
 
 # Animation / Timestep Controls
 HYD_TIME_SLIDER = "hyd-time-slider"
