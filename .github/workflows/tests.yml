@@ -15,6 +15,32 @@ permissions:
   contents: read
 
 jobs:
+  wordpress-tests:
+    name: WordPress / logs and input downloads
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Check PHP syntax
+        run: |
+          docker run --rm --network none \
+            --volume "$PWD:/test:ro" \
+            wordpress:php8.3-apache \
+            sh -c 'for file in /test/deploy/wordpress/staci-tool/*.php /test/tests/*.php; do php -l "$file" || exit 1; done'
+
+      - name: Verify admin logs and downloads in isolated filesystems
+        run: |
+          set -euo pipefail
+          for test in test_log_viewer test_run_dashboard test_input_download; do
+            docker run --rm --network none --user 33:33 \
+              --volume "$PWD:/test:ro" \
+              --tmpfs /var/log/staci:uid=33,gid=33,mode=0755 \
+              --tmpfs /var/lib/staci-data:uid=33,gid=33,mode=0755 \
+              wordpress:php8.3-apache php "/test/tests/$test.php"
+          done
+
   python-tests:
     name: Python 3.13 / without native STACI
     runs-on: ubuntu-latest

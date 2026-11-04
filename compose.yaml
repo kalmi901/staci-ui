@@ -119,6 +119,7 @@ services:
       - wordpress-data:/var/www/html
       - ./deploy/wordpress/staci-tool:/var/www/html/wp-content/plugins/staci-tool:ro
       - staci-logs:/var/log/staci:ro
+      - staci-data:/var/lib/staci-data:ro
     networks:
       - default
       - database
