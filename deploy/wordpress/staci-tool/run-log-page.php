@@ -2,6 +2,7 @@
 /** Admin-only presentation; all log values are untrusted text. */
 defined('ABSPATH') || exit;
 require_once __DIR__ . '/run-log-data.php';
+require_once __DIR__ . '/input-download.php';
 
 function staci_run_query($key) {
     return isset($_GET[$key]) && is_string($_GET[$key]) ? sanitize_text_field(wp_unslash($_GET[$key])) : '';
@@ -69,9 +70,15 @@ function staci_run_page() {
                 echo '<div class="notice notice-error inline"><p>' . esc_html($run['error']) . '</p></div>';
             }
             $prepared = $run['events']['prepared'] ?? array();
-            echo '<p>Bemenet ellenőrzőösszege (SHA-256): <code>' . esc_html($prepared['input_sha256'] ?? 'Nem áll rendelkezésre') . '</code></p>';
-            echo '<p>A reprodukáláshoz azonos bemenet, paraméterek és programverziók szükségesek. '
-                . 'Fájlletöltés ezen a felületen nem érhető el.</p>';
+            echo '<p>Szolverbemenet ellenőrzőösszege (SHA-256): <code>' . esc_html($prepared['input_sha256'] ?? 'Nem áll rendelkezésre') . '</code></p>';
+            if (staci_run_upload_path($run)) {
+                echo '<p><a class="button" href="' . esc_url(staci_run_upload_url($run['id']))
+                    . '">Feltöltött fájl letöltése</a></p>';
+                echo '<p>A letöltés az eredeti feltöltést tartalmazza. A futási felülírások a beállítások között szerepelnek.</p>';
+            } else {
+                echo '<p>A feltöltött fájl nem érhető el.</p>';
+            }
+            echo '<p>A reprodukáláshoz azonos bemenet, paraméterek és programverziók szükségesek.</p>';
             staci_run_parameters($run);
             echo '<details><summary>Futtatási metaadatok</summary><pre style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:350px;overflow:auto">'
                 . esc_html(json_encode($run['events'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE)) . '</pre></details>';

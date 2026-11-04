@@ -220,14 +220,37 @@ labelled incomplete, not running or successful. Completion with reported failed
 frames, STACI warnings or partial flushing results is labelled with a warning.
 Completion alone does not certify numerical correctness.
 
-Run input copies already produced by the services remain in the data volume;
-the dashboard does not expose that volume or add downloads or automatic reruns.
+The run detail view offers **Feltöltött fájl letöltése** for a retained, unambiguous
+run whose original upload is still readable. WordPress mounts `staci-data`
+read-only at `/var/lib/staci-data`, outside its web root. The `admin-post.php`
+handler checks `manage_options`, GET and a session-bound, execution-specific
+WordPress nonce before indexing the retained logs. Only the log's validated
+`model_id` and stored filename select `/var/lib/staci-data/uploads/<model_id>/<filename>`;
+request-supplied paths are ignored. Symlinked directories/files, path traversal,
+missing uploads and non-regular files are rejected. Responses stream the original
+bytes as an attachment with private/no-store caching; there is no public file URL.
+Missing files or logs return 404, and invalid/expired links return 403. Refresh
+the run details to obtain a new link. Existing uploads work without migration
+when normal directory/file permissions allow UID 33 (`www-data`) to read them.
+
+The download is the original upload, not the prepared solver input: hydraulic
+time overrides may change the run's `input.inp` and its recorded SHA-256. Run
+input copies already produced by the services remain in the data volume.
 Reproduction requires retaining those inputs and matching code/binaries as well
 as the displayed settings. Log rotation can remove this history; this feature is
 not a durable audit database. The volume is outside the web root;
 there is no public log endpoint. Historical Docker logs are not imported.
 
-Deploy the plugin, Caddy configuration and Python changes together; recreate
+When the patched WordPress images described above are already deployed, update
+the plugin directory and Compose file for the download feature, then run
+`docker compose up -d --no-deps wordpress` to apply its new read-only
+mount. This download change requires no Python/Caddy/solver change, application
+image rebuild, data migration or app/worker restart. The PHP security changes
+still require rebuilding and deploying the patched WordPress images as described
+above. Keep the existing Compose project/volume names.
+
+For the initial user-attributed logging setup, deploy the plugin, Caddy
+configuration and Python changes together; recreate
 app/worker/WordPress to apply the volume mounts and environment. No database
 migration is required. Build the merged image with the STACI revision pinned
 in Dockerfile before deployment. When upgrading an existing root-owned data
@@ -246,9 +269,13 @@ maintenance policy.
 ### Run dashboard verification
 
 Run `python -m unittest discover -s tests -p 'test_*.py'` in the application
-environment. Run `tests/test_log_viewer.php` and `tests/test_run_dashboard.php`
-in separate disposable PHP 8 containers with an empty writable `/var/log/staci`;
+environment. Run `tests/test_log_viewer.php`, `tests/test_run_dashboard.php` and
+`tests/test_input_download.php` in separate disposable PHP 8.3 containers as UID 33,
+with empty writable `/var/log/staci` and `/var/lib/staci-data` tmpfs mounts;
 these tests write synthetic logs and must never run against production volumes.
 The tests cover concurrent attempt IDs, unchanged callback arguments/results,
 prepared input fingerprints, rotation, incomplete/legacy events, escaping,
 filters, time zones, access control and bounded reads.
+Download checks also cover original bytes, real HTTP attachment headers/status,
+execution-bound nonces, missing/rotated history, path traversal, symlinks and
+unreadable files. CI runs all three PHP suites without production volumes.
