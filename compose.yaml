@@ -104,7 +104,9 @@ services:
       retries: 10
 
   wordpress:
-    image: wordpress:php8.3-apache
+    build:
+      context: ./deploy/wordpress
+      target: web
     restart: unless-stopped
     environment: &wordpress-environment
       WORDPRESS_DB_HOST: database
@@ -132,7 +134,9 @@ services:
       retries: 30
 
   wordpress-init:
-    image: wordpress:cli-php8.3
+    build:
+      context: ./deploy/wordpress
+      target: cli
     restart: "no"
     user: "33:33"
     environment:

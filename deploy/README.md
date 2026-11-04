@@ -30,6 +30,7 @@ does not rotate credentials in an existing database.
 
 ```bash
 docker compose config --quiet
+docker compose build --pull wordpress wordpress-init
 docker compose up -d --build
 docker compose ps
 docker compose logs --tail=50 caddy wordpress
@@ -59,6 +60,51 @@ The supplied stack relies on WordPress's logged-in cookie reaching
 endpoint in WordPress/CDN cache plugins. The proxy sends `Cache-Control: no-store`
 for the tool. The official WordPress image recognizes Caddy's forwarded HTTPS
 header; WordPress and the database have no published ports.
+
+## PHP security updates (2026-10-21)
+
+The public WordPress service uses Apache/mod_php. CVE-2026-109618 and
+CVE-2026-109619 affect PHP itself and can be reached before WordPress/plugin
+authentication. The Python/Dash/Celery/native STACI runtime does not use PHP,
+but the website and the application's WordPress authentication gateway do.
+WordPress also has access to its database and read-only STACI model/result/log
+volumes, so a PHP compromise can disclose those files.
+
+The complete fix is a patched PHP runtime. The official PHP 8.3 branch requires
+**8.3.36 or later**; other supported branch minima are 8.2.35, 8.4.27 and 8.5.12.
+See the [PHP security advisory](https://www.php.net/archive/2026.php#2026-10-21-5).
+
+Both WordPress images now build from `deploy/wordpress/Dockerfile`, which rejects
+unpatched, unsupported and prerelease upstream PHP versions. The build also
+disables session upload progress before request parsing as defense in depth;
+this setting alone is not a complete mitigation. No public diagnostic endpoint
+or WordPress plugin check is used to claim runtime protection.
+
+On an existing deployment, first back up the WordPress database and site volume,
+keep the same Compose project/directory, and then run:
+
+```bash
+docker compose build --pull wordpress wordpress-init
+docker compose run --rm --no-deps --entrypoint php wordpress /usr/local/lib/staci/check-php-security.php
+docker compose run --rm --no-deps --entrypoint php wordpress-init /usr/local/lib/staci/check-php-security.php
+docker compose up -d --no-deps --force-recreate wordpress
+docker compose exec -T wordpress php /usr/local/lib/staci/check-php-security.php
+docker compose exec -T wordpress php -r 'exit(ini_get("session.upload_progress.enabled") ? 1 : 0);'
+docker compose ps wordpress
+```
+
+If the upstream images have not yet been rebuilt with patched PHP, the build
+fails before replacing the live container. Do not bypass the version check;
+obtain a verified patched image before proceeding. Pulling a tag or restarting
+an old container does not prove the runtime was patched. Recreating WordPress
+restarts all Apache/PHP workers; the solver services need no restart.
+
+Afterward verify the homepage, login, anonymous `/staci-app/` rejection,
+authenticated tool access and administrator log access (and downloads when enabled). Run the PHP
+test suites only with disposable log/data filesystems, never production volumes.
+The CLI check validates the installed upstream PHP binary; an internal Apache
+request should also confirm the web worker's version and loaded configuration.
+Remove any temporary diagnostic file immediately and never expose `phpinfo()`.
 
 ## Access boundary
 
