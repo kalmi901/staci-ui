@@ -174,32 +174,50 @@ labelled incomplete, not running or successful. Completion with reported failed
 frames, STACI warnings or partial flushing results is labelled with a warning.
 Completion alone does not certify numerical correctness.
 
-The run detail view offers **Feltöltött fájl letöltése** for a retained, unambiguous
-run whose original upload is still readable. WordPress mounts `staci-data`
-read-only at `/var/lib/staci-data`, outside its web root. The `admin-post.php`
-handler checks `manage_options`, GET and a session-bound, execution-specific
-WordPress nonce before indexing the retained logs. Only the log's validated
-`model_id` and stored filename select `/var/lib/staci-data/uploads/<model_id>/<filename>`;
-request-supplied paths are ignored. Symlinked directories/files, path traversal,
-missing uploads and non-regular files are rejected. Responses stream the original
-bytes as an attachment with private/no-store caching; there is no public file URL.
-Missing files or logs return 404, and invalid/expired links return 403. Refresh
-the run details to obtain a new link. Existing uploads work without migration
-when normal directory/file permissions allow UID 33 (`www-data`) to read them.
+The run detail view offers **Futtatott INP letöltése** and a separate stored
+metadata/settings attachment. Both are selected from the explicit run allocation
+in the retained log, not from the uploaded model ID or user/time guesses:
 
-The download is the original upload, not the prepared solver input: hydraulic
-time overrides may change the run's `input.inp` and its recorded SHA-256. Run
-input copies already produced by the services remain in the data volume.
+| Run | Solver input | Stored metadata/settings |
+| --- | --- | --- |
+| Hydraulic / STACI | `runs/hydraulic/<run_id>/input.inp` | `results.meta.json` (includes effective simulation time settings) |
+| Hydraulic / WNTR | `runs/hydraulic/<run_id>/input.inp` | `run.json` (result-file manifest, not a full parameter file) |
+| Partition | `runs/partition/<run_id>/model.inp` | `staci_split_settings.xml` |
+| Flushing | `runs/flushing/<run_id>/model.inp` | `flushing_config.json` |
+
+Files are returned byte-for-byte without format conversion. The hydraulic input
+includes any applied time overrides; the original upload is not used as a
+fallback. A missing settings/output file does not prevent downloading an
+available INP. WNTR's saved manifest contains only backend/result-file references;
+its requested/effective settings remain in the log and diagnostic summary.
+These downloads alone do not supply matching binaries, all command-line flags
+or a complete archived execution environment.
+
+WordPress mounts `staci-data` read-only at `/var/lib/staci-data`, outside its web
+root. The `admin-post.php` handler checks `manage_options`, GET and a nonce bound
+to the session, execution ID and attachment kind before indexing retained logs.
+Validated run type/ID and fixed filenames select the files; URL-supplied paths,
+model IDs or run IDs cannot select a different file. Conflicting run IDs,
+symlinks at every directory/file level, non-regular files and traversal are
+rejected. INP downloads are checked against the logged prepared SHA-256 when
+available; a mismatch returns 409. Missing files/history return 404; expired or
+invalid links return 403. Attachments include the run ID in their filename and
+use private/no-store caching. No public file URL or new Python/solver behavior
+is introduced. Existing runs work when their allocation log and readable files
+are still retained. UID 33 (`www-data`) must be able to read them.
+
 Reproduction requires retaining those inputs and matching code/binaries as well
 as the displayed settings. Log rotation can remove this history; this feature is
 not a durable audit database. The volume is outside the web root;
 there is no public log endpoint. Historical Docker logs are not imported.
 
-To deploy only the download feature, update the plugin directory and Compose
-file, then run
+To enable downloads initially, update the plugin directory and Compose file, then run
 `docker compose up -d --no-deps wordpress` to apply its new read-only
 mount. No Python/Caddy/solver change, application image rebuild, data migration or
 app/worker restart is needed. Keep the existing Compose project/volume names.
+When replacing already enabled upload downloads with run-file downloads, update
+only the plugin: the read-only data mount is unchanged. Preserve any separately
+deployed patched WordPress image and PHP security configuration.
 
 For the initial user-attributed logging setup, deploy the plugin, Caddy
 configuration and Python changes together; recreate
@@ -228,6 +246,7 @@ these tests write synthetic logs and must never run against production volumes.
 The tests cover concurrent attempt IDs, unchanged callback arguments/results,
 prepared input fingerprints, rotation, incomplete/legacy events, escaping,
 filters, time zones, access control and bounded reads.
-Download checks also cover original bytes, real HTTP attachment headers/status,
-execution-bound nonces, missing/rotated history, path traversal, symlinks and
+Download checks also cover prepared versus uploaded bytes, same-model attempts,
+per-type metadata, SHA-256 mismatches, real HTTP attachment headers/status,
+execution/file-bound nonces, missing/rotated history, traversal, symlinks and
 unreadable files. CI runs all three PHP suites without production volumes.

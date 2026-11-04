@@ -162,7 +162,7 @@ writes app and Celery-worker Python logs to `/var/log/staci/application.log` on 
 `staci-logs` volume, with five rotated backups of 5 MiB each. Application events
 include the proxy-verified WordPress user ID/login; timestamps are UTC.
 Administrators can browse and filter runs under **Tools → STACI napló** in
-WordPress, open a run’s log, download its original uploaded file and copy a
+WordPress, open a run’s log, download its prepared solver input and stored run metadata and copy a
 reproduction summary. Downloads require the same administrator permission and a
 session-bound link; unavailable files have no download button. The raw log viewer
 remains available. Log and runtime data volumes are mounted read-only in

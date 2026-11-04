@@ -32,7 +32,7 @@ $a = str_repeat('a', 32); $b = str_repeat('b', 32); $c = str_repeat('c', 32);
 @mkdir('/var/log/staci', 0755, true);
 file_put_contents('/var/log/staci/application.log.1',
     event_line($a, 'started', array('run_type' => 'hydraulic', 'model_id' => '123456abcdef', 'filename' => '</textarea><script>alert(1)</script>.inp'))
-    . event_line($b, 'started', array('run_type' => 'hydraulic', 'model_id' => '123456abcdef', 'filename' => 'same.inp')));
+    . event_line($b, 'started', array('run_type' => 'hydraulic', 'model_id' => '123456abcdef', 'filename' => 'same.inp', 'settings' => array('backend' => 'staci'))));
 file_put_contents('/var/log/staci/application.log',
     line($a, 'Calculation failed', 'workflow') . "Traceback\nValueError: isolated failure\n"
     . event_line($b, 'prepared', array('run_id' => 'abcdef123456', 'input_sha256' => str_repeat('f', 64)))
@@ -59,15 +59,18 @@ ob_start(); staci_run_page(); $html = ob_get_clean();
 check(!str_contains($html, '<script>alert(1)'), 'log content must not execute');
 check(str_contains($html, '&lt;script&gt;alert(1)'), 'escaped content displayed');
 check(str_contains($html, 'staci-copy-summary'), 'copy control');
-check(str_contains($html, 'A feltöltött fájl nem érhető el.'), 'unavailable input is explicit');
-check(!str_contains($html, '>Feltöltött fájl letöltése<'), 'no download for unsafe filename');
-@mkdir('/var/lib/staci-data/uploads/123456abcdef', 0755, true);
-file_put_contents('/var/lib/staci-data/uploads/123456abcdef/same.inp', '[END]');
+check(str_contains($html, 'Nem áll rendelkezésre azonosítható futási fájl.'), 'missing run association is explicit');
+check(!str_contains($html, '>Futtatott INP letöltése<'), 'no download without an explicit run allocation');
+@mkdir('/var/lib/staci-data/runs/hydraulic/abcdef123456', 0755, true);
+file_put_contents('/var/lib/staci-data/runs/hydraulic/abcdef123456/input.inp', '[END]');
+file_put_contents('/var/lib/staci-data/runs/hydraulic/abcdef123456/results.meta.json', '{"simulation":{}}');
 $_GET = array('execution' => $b);
 ob_start(); staci_run_page(); $html = ob_get_clean();
-check(str_contains($html, '>Feltöltött fájl letöltése<'), 'available input has download button');
-check(str_contains($html, 'action=staci_download_upload&amp;execution=' . $b), 'download bound to selected execution');
-check(str_contains($html, 'A letöltés az eredeti feltöltést tartalmazza.'), 'original input distinguished from prepared input');
+check(str_contains($html, '>Futtatott INP letöltése<'), 'available input has download button');
+check(str_contains($html, 'action=staci_download_run_file&amp;execution=' . $b), 'download bound to selected execution');
+check(str_contains($html, '>Futási metaadatok (JSON)<'), 'second metadata attachment');
+check(str_contains($html, 'file=inp') && str_contains($html, 'file=parameters'), 'distinct attachment links');
+check(str_contains($html, 'Az INP a kiválasztott futáshoz előkészített szolverbemenet.'), 'prepared input distinguished from upload');
 check(!str_contains($html, 'Fájlletöltés ezen a felületen nem érhető el.'), 'obsolete download notice removed');
 $_GET = array('status' => 'failed', 'from' => '2026-10-07', 'to' => '2026-10-07');
 ob_start(); staci_run_page(); $filtered = ob_get_clean();
