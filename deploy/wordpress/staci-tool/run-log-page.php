@@ -50,7 +50,7 @@ function staci_run_page() {
     echo '</select></label> <label>Ettől <input type="date" name="from" value="' . esc_attr($from) . '"></label> '
         . '<label>Eddig <input type="date" name="to" value="' . esc_attr($to) . '"></label> ';
     submit_button('Szűrés / frissítés', 'secondary', 'submit', false);
-    echo ' <a class="button button-secondary" href="' . esc_url(add_query_arg(array('page' => 'staci-tool-logs'), $base))
+    echo ' <a class="button button-secondary" style="background:#b32d2e;border-color:#b32d2e;color:#fff" href="' . esc_url(add_query_arg(array('page' => 'staci-tool-logs'), $base))
         . '">Szűrők törlése</a>';
     echo '</p></form>';
     if ($selected_id !== '') {
