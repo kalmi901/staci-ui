@@ -24,7 +24,10 @@ def emit_process_logs(directory, worker):
     for handler in logging.root.handlers:
         handler.close()
 
-
+@unittest.skipUnless(
+    os.name == "posix",
+    "Application file logging uses POSIX flock",
+)
 class LoggingTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()

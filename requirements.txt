@@ -5,4 +5,5 @@ h5py==3.16.0
 numpy==2.5.1
 pandas==3.0.3
 plotly==6.8.0
+six==1.17.0
 wntr==1.5.0

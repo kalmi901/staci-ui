@@ -15,20 +15,44 @@ permissions:
   contents: read
 
 jobs:
-  wordpress-tests:
-    name: WordPress / logs and input downloads
+  php-security-tests:
+    name: WordPress / patched PHP runtime
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
+
+      - name: Build WordPress images with patched PHP
+        run: |
+          docker build --pull --target web --tag staci-wordpress:test deploy/wordpress
+          docker build --pull --target cli --tag staci-wordpress-cli:test deploy/wordpress
+          docker run --rm --network none staci-wordpress:test php /usr/local/lib/staci/check-php-security.php
+          docker run --rm --network none staci-wordpress-cli:test php /usr/local/lib/staci/check-php-security.php
 
       - name: Check PHP syntax
         run: |
           docker run --rm --network none \
             --volume "$PWD:/test:ro" \
-            wordpress:php8.3-apache \
-            sh -c 'for file in /test/deploy/wordpress/staci-tool/*.php /test/tests/*.php; do php -l "$file" || exit 1; done'
+            staci-wordpress:test \
+            sh -c 'for file in /test/deploy/wordpress/check-php-security.php /test/deploy/wordpress/staci-tool/*.php /test/tests/*.php /test/tests/fixtures/*.php; do php -l "$file" || exit 1; done'
+
+      - name: Verify PHP patch version boundaries
+        run: |
+          docker run --rm --network none \
+            --volume "$PWD:/test:ro" \
+            staci-wordpress:test php /test/tests/test_php_security.php
+
+      - name: Verify the Apache PHP runtime before request handling
+        run: |
+          set -euo pipefail
+          trap 'docker rm --force staci-wordpress-php-check >/dev/null 2>&1 || true' EXIT
+          docker run --detach --name staci-wordpress-php-check --network none \
+            --tmpfs /var/www/html \
+            --volume "$PWD:/test:ro" \
+            --entrypoint sh staci-wordpress:test \
+            -c 'cp /test/tests/fixtures/php-runtime-probe.php /var/www/html/index.php && exec apache2-foreground'
+          docker exec staci-wordpress-php-check php /test/tests/test_php_web_runtime.php
 
       - name: Verify admin logs and downloads in isolated filesystems
         run: |
@@ -38,7 +62,7 @@ jobs:
               --volume "$PWD:/test:ro" \
               --tmpfs /var/log/staci:uid=33,gid=33,mode=0755 \
               --tmpfs /var/lib/staci-data:uid=33,gid=33,mode=0755 \
-              wordpress:php8.3-apache php "/test/tests/$test.php"
+              staci-wordpress:test php "/test/tests/$test.php"
           done
 
   python-tests:

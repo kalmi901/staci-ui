@@ -7,7 +7,13 @@ import dash_bootstrap_components as dbc
 from dash.development.base_component import Component
 
 from src.ui import ids
-from src.visualisation.network_preview import make_empty_network_figure
+from src.ui.pages.components import (
+    create_active_model_section,
+    create_page_header,
+    create_run_section,
+    create_network_display_controls
+)
+from src.visualisation.common import make_empty_network_figure
 
 
 def _format_number(
@@ -308,6 +314,12 @@ def render_flushing_results(run_state):
                             ),
                         ],
                     ),
+                    create_network_display_controls(
+                        ids.FLUSH_LINE_WIDTH,
+                        ids.FLUSH_MARKER_SIZE,
+                        ids.FLUSH_HIDE_NODES,
+                        default_marker_size=4,
+                    ),
                 ],
             ),
             dcc.Loading(
@@ -352,28 +364,6 @@ def _number_field(
         ]
     )
 
-
-def _create_active_model_section():
-    return html.Div(
-        className="setup-section",
-        children=[
-            html.H3("Model summary"),
-            html.Div(
-                id=ids.FLUSH_ACTIVE_MODEL_SUMMARY,
-                className="flush-active-model-box",
-                children=[
-                    html.Div(
-                        "No active model",
-                        className="model-summary-title",
-                    ),
-                    html.P(
-                        "Go to Load Model and upload an EPANET .inp "
-                        "file first."
-                    ),
-                ],
-            ),
-        ],
-    )
 
 
 def _create_hydrant_section():
@@ -463,37 +453,6 @@ def _create_outlet_settings_section():
     )
 
 
-def _create_run_section():
-    return html.Div(
-        className="setup-section",
-        children=[
-            dbc.Button(
-                "Create Flushing Plan",
-                id=ids.FLUSH_RUN_BUTTON,
-                color="primary",
-                n_clicks=0,
-                disabled=True,
-                className="primary-action-button",
-            ),
-            html.Div(
-                className="run-feedback-area",
-                children=[
-                    dcc.Loading(
-                        type="dot",
-                        color="blue",
-                        show_initially=False,
-                        children=html.Div(
-                            id=ids.FLUSH_RUN_STATUS,
-                            className=(
-                                "small-status flush-run-status"
-                            ),
-                        ),
-                    )
-                ],
-            ),
-        ],
-    )
-
 
 def _create_setup_card():
     return dbc.Card(
@@ -502,13 +461,20 @@ def _create_setup_card():
             dbc.CardHeader("Flushing Setup"),
             dbc.CardBody(
                 children=[
-                    _create_active_model_section(),
+                    create_active_model_section(
+                        ids.FLUSH_ACTIVE_MODEL_SUMMARY,
+                    ),
                     html.Hr(),
                     _create_hydrant_section(),
                     html.Hr(),
                     _create_outlet_settings_section(),
                     html.Hr(),
-                    _create_run_section(),
+                    create_run_section(
+                        "Create Flushing Plan",
+                        ids.FLUSH_RUN_BUTTON,
+                        ids.FLUSH_RUN_STATUS,
+                        status_class_name="flush-run-status",
+                    ),
                 ]
             ),
         ],
@@ -532,28 +498,16 @@ def create_layout():
     return html.Div(
         className="page flush-page",
         children=[
-            html.Div(
-                className="page-header",
-                children=[
-                    html.Div(
-                        children=[
-                            html.H1("Flushing Planning"),
-                            html.P(
-                                "Evaluate hydrant opening scenarios "
-                                "and rank them by additional pipe-volume "
-                                "coverage."
-                            ),
-                        ]
-                    ),
-                    dbc.Badge(
-                        "STACI Flush",
-                        color="info",
-                        className="page-badge",
-                    ),
-                ],
+            create_page_header(
+                "Flushing Planning",
+                (
+                    "Evaluate hydrant opening scenarios and rank them "
+                    "by additional pipe-volume coverage."
+                ),
+                "STACI Flush",
             ),
             html.Div(
-                className="flush-workspace",
+                className="analysis-workspace flush-workspace",
                 children=[
                     _create_setup_card(),
                     _create_results_card(),
