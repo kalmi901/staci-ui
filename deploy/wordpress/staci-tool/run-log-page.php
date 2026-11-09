@@ -52,6 +52,8 @@ function staci_run_page() {
     submit_button('Szűrés / frissítés', 'secondary', 'submit', false);
     echo '</p></form>';
     if ($selected_id !== '') {
+        echo '<p><a class="button button-secondary" href="' . esc_url(add_query_arg($args, $base))
+            . '">Vissza a naplóhoz</a></p>';
         if (!isset($runs[$selected_id])) {
             echo '<div class="notice notice-info"><p>A futás nem található a megőrzött naplóban.</p></div>';
         } else {
