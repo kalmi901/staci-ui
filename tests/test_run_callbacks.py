@@ -28,18 +28,19 @@ class RunCallbackTests(unittest.TestCase):
         model = {'model_id': 'abcdef123456', 'filename': 'network.inp'}
         state = {'run_id': '123456abcdef', 'model_id': model['model_id'], 'backend': 'wntr', 'summary': {}}
         with patch.object(hydraulic_callbacks, 'resolve_uploaded_model', return_value=Path('/test/network.inp')), \
-             patch.object(hydraulic_callbacks, 'call_hydraulic_simulator', return_value=state) as runner, \
-             patch.object(hydraulic_callbacks, 'render_success_alert', return_value='original-success'):
-            result = registry.functions['run_hydraulic_simulation'](1, model, 'wntr', True, 2, 5)
+            patch.object(hydraulic_callbacks, 'call_hydraulic_simulator', return_value=state) as runner, \
+            patch.object(hydraulic_callbacks, 'render_success_alert', return_value='original-success'):
+            result = registry.functions['run_hydraulic_simulation'](1, model, 'wntr', True, 2, 5, 30, 5, 1.2)
             self.assertEqual(result, (state, 'original-success'))
-            self.assertEqual(runner.call_args.kwargs['option_overrides'], {'duration': 7200, 'hydraulic_timestep': 300})
+            self.assertEqual(runner.call_args.kwargs['option_overrides'],
+                {'duration': 7200, 'hydraulic_timestep': 300, "report_timestep": 1800, "rule_timestep": 300, "demand_multiplier": 1.2})
             with self.assertLogs('src.run_logging', level='INFO') as logs:
-                failed = registry.functions['run_hydraulic_simulation'](1, model, 'wntr', True, None, 5)
+                failed = registry.functions['run_hydraulic_simulation'](1, model, 'wntr', True, None, 5, 30, 5, 1.0)
             self.assertIsNone(failed[0])
             self.assertTrue(any('"status":"failed"' in line for line in logs.output))
         with patch.object(partitioning_callbacks, 'resolve_uploaded_model', return_value=Path('/test/network.inp')), \
-             patch.object(partitioning_callbacks, 'call_staci_split_service', return_value=state) as runner, \
-             patch.object(partitioning_callbacks, 'render_success_alert', return_value='original-success'):
+            patch.object(partitioning_callbacks, 'call_staci_split_service', return_value=state) as runner, \
+            patch.object(partitioning_callbacks, 'render_success_alert', return_value='original-success'):
             result = registry.functions['run_partitioning'](1, model, 3, 'modularity', 'topology', 'diameter', 20, 50, .25, .8, 42)
             self.assertEqual(result, (state, 'original-success'))
             self.assertEqual(runner.call_args.kwargs['seed'], 42)
@@ -51,7 +52,7 @@ class RunCallbackTests(unittest.TestCase):
         from src.background_jobs import background_callback_manager
         key, callback = next((key, value) for key, value in app.callback_map.items()
                              if 'hyd-run-store.data' in key and 'hyd-run-status.children' in key)
-        values = [None, 'wntr', False, 1, 5]
+        values = [None, 'wntr', False, 1, 5, 60, 5, 1.0]
         body = {
             'output': key,
             'outputs': [{'id': item.component_id, 'property': item.component_property} for item in callback['output']],
@@ -60,7 +61,7 @@ class RunCallbackTests(unittest.TestCase):
             'changedPropIds': ['hyd-run-button.n_clicks'],
         }
         with patch.object(background_callback_manager, 'call_job_fn', return_value='fixture-job') as submit, \
-             patch.object(app, '_get_signing_secret', return_value=b'fixture-secret' * 4):
+            patch.object(app, '_get_signing_secret', return_value=b'fixture-secret' * 4):
             response = app.server.test_client().post('/staci-app/_dash-update-component', json=body,
                 headers={'X-Staci-User-Id': '7', 'X-Staci-User-Login': 'worker-test'})
         self.assertEqual(response.status_code, 200)
@@ -77,9 +78,9 @@ class RunCallbackTests(unittest.TestCase):
             def override(source, options, destination):
                 destination.write_text('effective')
             with patch.object(hydraulic_runner, 'RUN_ROOT', root / 'runs'), \
-                 patch.object(hydraulic_runner, 'set_model_options', side_effect=override), \
-                 patch.object(hydraulic_runner, 'read_model_options', return_value={'duration': 7200}), \
-                 patch.object(hydraulic_runner, 'run_wntr', return_value={'same': 'result'}) as solver:
+                patch.object(hydraulic_runner, 'set_model_options', side_effect=override), \
+                patch.object(hydraulic_runner, 'read_model_options', return_value={'duration': 7200}), \
+                patch.object(hydraulic_runner, 'run_wntr', return_value={'same': 'result'}) as solver:
                 token = execution_id.set('f' * 32)
                 try:
                     with self.assertLogs('src.run_logging', level='INFO') as logs:

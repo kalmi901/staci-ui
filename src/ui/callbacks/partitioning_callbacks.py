@@ -28,6 +28,12 @@ def register_partitioning_callbacks(app):
         
         return render_active_model_summary(network_state), False
 
+    @app.callback(
+        Output(ids.PART_WEIGHT_MOD, "disabled"),
+        Input(ids.PART_WEIGHT_TYPE, "value")
+    )
+    def toggle_sensitivity_parameter(weight_type):
+        return weight_type != "sensitivity"
 
     @app.callback(
         Output(ids.PART_RUN_STORE, "data"),
@@ -35,7 +41,7 @@ def register_partitioning_callbacks(app):
         Input(ids.PART_RUN_BUTTON, "n_clicks"),
         State(ids.NETWORK_STORE, "data"),
         State(ids.PART_NCOMM, "value"),
-        State(ids.PART_OBJECTIVE, "value"),
+        State(ids.PART_OBJECTIVE, "data"),
         State(ids.PART_WEIGHT_TYPE, "value"),
         State(ids.PART_WEIGHT_MOD, "value"),
         State(ids.PART_POPSIZE, "value"),
