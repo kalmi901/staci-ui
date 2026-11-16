@@ -323,8 +323,8 @@ def call_staci_calibrate_service(
     best = parse_calibration_best(result.best_data_path)
     history = parse_calibration_history(result.history_path)
 
-    pipes = [asdict(pipe)for pipe in best.pipes]
-    comparisons = [asdict(comparison)for comparison in best.comparisons]
+    pipes = [asdict(pipe) for pipe in best.pipes]
+    comparisons = [asdict(comparison) for comparison in best.comparisons]
     history_entries = [asdict(entry) for entry in history]
 
     manifest_path = run_dir / "run.json"

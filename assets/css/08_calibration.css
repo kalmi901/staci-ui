@@ -89,3 +89,80 @@
     flex-direction: column;
   }
 }
+
+.calibration-options-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.calibration-options-grid label {
+  color: var(--text-section);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.calibration-meta-grid {
+  margin-bottom: 18px;
+}
+
+.calibration-result-heading {
+  margin: 22px 0 12px;
+  color: var(--ink-3);
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.calibration-pipe-table-wrap {
+  max-height: 290px;
+  overflow: auto;
+  scrollbar-gutter: stable;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-lg);
+}
+
+.calibration-pipe-table {
+  min-width: 660px;
+  margin-bottom: 0;
+  font-size: 0.88rem;
+}
+
+.calibration-pipe-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.calibration-pipe-table thead th {
+  background: var(--card-bg);
+  color: var(--text-section);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  box-shadow: 0 1px 0 var(--panel-border);
+}
+
+.calibration-pipe-table td {
+  vertical-align: middle;
+}
+
+.calibration-result-plots {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 18px;
+}
+
+@media (max-width: 1350px) {
+  .calibration-result-plots {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .calibration-options-grid {
+    grid-template-columns: 1fr;
+  }
+}

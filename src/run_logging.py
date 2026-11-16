@@ -81,16 +81,52 @@ def logged_run(run_type):
         @wraps(function)
         def wrapped(*args, **kwargs):
             values = signature.bind(*args, **kwargs).arguments
-            model = values.get("network_state")
-            if not values.get("n_clicks") or not model:
+            network_state = values.get("network_state")
+            snapshot_state = values.get("snapshot_state")
+            input_state = network_state or snapshot_state
+
+            if not values.get("n_clicks") or not input_state:
                 return function(*args, **kwargs)
             token = execution_id.set(uuid.uuid4().hex)
             started = time.monotonic()
             try:
-                event("started", run_type=run_type, model_id=model.get("model_id", ""),
-                      filename=model.get("filename", ""),
-                      settings={key: value for key, value in values.items()
-                                if key not in ("n_clicks", "network_state")})
+                identity = {}
+                if network_state:
+                    identity = {
+                        "model_id": network_state.get(
+                            "model_id",
+                            "",
+                        ),
+                        "filename": network_state.get(
+                            "filename",
+                            "",
+                        ),
+                    }
+
+                elif snapshot_state:
+                    identity = {
+                        "upload_id": snapshot_state.get(
+                            "upload_id",
+                            "",
+                        ),
+                        "filenames": [
+                            snapshot.get("filename", "")
+                            for snapshot
+                            in snapshot_state.get("snapshots", [])
+                        ],
+                    }
+
+                excluded_settings = {
+                    "n_clicks", "network_state", "snapshot_state", "measurement_rows",
+                }
+
+                event("started", run_type=run_type, **identity,
+                    settings={
+                        key: value
+                        for key, value in values.items()
+                        if key not in excluded_settings
+                    },
+                )
                 try:
                     from src.config import STACI_TIMEOUT_SECONDS
                     event("environment", versions=application_version(),
