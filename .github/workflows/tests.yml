@@ -253,8 +253,8 @@ jobs:
               awk '/background_callback_/ {count++} END {print count + 0}'
           )"
 
-          if [ "$task_count" -ne 3 ]; then
-            echo "Expected 3 background callback tasks, found $task_count."
+          if [ "$task_count" -ne 4 ]; then
+            echo "Expected 4 background callback tasks, found $task_count."
             exit 1
           fi
 
