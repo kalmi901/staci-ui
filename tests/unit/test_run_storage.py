@@ -16,7 +16,7 @@ def run_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     return root
 
 
-@pytest.mark.parametrize("run_type", ["hydraulic", "partition", "flushing"])
+@pytest.mark.parametrize("run_type", ["hydraulic", "partition", "flushing", "calibration"])
 def test_resolve_run_dir_returns_path_for_supported_run_type(
     run_root: Path,
     run_type: str,

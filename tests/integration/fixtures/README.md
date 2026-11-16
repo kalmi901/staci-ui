@@ -24,3 +24,20 @@ worked flushing example.
 - Repository: https://github.com/hoscsaba/staci
 - Revision: `b215127e10acce0d404922dbcd2eda623f8f47e2`
 - Hydrant junctions: `A`, `B`, `C`
+
+
+## STACI Calibrate integration fixtures
+
+The two INP snapshots and JSON measurements are copied unchanged from the
+upstream STACI two-period calibration example.
+
+- Sources: `examples/calibration/network_0.inp`,
+  `examples/calibration/network_1.inp`, and
+  `examples/calibration/measurements.json`
+- Repository: https://github.com/hoscsaba/staci
+- Revision: `f1987bffcbeea5ae045e765b649ae5c9eca06ece`
+- Scope: INP loading, explicit pipe selection, diameter bounds, subprocess
+  execution, and result parsing
+
+The fixture is a small synthetic execution example. It does not demonstrate
+parameter identifiability or guarantee a unique calibration result.

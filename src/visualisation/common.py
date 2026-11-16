@@ -4,17 +4,17 @@ import math
 import plotly.graph_objects as go
 
 from typing import Any
-from collections.abc import Sequence
+from collections.abc import Sequence, Mapping
 
 
-NETWORK_FIGURE_LAYOUT = {
+DEFAULT_FIGURE_LAYOUT = {
     "template": "plotly_white",
-    "height": 470,
+    "height": 360,
     "margin": {
-        "l": 10,
-        "r": 10,
-        "t": 10,
-        "b": 10,
+        "l": 55,
+        "r": 25,
+        "t": 25,
+        "b": 55,
     },
     "xaxis": {
         "visible": False,
@@ -27,6 +27,18 @@ NETWORK_FIGURE_LAYOUT = {
         "visible": False,
         "showgrid": False,
         "zeroline": False,
+    },
+}
+
+
+NETWORK_FIGURE_LAYOUT = {
+    **DEFAULT_FIGURE_LAYOUT,
+    "height": 470,
+    "margin": {
+        "l": 10,
+        "r": 10,
+        "t": 10,
+        "b": 10,
     },
 }
 
@@ -125,6 +137,25 @@ def model_ids_are_compatible(
     )
 
 
+def apply_figure_layout(
+    figure: go.Figure,
+    *,
+    uirevision: str | None = None,
+    layout: Mapping[str, Any] | None = None,
+) -> go.Figure:
+    resolved_layout = {
+        **DEFAULT_FIGURE_LAYOUT,
+        **dict(layout or {}),
+    }
+
+    if uirevision is not None:
+        resolved_layout["uirevision"] = uirevision
+
+    figure.update_layout(**resolved_layout)
+
+    return figure
+
+
 def apply_network_layout(
     figure: go.Figure,
     *,
@@ -132,35 +163,31 @@ def apply_network_layout(
     title: dict[str, Any] | str | None = None,
     legend: dict[str, Any] | None = None,
 ) -> go.Figure:
-    overrides: dict[str, Any] = {}
-
-    if uirevision is not None:
-        overrides["uirevision"] = uirevision
+    layout: dict[str, Any] = {
+        **NETWORK_FIGURE_LAYOUT,
+    }
 
     if title is not None:
-        overrides["title"] = title
+        layout["title"] = title
 
     if legend is not None:
-        overrides["legend"] = legend
+        layout["legend"] = legend
 
-    figure.update_layout(
-        **NETWORK_FIGURE_LAYOUT,
-        **overrides,
+    return apply_figure_layout(
+        figure,
+        uirevision=uirevision,
+        layout=layout,
     )
 
-    return figure
 
-
-def make_empty_network_figure(
-    message: str = (
-        "Upload a model to view the network preview."
-    ),
+def make_empty_figure(
+    message: str,
+    *,
+    layout: Mapping[str, Any] | None = None,
 ) -> go.Figure:
-    figure = go.Figure()
-
-    figure.update_layout(
-        **NETWORK_FIGURE_LAYOUT,
-        annotations=[
+    figure_layout = {
+        **dict(layout or {}),
+        "annotations": [
             {
                 "text": message,
                 "xref": "paper",
@@ -174,6 +201,20 @@ def make_empty_network_figure(
                 },
             }
         ],
+    }
+
+    return apply_figure_layout(
+        go.Figure(),
+        layout=figure_layout,
     )
 
-    return figure
+
+def make_empty_network_figure(
+    message: str = (
+        "Upload a model to view the network preview."
+    ),
+) -> go.Figure:
+    return make_empty_figure(
+        message,
+        layout=NETWORK_FIGURE_LAYOUT,
+    )
