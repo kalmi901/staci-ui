@@ -326,9 +326,9 @@ def render_calibration_results(
                 html.Tr(
                     [
                         html.Td(pipe["pipe_id"]),
-                        html.Td(_format_number(original_diameter,digits=4)),
-                        html.Td(_format_number(ratio,digits=4)),
-                        html.Td(_format_number(calibrated_diameter,digits=4)),
+                        html.Td(_format_number(original_diameter, digits=4)),
+                        html.Td(_format_number(ratio, digits=4)),
+                        html.Td(_format_number(calibrated_diameter, digits=4)),
                     ]
                 )
             )
@@ -347,15 +347,9 @@ def render_calibration_results(
                                 html.Tr(
                                     [
                                         html.Th("Pipe ID"),
-                                        html.Th(
-                                            "Original diameter [m]"
-                                        ),
-                                        html.Th(
-                                            "Diameter multiplier [-]"
-                                        ),
-                                        html.Th(
-                                            "Calibrated diameter [m]"
-                                        ),
+                                        html.Th("Original diameter [m]"),
+                                        html.Th("Diameter multiplier [-]"),
+                                        html.Th("Calibrated diameter [m]"),
                                     ]
                                 )
                             ),

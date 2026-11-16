@@ -882,7 +882,7 @@ def register_calibration_callbacks(app):
         return run_state, dbc.Alert(
             children=[
                 html.Div(
-                    ("Calibration completed successfully."),
+                    "Calibration completed successfully.",
                     style={"fontWeight": 800},
                 ),
                 html.Div(
