@@ -272,10 +272,6 @@ def render_calibration_results(
 
     summary = run_state.get("summary", {})
     pipes = run_state.get("pipes", [])
-    warnings = (
-        run_state.get("staci", {})
-        .get("warnings", [])
-    )
 
     content: list[Component] = [
         html.Div(
@@ -318,46 +314,21 @@ def render_calibration_results(
         )
     ]
 
-    if warnings:
-        content.append(
-            dbc.Alert(
-                children=[
-                    html.Div(
-                        "Calibration completed with warnings.",
-                        style={"fontWeight": 800},
-                    ),
-                    html.Ul(
-                        [
-                            html.Li(str(message))
-                            for message in warnings
-                        ],
-                        className="mb-0 mt-2",
-                    ),
-                ],
-                color="warning",
-                className="mt-3",
-            )   #
-        )
-
     if pipes:
         rows = []
 
         for pipe in pipes:
-            diameter = float(pipe["diameter_m"])
+            calibrated_diameter = float(pipe["diameter_m"])
             ratio = float(pipe["diameter_ratio"])
-            diameter = float(pipe["diameter_m"])
-            ratio = float(pipe["diameter_ratio"])
-
-            original_diameter = diameter / ratio
-            calibrated_diameter = diameter
+            original_diameter = calibrated_diameter / ratio
 
             rows.append(
                 html.Tr(
                     [
                         html.Td(pipe["pipe_id"]),
-                        html.Td(html.Td(_format_number(original_diameter, digits=4))),
-                        html.Td(html.Td(_format_number(ratio, digits=4))),
-                        html.Td(html.Td(_format_number(calibrated_diameter, digits=4))),
+                        html.Td(_format_number(original_diameter,digits=4)),
+                        html.Td(_format_number(ratio,digits=4)),
+                        html.Td(_format_number(calibrated_diameter,digits=4)),
                     ]
                 )
             )

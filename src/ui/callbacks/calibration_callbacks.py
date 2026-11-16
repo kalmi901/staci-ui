@@ -877,20 +877,12 @@ def register_calibration_callbacks(app):
                 className="upload-alert",
             )
 
-        warnings = (
-            run_state.get("staci", {})
-            .get("warnings", [])
-        )
         summary = run_state.get("summary", {})
 
         return run_state, dbc.Alert(
             children=[
                 html.Div(
-                    (
-                        "Calibration completed with warnings."
-                        if warnings
-                        else "Calibration completed successfully."
-                    ),
+                    ("Calibration completed successfully."),
                     style={"fontWeight": 800},
                 ),
                 html.Div(
@@ -903,11 +895,7 @@ def register_calibration_callbacks(app):
                     f"{summary.get('calibrated_pipe_count', 0)}"
                 ),
             ],
-            color=(
-                "warning"
-                if warnings
-                else "success"
-            ),
+            color="success",
             className="upload-alert",
         )
 
