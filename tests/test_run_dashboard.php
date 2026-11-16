@@ -3,6 +3,7 @@
 define('ABSPATH', '/test/');
 $authorized = true;
 function current_user_can($cap) { global $authorized; return $authorized; }
+function add_action($name, $callback) {}
 function wp_die($message, $title, $args) { throw new RuntimeException('denied:' . $args['response']); }
 function nocache_headers() {}
 function sanitize_text_field($s) { return strip_tags($s); }
@@ -16,6 +17,7 @@ function remove_accents($s) { return $s; }
 function selected($a, $b, $echo) { return $a === $b ? ' selected' : ''; }
 function submit_button($text, ...$args) { echo '<button>' . esc_html($text) . '</button>'; }
 function add_query_arg($args, $base) { return $base . '?' . http_build_query($args); }
+function wp_nonce_url($url, $action) { return $url . '&_wpnonce=test-token'; }
 function staci_tool_log_names() { return array('application.log', 'application.log.1', 'application.log.2', 'application.log.3', 'application.log.4', 'application.log.5'); }
 require __DIR__ . '/../deploy/wordpress/staci-tool/run-log-page.php';
 function check($condition, $message) { if (!$condition) { throw new RuntimeException($message); } }
@@ -57,6 +59,16 @@ ob_start(); staci_run_page(); $html = ob_get_clean();
 check(!str_contains($html, '<script>alert(1)'), 'log content must not execute');
 check(str_contains($html, '&lt;script&gt;alert(1)'), 'escaped content displayed');
 check(str_contains($html, 'staci-copy-summary'), 'copy control');
+check(str_contains($html, 'A feltöltött fájl nem érhető el.'), 'unavailable input is explicit');
+check(!str_contains($html, '>Feltöltött fájl letöltése<'), 'no download for unsafe filename');
+@mkdir('/var/lib/staci-data/uploads/123456abcdef', 0755, true);
+file_put_contents('/var/lib/staci-data/uploads/123456abcdef/same.inp', '[END]');
+$_GET = array('execution' => $b);
+ob_start(); staci_run_page(); $html = ob_get_clean();
+check(str_contains($html, '>Feltöltött fájl letöltése<'), 'available input has download button');
+check(str_contains($html, 'action=staci_download_upload&amp;execution=' . $b), 'download bound to selected execution');
+check(str_contains($html, 'A letöltés az eredeti feltöltést tartalmazza.'), 'original input distinguished from prepared input');
+check(!str_contains($html, 'Fájlletöltés ezen a felületen nem érhető el.'), 'obsolete download notice removed');
 $_GET = array('status' => 'failed', 'from' => '2026-10-07', 'to' => '2026-10-07');
 ob_start(); staci_run_page(); $filtered = ob_get_clean();
 check(str_contains($filtered, 'Futáslista (1)'), 'status and date filter');

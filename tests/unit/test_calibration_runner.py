@@ -345,4 +345,3 @@ def test_load_calibration_run_returns_manifest(
         calibration_runner.load_calibration_run(RUN_ID)
         == expected
     )
-
