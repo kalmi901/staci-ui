@@ -37,22 +37,28 @@ def register_hydraulic_callbacks(app):
     @app.callback(
     Output(ids.HYD_DURATION_HOURS, "disabled"),
     Output(ids.HYD_TIMESTEP_MINUTES, "disabled"),
+    Output(ids.HYD_REPORT_TIMESTEP_MINUTES, "disabled"),
+    Output(ids.HYD_RULE_TIMESTEP_MINUTES, "disabled"),
+    Output(ids.HYD_DEMAND_MULTIPLIER, "disabled"),
     Input(ids.HYD_OVERRIDE_OPTIONS, "value"),
     )
     def toggle_hydraulic_overrides(enabled):
         disabled = not bool(enabled)
-        return disabled, disabled
+        return disabled, disabled, disabled, disabled, disabled
     
     @app.callback(
     Output(ids.HYD_DURATION_HOURS, "value"),
     Output(ids.HYD_TIMESTEP_MINUTES, "value"),
+    Output(ids.HYD_REPORT_TIMESTEP_MINUTES, "value"),
+    Output(ids.HYD_RULE_TIMESTEP_MINUTES, "value"),
+    Output(ids.HYD_DEMAND_MULTIPLIER, "value"),
     Input(ids.NETWORK_STORE, "data")
     )
     def render_simulation_options(
         network_state
     ):
         if not network_state:
-            return None, None
+            return None, None, None, None, None
         
         try:
             inp_path = resolve_uploaded_model(
@@ -60,17 +66,21 @@ def register_hydraulic_callbacks(app):
                 network_state["filename"]
             )
             options = read_model_options(inp_path)
-            duration_h = options["duration"] / 3600                     # seconds --> hours
-            hydraulic_timestep = options["hydraulic_timestep"] / 60     # seconds --> minutes
             
-            return duration_h, hydraulic_timestep        
+            return (
+                options["duration"] / 3600,             # seconds --> hours
+                options["hydraulic_timestep"] / 60,     # seconds --> minutes
+                options["report_timestep"] / 60,        # seconds --> minutes
+                options["rule_timestep"] / 60,          # seconds --> minutes
+                options["demand_multiplier"]
+            )
         
         except Exception:
             logger.exception(
                 "Failed to read hydraulic options: model_id=%s",
                 network_state.get("model_id", ""),
             )
-            return None, None  
+            return None, None, None, None, None
     
     @app.callback(
         Output(ids.HYD_RUN_STORE, "data"),
@@ -81,6 +91,9 @@ def register_hydraulic_callbacks(app):
         State(ids.HYD_OVERRIDE_OPTIONS, "value"),
         State(ids.HYD_DURATION_HOURS, "value"),
         State(ids.HYD_TIMESTEP_MINUTES, "value"),
+        State(ids.HYD_REPORT_TIMESTEP_MINUTES, "value"),
+        State(ids.HYD_RULE_TIMESTEP_MINUTES, "value"),
+        State(ids.HYD_DEMAND_MULTIPLIER, "value"),
         background=True,
         running=[
             (
@@ -97,7 +110,11 @@ def register_hydraulic_callbacks(app):
         backend,
         override_enabled,
         duration,
-        hydraulic_timestep):
+        hydraulic_timestep,
+        report_timestep,
+        rule_timestep,
+        demand_multiplier,
+        ):
         if not n_clicks:
             raise PreventUpdate
         
@@ -116,26 +133,53 @@ def register_hydraulic_callbacks(app):
             
             option_overrides = None
             if override_enabled:
-                if duration is None or hydraulic_timestep is None:
+                required_values = {
+                    "duration": duration,
+                    "hydraulic timestep": hydraulic_timestep,
+                    "report timestep": report_timestep,
+                    "rule timestep": rule_timestep,
+                    "demand multiplier": demand_multiplier,
+                }
+
+                missing = [
+                    name
+                    for name, value in required_values.items()
+                    if value is None
+                ]
+
+                if missing:
                     raise ValueError(
-                        "Duration and hydraulic timestep are required when overrides are enabled"
+                        "Missing hydraulic override values: "
+                        + ", ".join(missing)
+                        + "."
                     )
+
                 if duration < 0:
                     raise ValueError("Duration must be non-negative")
-                if hydraulic_timestep <= 0:
-                    raise ValueError("Hydraulic timestep must be greater than zero.")
-                
+                for name, value in (
+                    ("Hydraulic timestep", hydraulic_timestep),
+                    ("Report timestep", report_timestep),
+                    ("Rule timestep", rule_timestep)):
+                    if value <= 0:
+                        raise ValueError(f"{name} must be greater than zero.")
+
+                if demand_multiplier < 0:
+                    raise ValueError("Demand multiplier must be non-negative.")
+
                 option_overrides = {
-                    "duration" : duration * 3600,                   # hours --> seconds
-                    "hydraulic_timestep" : hydraulic_timestep * 60  # minutes --> seconds
+                    "duration": duration * 3600,
+                    "hydraulic_timestep": hydraulic_timestep * 60,
+                    "report_timestep": report_timestep * 60,
+                    "rule_timestep": rule_timestep * 60,
+                    "demand_multiplier": demand_multiplier
                 }
-        
+
             logger.info(
                 "Hydraulic simulation started: model_id=%s, backend=%s",
                 network_state.get("model_id"),
                 backend
             )
-        
+
             run_state = call_hydraulic_simulator(
                 inp_path,
                 model_id=network_state.get("model_id", ""),

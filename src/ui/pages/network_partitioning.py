@@ -78,6 +78,7 @@ def _create_setup_card():
             className="setup-section",
             children=[
                 html.H3("Partitioning"),
+                dcc.Store(id=ids.PART_OBJECTIVE, data="modularity"),
                 # -- Number of Communities --
                 _label_with_help(
                     "Number of communities",
@@ -95,29 +96,6 @@ def _create_setup_card():
                     min=1,
                     step=1
                 ),
-                # -- Optimization Objectives --
-                _label_with_help(
-                    "Optimization objective",
-                    (
-                        "Network partitioning uses modularity. "
-                        "A- and D-optimality are sensitivity-based "
-                        "node-selection objectives and are currently "
-                        "not exposed by this page."
-                    ),
-                    "part-help-objective"
-                ),
-                dcc.Dropdown(
-                    id=ids.PART_OBJECTIVE,
-                    options=[
-                        {"label": "Modularity", "value": "modularity"},
-                        {"label": "A-optimality", "value": "A-optimality", "disabled": True},
-                        {"label": "D-optimality", "value": "D-optimality", "disabled": True}
-                    ],
-                    value="modularity",
-                    clearable=False,
-                    persistence=True,
-                    persistence_type="memory"
-                ),
                 # -- Edge weighting --
                 _label_with_help(
                     "Edge weighting",
@@ -133,8 +111,8 @@ def _create_setup_card():
                     id=ids.PART_WEIGHT_TYPE,
                     options=[
                         {"label": "Topology", "value": "topology"},
-                        {"label": "Pressure drop", "value": "dp", "disabled": True},
-                        {"label": "Sensitivity", "value": "sensitivity", "disabled": True},
+                        {"label": "Pressure drop", "value": "dp"},
+                        {"label": "Sensitivity", "value": "sensitivity"},
                     ],
                     value="topology",
                     clearable=False,
@@ -161,6 +139,7 @@ def _create_setup_card():
                     value="diameter",
                     clearable=False,
                     persistence=True,
+                    disabled=True,
                     persistence_type="memory"
                 )
             ]

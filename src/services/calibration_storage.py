@@ -6,7 +6,7 @@ import uuid
 from pathlib import Path
 from typing import Any, Sequence, TypedDict
 
-from src.config import UPLOAD_ROOT
+from src.config import UPLOAD_ROOT, MAX_INP_UPLOAD_BYTES, MAX_INP_UPLOAD_MIB
 
 
 _UPLOAD_ID_PATTERN = re.compile(r"^[a-f0-9]{12}$")
@@ -79,6 +79,13 @@ def store_calibration_snapshots(
 
         if not isinstance(file_bytes, bytes) or not file_bytes:
             raise ValueError(f"Calibration snapshot is empty: {safe_name}")
+
+        if len(file_bytes) > MAX_INP_UPLOAD_BYTES:
+            raise ValueError(
+                f"Calibration snapshot exceeds the "
+                f"{MAX_INP_UPLOAD_MIB} MiB upload limit: "
+                f"{safe_name}"
+            )
 
         prepared.append((safe_name, file_bytes))
 

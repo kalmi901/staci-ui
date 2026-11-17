@@ -77,6 +77,9 @@ HYD_RUN_STATUS = "hyd-run-status"
 HYD_OVERRIDE_OPTIONS = "hyd-override-options"
 HYD_DURATION_HOURS   = "hyd-duration-hours"
 HYD_TIMESTEP_MINUTES = "hyd-timestep-minutes"
+HYD_REPORT_TIMESTEP_MINUTES = "hyd-report-timestep-minutes"
+HYD_RULE_TIMESTEP_MINUTES = "hyd-rule-timestep-minutes"
+HYD_DEMAND_MULTIPLIER = "hyd-demand-multiplier"
 
 # Network Results Preview
 HYD_NETWORK_GRAPH = "hyd-network-graph"

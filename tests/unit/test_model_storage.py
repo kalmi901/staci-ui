@@ -119,3 +119,29 @@ def test_resolve_uploaded_model_uses_only_filename_component(
     )
 
     assert resolved_path == model_path.resolve()
+
+def test_store_uploaded_model_rejects_oversized_file(
+    upload_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        model_storage,
+        "MAX_INP_UPLOAD_BYTES",
+        3,
+    )
+    monkeypatch.setattr(
+        model_storage,
+        "MAX_INP_UPLOAD_MIB",
+        20,
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="20 MiB upload limit",
+    ):
+        model_storage.store_uploaded_model(
+            "large.inp",
+            b"1234",
+        )
+
+    assert not any(upload_root.iterdir())

@@ -10,6 +10,7 @@ from typing import Any, Literal, Sequence
 from src.config import RUN_ROOT, STACI_FLUSH_EXECUTABLE
 from src.run_logging import log_prepared_input
 from src.staci.flush import run_staci_flush, write_flush_config
+from src.staci.error_messages import format_staci_failure
 from src.services.run_storage import resolve_run_dir
 
 
@@ -234,9 +235,12 @@ def call_staci_flush_service(
 
     if not flush_result.success and not flush_result.partial:
         raise RuntimeError(
-            "STACI Flush did not complete successfully "
-            f"(return code {flush_result.returncode}). "
-            f"See {flush_result.stderr_path}"
+            format_staci_failure(
+                "STACI Flush",
+                flush_result.returncode,
+                stderr_path=flush_result.stderr_path,
+                stdout_path=flush_result.stdout_path,
+            )
         )
 
     manifest = _read_run_manifest(flush_result.run_json_path)

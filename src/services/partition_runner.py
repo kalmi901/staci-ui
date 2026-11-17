@@ -8,6 +8,7 @@ import uuid
 from collections import Counter
 
 from src.staci.split import write_split_settings, run_staci_split
+from src.staci.error_messages import format_staci_failure
 from src.config import RUN_ROOT, STACI_SPLIT_EXECUTABLE
 from src.run_logging import log_prepared_input
 
@@ -136,9 +137,12 @@ def call_staci_split_service(
     
     if not split_results.success or not split_results.membership_path:
         raise RuntimeError(
-            f"STACI_SPLIT did not complete successfully "
-            f"(return code {split_results.returncode}). "
-            f"See {split_results.stderr_path}"
+            format_staci_failure(
+                "STACI Split",
+                split_results.returncode,
+                stderr_path=split_results.stderr_path,
+                stdout_path=split_results.stdout_path,
+            )
         )
     
     membership = parse_membership(split_results.membership_path)

@@ -26,6 +26,7 @@ from src.staci.calibrate import (
     run_staci_calibrate,
     write_calibrate_settings,
 )
+from src.staci.error_messages import format_staci_failure
 
 
 @dataclass(frozen=True)
@@ -315,9 +316,12 @@ def call_staci_calibrate_service(
 
     if not result.success:
         raise RuntimeError(
-            "STACI Calibrate did not complete successfully "
-            f"(return code {result.returncode}). "
-            f"See {result.stderr_path}"
+            format_staci_failure(
+                "STACI Calibrate",
+                result.returncode,
+                stderr_path=result.stderr_path,
+                stdout_path=result.stdout_path,
+            )
         )
 
     best = parse_calibration_best(result.best_data_path)

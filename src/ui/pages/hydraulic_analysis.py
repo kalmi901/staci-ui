@@ -116,7 +116,46 @@ def _create_setup_card():
                                     disabled=True
                                 )
                             ]
-                        )  
+                        ),
+                        html.Div(
+                            children=[
+                                dbc.Label("Report timestep [min]"),
+                                dbc.Input(
+                                    id=ids.HYD_REPORT_TIMESTEP_MINUTES,
+                                    type="number",
+                                    min=1,
+                                    step=1,
+                                    value=60,
+                                    disabled=True,
+                                ),
+                            ]
+                        ),
+                        html.Div(
+                            children=[
+                                dbc.Label("Rule timestep [min]"),
+                                dbc.Input(
+                                    id=ids.HYD_RULE_TIMESTEP_MINUTES,
+                                    type="number",
+                                    min=1,
+                                    step=1,
+                                    value=5,
+                                    disabled=True,
+                                ),
+                            ]
+                        ),
+                        html.Div(
+                            children=[
+                                dbc.Label("Demand multiplier [-]"),
+                                dbc.Input(
+                                    id=ids.HYD_DEMAND_MULTIPLIER,
+                                    type="number",
+                                    min=0,
+                                    step=0.1,
+                                    value=1.0,
+                                    disabled=True,
+                                ),
+                            ]
+                        ),
                     ]
                 )
             ]

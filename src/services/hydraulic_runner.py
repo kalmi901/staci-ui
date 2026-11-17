@@ -12,6 +12,7 @@ import wntr
 import shutil
 
 from src.staci.eps import run_staci_eps
+from src.staci.error_messages import format_staci_failure
 from src.services.inp_model_reader import set_model_options
 from src.config import RUN_ROOT, STACI_EXECUTABLE
 from src.run_logging import log_prepared_input
@@ -197,9 +198,12 @@ def run_staci(
     
     if not success:
         raise RuntimeError(
-            f"STACI EPS did not complete successfully "
-            f"(return code {result.returncode}). "
-            f"See {result.stderr_path}"
+            format_staci_failure(
+                "STACI EPS",
+                result.returncode,
+                stderr_path=result.stderr_path,
+                stdout_path=result.stdout_path,
+            )
         )
        
     frames = int(simulation.get("frames", 0))
