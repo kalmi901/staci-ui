@@ -203,7 +203,7 @@ def call_staci_flush_service(
         raise ValueError("At least one non-empty hydrant node ID is required.")
 
     if len(set(hydrant_ids)) != len(hydrant_ids):
-        raise ValueError("Hydrant node IDs... must be unique.")
+        raise ValueError("Hydrant node IDs must be unique.")
 
     run_id = uuid.uuid4().hex[:12]
     run_dir = Path(RUN_ROOT) / "flushing" / run_id

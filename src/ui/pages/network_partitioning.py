@@ -334,8 +334,9 @@ def create_layout():
             create_page_header(
                 "Network Partitioning",
                 (
-                    "Partition the active network into communities "
-                    "using topology-, pressure-drop-, or sensitivity-based edge weights."
+                    "Partition the active network into communities using "
+                    "edge weights based on topology, pressure drop, or "
+                    "hydraulic sensitivity."
                 ),
                 "Network Partitioning",
             ),

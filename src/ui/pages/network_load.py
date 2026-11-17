@@ -217,7 +217,7 @@ def create_layout():
                                             html.Div(
                                                 id=ids.ACTIVE_MODEL_SUMMARY,
                                                 children=render_empty_model_summary(
-                                                        "Upload an EPANET .inp file"
+                                                        "Upload an EPANET INP file."
                                                     )
                                             )
                                         ]

@@ -235,8 +235,8 @@ def _empty_results():
             ),
             html.H3("No calibration result yet"),
             html.P(
-                "Prepare the network snapshots and measurement dataset. "
-                "Upload the network snapshots and measurement data, configure the optimizer, and run the calibration."
+                "Upload the network snapshots and measurement data, "
+                "configure the optimizer, and run the calibration."
             ),
         ],
     )
@@ -492,7 +492,7 @@ def _create_input_card():
                             ),
                             _upload_box(
                                 ids.CAL_UPLOAD_MEASUREMENTS,
-                                "Drop a measurements JSON file here",
+                                "Drop a JSON file with measurements here",
                                 "Upload snapshots first",
                                 multiple=False,
                                 disabled=True,

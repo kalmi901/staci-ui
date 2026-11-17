@@ -151,7 +151,7 @@ def test_run_staci_split_rejects_missing_executable(
     missing_executable = tmp_path / "missing-staci-split.exe"
     monkeypatch.setattr(split, "STACI_SPLIT_EXECUTABLE", missing_executable)
 
-    with pytest.raises(FileNotFoundError, match="STACI_SPLIT executable not found"):
+    with pytest.raises(FileNotFoundError, match="STACI Split executable not found"):
         split.run_staci_split(
             tmp_path / "model.inp",
             tmp_path / "staci_split_settings.xml",
