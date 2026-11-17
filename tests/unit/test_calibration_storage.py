@@ -134,3 +134,31 @@ def test_resolve_calibration_snapshots_rejects_unsafe_name(
             UPLOAD_ID,
             ["../../escape.inp"],
         )
+
+
+def test_store_calibration_snapshots_rejects_oversized_file(
+    upload_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        calibration_storage,
+        "MAX_INP_UPLOAD_BYTES",
+        3,
+    )
+    monkeypatch.setattr(
+        calibration_storage,
+        "MAX_INP_UPLOAD_MIB",
+        20,
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="20 MiB upload limit",
+    ):
+        calibration_storage.store_calibration_snapshots(
+            [("large.inp", b"1234")]
+        )
+
+    assert not (
+        upload_root / "calibration"
+    ).exists()

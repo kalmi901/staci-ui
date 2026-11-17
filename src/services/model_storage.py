@@ -5,7 +5,7 @@ import uuid
 from pathlib import Path
 from typing import TypedDict
 
-from src.config import UPLOAD_ROOT
+from src.config import UPLOAD_ROOT, MAX_INP_UPLOAD_BYTES, MAX_INP_UPLOAD_MIB
 
 
 _MODEL_ID_PATTERN = re.compile(r"^[a-f0-9]{12}$")
@@ -29,8 +29,19 @@ def store_uploaded_model(
     filename: str,
     file_bytes: bytes,
 ) -> StoredModel:
-    model_id = uuid.uuid4().hex[:12]
     safe_name = _safe_filename(filename)
+
+    if not isinstance(file_bytes, bytes) or not file_bytes:
+        raise ValueError(f"Uploaded INP file is empty: {safe_name}")
+
+    if len(file_bytes) > MAX_INP_UPLOAD_BYTES:
+        raise ValueError(
+            f"INP file exceeds the "
+            f"{MAX_INP_UPLOAD_MIB} MiB upload limit: "
+            f"{safe_name}"
+        )
+
+    model_id = uuid.uuid4().hex[:12]
 
     model_dir = Path(UPLOAD_ROOT) / model_id
     model_dir.mkdir(parents=True, exist_ok=False)

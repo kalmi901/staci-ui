@@ -17,6 +17,38 @@ if (
 
 DASH_DEBUG = os.getenv("DASH_DEBUG", "0") == "1"
 
+MAX_INP_UPLOAD_MIB = int(
+    os.getenv(
+        "STACI_UI_MAX_INP_UPLOAD_MIB",
+        "20",
+    )
+)
+
+MAX_UPLOAD_REQUEST_MIB = int(
+    os.getenv(
+        "STACI_UI_MAX_UPLOAD_REQUEST_MIB",
+        "128",
+    )
+)
+
+if MAX_INP_UPLOAD_MIB <= 0:
+    raise ValueError(
+        "STACI_UI_MAX_INP_UPLOAD_MIB must be positive."
+    )
+
+if MAX_UPLOAD_REQUEST_MIB <= 0:
+    raise ValueError(
+        "STACI_UI_MAX_UPLOAD_REQUEST_MIB must be positive."
+    )
+
+MAX_INP_UPLOAD_BYTES = (
+    MAX_INP_UPLOAD_MIB * 1024 * 1024
+)
+
+MAX_UPLOAD_REQUEST_BYTES = (
+    MAX_UPLOAD_REQUEST_MIB * 1024 * 1024
+)
+
 CELERY_BROKER_URL = os.getenv(
     "CELERY_BROKER_URL",
     "redis://localhost:6379/0",

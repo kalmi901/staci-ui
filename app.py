@@ -8,6 +8,7 @@ from src.ui.callbacks import register_callbacks
 from src.config import (
     DASH_DEBUG,
     APP_URL_PREFIX,
+    MAX_UPLOAD_REQUEST_BYTES,
 )
 from src.background_jobs import (
     background_callback_manager,
@@ -26,6 +27,7 @@ def create_app() -> Dash:
         background_callback_manager=background_callback_manager,
     )
     
+    app.server.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_REQUEST_BYTES
     app.title = "STACI Dashboard"
     app.layout = create_app_shell()
     register_callbacks(app)
