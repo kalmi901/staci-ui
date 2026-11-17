@@ -13,10 +13,10 @@ WATER_NETWORK_LINKS: tuple[NavItem, ...] = (
 )
 
 ANALYSIS_LINKS: tuple[NavItem, ...] = (
-    ("Hydraulic", "/analysis/hydraulic", "💧"),
-    ("Partitioning", "/analysis/partitioning", "🧩"),
-    ("Flushing", "/analysis/flushing", "🚿"),
-    ("Calibration", "/analysis/calibration", "🎯"),
+    ("Hydraulic simulation", "/analysis/hydraulic", "💧"),
+    ("Network partitioning", "/analysis/partitioning", "🧩"),
+    ("Flushing plan", "/analysis/flushing", "🚿"),
+    ("Pipe calibration", "/analysis/calibration", "🎯"),
 )
 
 
@@ -87,7 +87,7 @@ def create_sidebar():
             html.Hr(className="sidebar-separator"),
             html.Div(className="sidebar-footer",
                 children=(
-                    "STACI UI · Hydraulic simulation interface"
+                    "STACI UI · Water network analysis"
                     "\nBME · Department of Hydrodynamic Systems"
                 ),
             ),

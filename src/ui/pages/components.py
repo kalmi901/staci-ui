@@ -97,7 +97,7 @@ def render_active_model_summary(
 ):
     if not network_state:
         return render_empty_model_summary(
-            "Go to Load Model and upload an EPANET .inp file first."
+            "Go to Load Model and upload an EPANET INP file first."
         )
 
     summary = network_state.get("summary", {})
@@ -124,7 +124,7 @@ def render_active_model_summary(
                         ],
                     ),
                     dbc.Badge(
-                        "Model Ready",
+                        "Model ready",
                         color="success",
                     ),
                 ],
@@ -186,7 +186,7 @@ def create_color_range_control(
                         id=minimum_id,
                         type="number",
                         step="any",
-                        placeholder=f"{placeholder_prefix}-min",
+                        placeholder="Minimum",
                         persistence=True,
                         persistence_type="memory",
                     ),
@@ -194,7 +194,7 @@ def create_color_range_control(
                         id=maximum_id,
                         type="number",
                         step="any",
-                        placeholder=f"{placeholder_prefix}-max",
+                        placeholder="Maximum",
                         persistence=True,
                         persistence_type="memory",
                     ),
@@ -217,7 +217,7 @@ def create_network_display_controls(
             html.Div(
                 className="plot-control",
                 children=[
-                    dbc.Label("Line width scale"),
+                    dbc.Label("Line width"),
                     dbc.Input(
                         id=line_width_id,
                         type="number",

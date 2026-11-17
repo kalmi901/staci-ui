@@ -83,7 +83,7 @@ def run_staci_split(
 ) -> StaciSplitResults:
     if not STACI_SPLIT_EXECUTABLE.exists():
         raise FileNotFoundError(
-            f"STACI_SPLIT executable not found: {STACI_SPLIT_EXECUTABLE}"
+            f"STACI Split executable not found: {STACI_SPLIT_EXECUTABLE}"
         )
      
     run_dir = inp_path.resolve().parent

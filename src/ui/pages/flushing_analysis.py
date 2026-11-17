@@ -161,7 +161,7 @@ def render_flushing_results(run_state):
     if not plan:
         content.append(
             dbc.Alert(
-                "No actionable flushing-plan rows were produced.",
+                "No actionable flushing plan was produced.",
                 color="secondary",
                 className="mt-3",
             )
@@ -172,11 +172,11 @@ def render_flushing_results(run_state):
         "Rank",
         "Hydrant",
         "Flow [L/s]",
-        "Qualifying [m³]",
-        "Additional [m³]",
+        "Qualifying volume [m³]",
+        "Additional volume [m³]",
         "Coverage [%]",
         "Travel time [min]",
-        "Volume/flow [min]",
+        "Volume-to-flow time [min]",
         "Status",
     ]
 
@@ -296,7 +296,7 @@ def render_flushing_results(run_state):
                     html.Div(
                         className="plot-control",
                         children=[
-                            dbc.Label("Map view"),
+                            dbc.Label("Network view"),
                             dbc.RadioItems(
                                 id=ids.FLUSH_MAP_MODE,
                                 options=[
@@ -458,7 +458,7 @@ def _create_setup_card():
     return dbc.Card(
         className="app-card flush-setup-card",
         children=[
-            dbc.CardHeader("Flushing Setup"),
+            dbc.CardHeader("Flushing setup"),
             dbc.CardBody(
                 children=[
                     create_active_model_section(
@@ -470,7 +470,7 @@ def _create_setup_card():
                     _create_outlet_settings_section(),
                     html.Hr(),
                     create_run_section(
-                        "Create Flushing Plan",
+                        "Create flushing plan",
                         ids.FLUSH_RUN_BUTTON,
                         ids.FLUSH_RUN_STATUS,
                         status_class_name="flush-run-status",
@@ -485,7 +485,7 @@ def _create_results_card():
     return dbc.Card(
         className="app-card flush-results-card",
         children=[
-            dbc.CardHeader("Flushing Plan"),
+            dbc.CardHeader("Flushing plan"),
             dbc.CardBody(
                 id=ids.FLUSH_RESULTS,
                 children=_empty_results(),
@@ -499,11 +499,8 @@ def create_layout():
         className="page flush-page",
         children=[
             create_page_header(
-                "Flushing Planning",
-                (
-                    "Evaluate hydrant opening scenarios and rank them "
-                    "by additional pipe-volume coverage."
-                ),
+                "Flushing plan",
+                "Evaluate hydrant-opening scenarios and rank them by the additional pipe volume they cover.",
                 "STACI Flush",
             ),
             html.Div(

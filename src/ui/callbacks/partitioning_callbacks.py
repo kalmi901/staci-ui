@@ -78,7 +78,7 @@ def register_partitioning_callbacks(app):
         
         if not network_state:
             return None, dbc.Alert(
-                "No active INP file. Upload a model first",
+                "No active INP file. Upload a model first.",
                 color="warning",
                 className="upload-alert"
             ) # pyright: ignore[reportCallIssue]
@@ -130,7 +130,7 @@ def register_partitioning_callbacks(app):
                 network_state["model_id"]
             )
             return None, dbc.Alert(
-                f"Network partition failed: {exc}",
+                f"Network partitioning failed: {exc}",
                 color="danger",
                 className="upload-alert"
             ) # pyright: ignore[reportCallIssue]

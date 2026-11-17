@@ -82,7 +82,7 @@ class StaciHDF5Results(EPSHydraulicResults):
             
         if not meta_path:
             raise ValueError(
-                "STACI run manifes does not contain an metadata result path."
+                "STACI run manifest does not contain a metadata result path."
             )
         
         self.h5_path = (self.run_dir / h5_path).resolve()

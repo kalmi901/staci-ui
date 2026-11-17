@@ -47,7 +47,7 @@ def _create_preview_toolbar():
                         options=[
                             {"label": "None", "value": "none"},
                             {"label": "Length", "value": "length"},
-                            {"label": "Diameters", "value": "diameter"},
+                            {"label": "Diameter", "value": "diameter"},
                             {"label": "Roughness", "value": "roughness"},
                         ],
                         value="none",
@@ -80,7 +80,7 @@ def _create_preview_toolbar():
 def render_model_summary(network_state: Dict[str, Any] | None):
     if not network_state:
         return render_empty_model_summary(
-                "Upload an EPANET .inp file"
+                "Upload an EPANET INP file."
             )
     
     summary = network_state.get("summary", {})
@@ -197,7 +197,7 @@ def create_layout():
                                                 className="model-upload",
                                                 children=html.Div(
                                                     children=[
-                                                        html.Div("Drop .inp file here", className="model-upload-title"),
+                                                        html.Div("Drop an INP file here", className="model-upload-title"),
                                                         html.Div("or click to browse", className="model-upload-title")
                                                     ]
                                                 ), multiple=False
@@ -235,7 +235,7 @@ def create_layout():
                     dbc.Card(
                         className="app-card load-preview-card",
                         children=[
-                            dbc.CardHeader("Network Preview"),
+                            dbc.CardHeader("Network preview"),
                             dbc.CardBody(
                                 children=[
                                     _create_preview_toolbar(),

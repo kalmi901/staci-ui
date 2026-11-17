@@ -235,9 +235,8 @@ def _empty_results():
             ),
             html.H3("No calibration result yet"),
             html.P(
-                "Prepare the network snapshots and measurement "
-                "dataset. Optimizer controls and execution will "
-                "be added in the next step."
+                "Prepare the network snapshots and measurement dataset. "
+                "Upload the network snapshots and measurement data, configure the optimizer, and run the calibration."
             ),
         ],
     )
@@ -380,7 +379,7 @@ def render_calibration_results(
                     html.Div(
                         children=[
                             html.H3(
-                                "Optimizer convergence (sampled every 10 generations).",
+                                "Optimizer convergence (sampled every 10 generations)",
                                 className=(
                                     "calibration-result-heading"
                                 ),
@@ -431,7 +430,7 @@ def _create_input_card():
     return dbc.Card(
         className="app-card calibration-input-card",
         children=[
-            dbc.CardHeader("Calibration Inputs"),
+            dbc.CardHeader("Calibration inputs"),
             dbc.CardBody(
                 children=[
                     html.Div(
@@ -493,7 +492,7 @@ def _create_input_card():
                             ),
                             _upload_box(
                                 ids.CAL_UPLOAD_MEASUREMENTS,
-                                "Drop measurements JSON here",
+                                "Drop a measurements JSON file here",
                                 "Upload snapshots first",
                                 multiple=False,
                                 disabled=True,
@@ -518,7 +517,7 @@ def _create_input_card():
                     _create_optimizer_section(),
                     html.Hr(),
                     create_run_section(
-                        "Run Calibration",
+                        "Run calibration",
                         ids.CAL_RUN_BUTTON,
                         ids.CAL_RUN_STATUS,
                         status_class_name="calibration-run-status"
@@ -533,7 +532,7 @@ def _create_workspace_card():
     return dbc.Card(
         className="app-card calibration-workspace-card",
         children=[
-            dbc.CardHeader("Measurements & Results"),
+            dbc.CardHeader("Measurements and results"),
             dbc.CardBody(
                 children=[
                     html.Div(
@@ -589,7 +588,7 @@ def _create_workspace_card():
                                         "value": "node",
                                     },
                                     {
-                                        "label": "Pool",
+                                        "label": "Tank / pool",
                                         "value": "pool",
                                     },
                                 ]
@@ -633,7 +632,7 @@ def create_layout():
         className="page calibration-page",
         children=[
             create_page_header(
-                "Pipe Diameter Calibration",
+                "Pipe diameter calibration",
                 (
                     "Estimate selected pipe diameters from "
                     "multiple steady-state network snapshots "

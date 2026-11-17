@@ -101,7 +101,7 @@ def _create_setup_card():
                     "Edge weighting",
                     (
                         "Topology assigns equal weight to all links. "
-                        "Pressure drop weights links by solved headloss. "
+                        "Pressure drop weights links by the calculated head loss. "
                         "Sensitivity weighting uses hydraulic pressure "
                         "sensitivities."
                     ),
@@ -121,11 +121,10 @@ def _create_setup_card():
                 ),
                 # -- Sensitivity Parameter --
                 _label_with_help(
-                    "Sensitivity Parameter",
+                    "Sensitivity parameter",
                     (
                         "Hydraulic parameter used to calculate "
-                        "sensitivities when Sensitivity weighting is "
-                        "selected."
+                        "sensitivities when sensitivity weighting is selected."
                     ),
                     "part-help-sensitivity"
                 ),
@@ -240,7 +239,7 @@ def _create_setup_card():
     return dbc.Card(
         className="app-card partition-setup-card",
         children=[
-            dbc.CardHeader("Partition Setup"),
+            dbc.CardHeader("Partitioning setup"),
             dbc.CardBody(
                 children=[
                     create_active_model_section(
@@ -252,7 +251,7 @@ def _create_setup_card():
                     _create_ga_setup(),
                     html.Hr(),
                     create_run_section(
-                        "Run Optimization",
+                        "Run partitioning",
                         ids.PART_RUN_BUTTON,
                         ids.PART_RUN_STATUS,
                         status_class_name="part-run-status",
@@ -303,7 +302,7 @@ def _create_network_partition_card():
     return dbc.Card(
         className="app-card partition-preview-card",
         children=[
-            dbc.CardHeader("Network Partitions"),
+            dbc.CardHeader("Network partitions"),
             dbc.CardBody(
                 children=[
                     _create_plot_toolbar(),
@@ -317,7 +316,7 @@ def _create_network_partition_card():
                         className="network-graph",
                         config={"displaylogo": False},
                         figure=make_empty_network_figure(
-                            "Run optimization to view network partitions."
+                            "Run partitioning to view the resulting communities."
                         )
                     )
                 ]
@@ -335,9 +334,8 @@ def create_layout():
             create_page_header(
                 "Network Partitioning",
                 (
-                    "Partition a hydraulic network into sub-networks "
-                    "based on specific criteria, such as topology, "
-                    "sensitivity, or pressure."
+                    "Partition the active network into communities "
+                    "using topology-, pressure-drop-, or sensitivity-based edge weights."
                 ),
                 "Network Partitioning",
             ),

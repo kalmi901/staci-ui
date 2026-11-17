@@ -55,7 +55,7 @@ def register_network_callbacks(app):
             return (
                 None, 
                 dbc.Alert(
-                    "Please upload an EPANET .inp file.",
+                    "Please upload an EPANET INP file.",
                     color="warning",
                     className="upload-alert"
                 ), # pyright: ignore[reportCallIssue]

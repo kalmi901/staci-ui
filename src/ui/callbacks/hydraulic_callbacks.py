@@ -120,7 +120,7 @@ def register_hydraulic_callbacks(app):
         
         if not network_state:
             return None, dbc.Alert(
-                "No active INP file. Upload a model first",
+                "No active INP file. Upload a model first.",
                 color="warning",
                 className="upload-alert"
             ) # pyright: ignore[reportCallIssue]
@@ -155,7 +155,7 @@ def register_hydraulic_callbacks(app):
                     )
 
                 if duration < 0:
-                    raise ValueError("Duration must be non-negative")
+                    raise ValueError("Duration must be non-negative.")
                 for name, value in (
                     ("Hydraulic timestep", hydraulic_timestep),
                     ("Report timestep", report_timestep),

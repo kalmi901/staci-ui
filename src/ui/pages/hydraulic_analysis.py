@@ -32,8 +32,15 @@ def render_success_alert(run_state: Dict[str, Any]):
                 f"Time steps: {summary.get('n_steps', '—')} · "
             ),
             html.Div(
-                f"{failed_frames} time step(s) did not converge.",
-                className="mt-1"
+                (
+                    f"{failed_frames} time step did not converge."
+                    if failed_frames == 1
+                    else (
+                        f"{failed_frames} time steps "
+                        "did not converge."
+                    )
+                ),
+                className="mt-1",
             ) if failed_frames else None,
         ],
         color="warning" if failed_frames else "success",
@@ -48,9 +55,7 @@ def _create_setup_card():
             className="setup-section",
             children=[
                 html.H3("Simulation backend"),
-                html.P(
-                    "Choose which hydraulic solver backend should run the active model."
-                ),
+                html.P("Select the hydraulic solver for the active model."),
                 dcc.Dropdown(
                     id=ids.HYD_BACKEND,
                     options=[
@@ -77,14 +82,11 @@ def _create_setup_card():
         return html.Div(
             className="setup-section",
             children=[
-                html.H3("Simulation Options"),
-                html.P(
-                    "Use INP settings by default. Enable overrides to run a scenario "
-                    "with modified timing."
-                ),
+                html.H3("Simulation options"),
+                html.P("Use the INP settings by default, or override the timing and demand multiplier below."),
                 dbc.Switch(
                     id=ids.HYD_OVERRIDE_OPTIONS,
-                    label="Enable simulation option override",
+                    label="Override INP simulation options",
                     value=False,
                     className="hyd-override-switch"
                 ),
@@ -165,7 +167,7 @@ def _create_setup_card():
     return dbc.Card(
         className="app-card hydro-setup-card",
         children=[
-            dbc.CardHeader("EPS Simulation Setup"),
+            dbc.CardHeader("Hydraulic simulation setup"),
             dbc.CardBody(
                 children=[
                     create_active_model_section(
@@ -177,7 +179,7 @@ def _create_setup_card():
                     _create_simulation_options(),
                     html.Hr(),
                     create_run_section(
-                        "Run Hydraulic Simulation",
+                        "Run hydraulic simulation",
                         ids.HYD_RUN_BUTTON,
                         ids.HYD_RUN_STATUS,
                         status_class_name="hyd-run-status",
@@ -201,8 +203,8 @@ def _create_network_results_card():
                         dcc.Dropdown(
                            id=ids.HYD_NODE_RESULT,
                            options=[
-                               {"label": "Pressure", "value": "pressure"},
-                               {"label": "Head", "value": "head"},
+                               {"label": "Pressure head", "value": "pressure"},
+                               {"label": "Total head", "value": "head"},
                                {"label": "Demand", "value": "demand"}
                            ],
                            value="pressure",
@@ -221,7 +223,7 @@ def _create_network_results_card():
                             options=[
                                 {"label": "Flow rate", "value": "flowrate"},
                                 {"label": "Velocity", "value": "velocity"},
-                                {"label": "Headloss", "value": "headloss"},
+                                {"label": "Head loss", "value": "headloss"},
                             ],
                             value="flowrate",
                             clearable=False,
@@ -289,7 +291,7 @@ def _create_network_results_card():
     return dbc.Card(
         className="app-card hydro-preview-card",
         children=[
-            dbc.CardHeader("Hydraulic network result"),
+            dbc.CardHeader("Hydraulic results"),
             dbc.CardBody(
                 children=[
                     _create_plot_toolbar(),
@@ -314,12 +316,12 @@ def create_layout():
         children=[
             # ---- Header ----
             create_page_header(
-                "Hydraulic Simulations",
+                "Hydraulic simulation",
                 (
-                    "Run hydraulic simulations for the active WN model "
+                    "Run a hydraulic simulation for the active water network "
                     "and inspect time-dependent node and link results."
                 ),
-                "Hydraulic Analysis",
+                "Hydraulic analysis",
             ),
             # ---- Workspace ---
             html.Div(

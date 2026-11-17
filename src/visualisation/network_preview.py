@@ -35,7 +35,7 @@ _ATTRIBUTE_LABELS = {
     "diameter": "Diameter",
     "roughness": "Roughness",
     "pressure": "Pressure head",
-    "head": "Hydraulic head",
+    "head": "Total head",
     "flowrate": "Flow rate",
     "velocity": "Velocity",
     "headloss": "Head loss",
@@ -636,7 +636,7 @@ def make_hydraulic_timestep_figure(
     )
 
     if not converged:
-        title += " · ⚠ not converged"
+        title += " · ⚠ did not converge"
     
     title_layout = {
         "text": title,
