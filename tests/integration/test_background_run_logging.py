@@ -31,7 +31,7 @@ def test_background_task_preserves_verified_user_and_run_context(tmp_path, monke
         key, callback = next((key, value) for key, value in app.callback_map.items()
                              if 'hyd-run-store.data' in key and 'hyd-run-status.children' in key)
         model = {'model_id': 'abcdef123456', 'filename': 'same.inp'}
-        values = [1, model, 'wntr', False, 1, 5]
+        values = [1, model, 'wntr', False, 1, 5, 60, 5, 1.0]
         contexts = []
         for user_id in ('7', '8'):
             body = {
@@ -42,7 +42,7 @@ def test_background_task_preserves_verified_user_and_run_context(tmp_path, monke
                 'changedPropIds': ['hyd-run-button.n_clicks'],
             }
             with patch.object(background_callback_manager, 'call_job_fn', return_value='fixture-job') as submit, \
-                 patch.object(app, '_get_signing_secret', return_value=b'fixture-secret' * 4):
+                patch.object(app, '_get_signing_secret', return_value=b'fixture-secret' * 4):
                 response = app.server.test_client().post('/staci-app/_dash-update-component', json=body,
                     headers={'X-Staci-User-Id': user_id, 'X-Staci-User-Login': 'user' + user_id})
             assert response.status_code == 200
@@ -53,8 +53,8 @@ def test_background_task_preserves_verified_user_and_run_context(tmp_path, monke
         task = manager.make_job_fn(callback['callback'].__wrapped__, progress=False, key='logging-fixture')
         state = {'run_id': '123456abcdef', 'model_id': model['model_id'], 'summary': {}}
         with patch.object(hydraulic_callbacks, 'resolve_uploaded_model', return_value=Path('/test/input.inp')), \
-             patch.object(hydraulic_callbacks, 'call_hydraulic_simulator', return_value=state), \
-             patch.object(hydraulic_callbacks, 'render_success_alert', return_value='original-alert'):
+            patch.object(hydraulic_callbacks, 'call_hydraulic_simulator', return_value=state), \
+            patch.object(hydraulic_callbacks, 'render_success_alert', return_value='original-alert'):
             for index, context in enumerate(contexts):
                 task.run('result' + str(index), 'progress' + str(index), values, context)
                 assert json.loads(celery.backend.get('result' + str(index))) == [state, 'original-alert']
@@ -91,8 +91,8 @@ def test_partial_flushing_result_is_logged_as_warning_without_changing_result():
     state = {'run_id': '123456abcdef', 'model_id': model['model_id'],
              'partial': True, 'status': 'partial', 'scenario_count': 1, 'plan_count': 1}
     with patch.object(flushing_callbacks, 'resolve_uploaded_model', return_value=Path('/test/input.inp')), \
-         patch.object(flushing_callbacks, 'call_staci_flush_service', return_value=state) as runner, \
-         patch('src.run_logging.event') as event:
+        patch.object(flushing_callbacks, 'call_staci_flush_service', return_value=state) as runner, \
+        patch('src.run_logging.event') as event:
         result = registry.functions['run_flushing'](1, model, 'A', 'single', .002, 2, .5, 0, False)
     assert result[0] is state
     assert runner.call_args.kwargs['hydrant_node_ids'] == ['A']
