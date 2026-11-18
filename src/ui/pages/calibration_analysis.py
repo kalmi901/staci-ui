@@ -9,12 +9,15 @@ from typing import Any
 
 from src.ui import ids
 from src.ui.pages.components import (
+    create_metric_item,
+    create_number_field,
     create_page_header,
-    create_run_section
+    create_run_section,
+    create_settings_grid
 )
 from src.visualisation.calibration import (
     make_calibration_residual_figure,
-    make_calibration_history_figure,
+    make_calibration_history_figure
 )
 
 
@@ -43,40 +46,6 @@ def _upload_box(
                 ),
             ]
         ),
-    )
-
-
-def _number_field(
-    label: str,
-    component_id: str,
-    value: float | int | None,
-    *,
-    min_value: float | int | None = None,
-    max_value: float | int | None = None,
-    step: float | int | str = "any",
-    disabled: bool = False,
-):
-    input_properties: dict[str, Any] = {
-        "id": component_id,
-        "type": "number",
-        "value": value,
-        "step": step,
-        "disabled": disabled,
-        "persistence": True,
-        "persistence_type": "memory",
-    }
-
-    if min_value is not None:
-        input_properties["min"] = min_value
-
-    if max_value is not None:
-        input_properties["max"] = max_value
-
-    return html.Div(
-        children=[
-            dbc.Label(label),
-            dbc.Input(**input_properties),
-        ]
     )
 
 
@@ -120,36 +89,35 @@ def _create_optimizer_section():
                 persistence=True,
                 persistence_type="memory",
             ),
-            html.Div(
-                className="calibration-options-grid",
-                children=[
-                    _number_field(
+            create_settings_grid(
+                [
+                    create_number_field(
                         "Active pipe count",
                         ids.CAL_ACTIVE_PIPE_COUNT,
                         1,
                         min_value=1,
                         step=1,
                     ),
-                    _number_field(
+                    create_number_field(
                         "Diameter cutoff [m]",
                         ids.CAL_DMIN,
                         None,
                         min_value=0,
                         disabled=True,
                     ),
-                    _number_field(
+                    create_number_field(
                         "Minimum calibrated diameter [m]",
                         ids.CAL_MIN_DIAMETER,
                         None,
                         min_value=0,
                     ),
-                    _number_field(
+                    create_number_field(
                         "Maximum calibrated diameter [m]",
                         ids.CAL_MAX_DIAMETER,
                         None,
                         min_value=0,
                     ),
-                    _number_field(
+                    create_number_field(
                         "Pressure-error weight",
                         ids.CAL_PRESSURE_WEIGHT,
                         0.5,
@@ -157,27 +125,27 @@ def _create_optimizer_section():
                         max_value=1,
                         step=0.05,
                     ),
-                    _number_field(
+                    create_number_field(
                         "Period length [h]",
                         ids.CAL_PERIOD_HOURS,
                         0.01,
                         min_value=0.001,
                     ),
-                    _number_field(
+                    create_number_field(
                         "Population size",
                         ids.CAL_POPSIZE,
                         20,
                         min_value=1,
                         step=1,
                     ),
-                    _number_field(
+                    create_number_field(
                         "Generations",
                         ids.CAL_NGEN,
                         50,
                         min_value=1,
                         step=1,
                     ),
-                    _number_field(
+                    create_number_field(
                         "Mutation probability",
                         ids.CAL_PMUT,
                         0.2,
@@ -185,7 +153,7 @@ def _create_optimizer_section():
                         max_value=1,
                         step=0.05,
                     ),
-                    _number_field(
+                    create_number_field(
                         "Crossover probability",
                         ids.CAL_PCROSS,
                         0.8,
@@ -193,14 +161,14 @@ def _create_optimizer_section():
                         max_value=1,
                         step=0.05,
                     ),
-                    _number_field(
+                    create_number_field(
                         "Random seed",
                         ids.CAL_SEED,
                         12345,
                         min_value=0,
                         step=1,
                     ),
-                ],
+                ]
             ),
             dbc.Label(
                 "Explicit pipe IDs",
@@ -242,16 +210,6 @@ def _empty_results():
     )
 
 
-def _metric(label: str, value: str):
-    return html.Div(
-        className="meta-item",
-        children=[
-            html.Div(label, className="meta-label"),
-            html.Div(value, className="meta-value"),
-        ],
-    )
-
-
 def _format_number(
     value: Any,
     *,
@@ -276,13 +234,13 @@ def render_calibration_results(
         html.Div(
             className="meta-grid calibration-meta-grid",
             children=[
-                _metric(
+                create_metric_item(
                     "Status",
                     str(
                         run_state.get("status", "—")
                     ).title(),
                 ),
-                _metric(
+                create_metric_item(
                     "Snapshots",
                     str(
                         summary.get(
@@ -291,7 +249,7 @@ def render_calibration_results(
                         )
                     ),
                 ),
-                _metric(
+                create_metric_item(
                     "Measurements",
                     str(
                         summary.get(
@@ -300,7 +258,7 @@ def render_calibration_results(
                         )
                     ),
                 ),
-                _metric(
+                create_metric_item(
                     "Calibrated pipes",
                     str(
                         summary.get(

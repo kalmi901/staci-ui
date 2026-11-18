@@ -9,9 +9,12 @@ from dash.development.base_component import Component
 from src.ui import ids
 from src.ui.pages.components import (
     create_active_model_section,
+    create_metric_item,
+    create_network_display_controls,
+    create_number_field,
     create_page_header,
     create_run_section,
-    create_network_display_controls
+    create_settings_grid
 )
 from src.visualisation.common import make_empty_network_figure
 
@@ -32,16 +35,6 @@ def _format_number(
         return str(value)
 
     return f"{number:.{digits}f}{suffix}"
-
-
-def _metric(label: str, value: str):
-    return html.Div(
-        className="meta-item",
-        children=[
-            html.Div(label, className="meta-label"),
-            html.Div(value, className="meta-value"),
-        ],
-    )
 
 
 def make_flushing_scenario_options(
@@ -121,17 +114,17 @@ def render_flushing_results(run_state):
         html.Div(
             className="meta-grid flush-meta-grid",
             children=[
-                _metric(
+                create_metric_item(
                     "Status",
                     str(
                         run_state.get("status", "—")
                     ).title(),
                 ),
-                _metric(
+                create_metric_item(
                     "Scenarios",
                     str(run_state.get("scenario_count", "—")),
                 ),
-                _metric(
+                create_metric_item(
                     "Plan steps",
                     str(
                         run_state.get(
@@ -140,7 +133,7 @@ def render_flushing_results(run_state):
                         )
                     ),
                 ),
-                _metric(
+                create_metric_item(
                     "Final coverage",
                     final_coverage,
                 ),
@@ -342,30 +335,6 @@ def render_flushing_results(run_state):
     return content
 
 
-def _number_field(
-    label: str,
-    component_id: str,
-    value: float,
-    *,
-    min_value: float | None = 0,
-):
-    return html.Div(
-        children=[
-            dbc.Label(label),
-            dbc.Input(
-                id=component_id,
-                type="number",
-                value=value,
-                min=min_value,
-                step="any",
-                persistence=True,
-                persistence_type="memory",
-            ),
-        ]
-    )
-
-
-
 def _create_hydrant_section():
     return html.Div(
         className="setup-section",
@@ -415,31 +384,32 @@ def _create_outlet_settings_section():
                 "Define the common hydrant outlet and the velocity "
                 "and pressure criteria used by the flushing plan."
             ),
-            html.Div(
-                className="flush-options-grid",
-                children=[
-                    _number_field(
+            create_settings_grid(
+                [
+                    create_number_field(
                         "Outlet area [m²]",
                         ids.FLUSH_HYDRANT_AREA,
                         0.002,
+                        min_value=0,
                     ),
-                    _number_field(
+                    create_number_field(
                         "Total loss coefficient",
                         ids.FLUSH_LOSS_COEFFICIENT,
                         2.0,
+                        min_value=0,
                     ),
-                    _number_field(
+                    create_number_field(
                         "Velocity threshold [m/s]",
                         ids.FLUSH_VELOCITY_THRESHOLD,
                         0.5,
+                        min_value=0,
                     ),
-                    _number_field(
+                    create_number_field(
                         "Minimum pressure head [m]",
                         ids.FLUSH_MIN_PRESSURE_HEAD,
                         0.0,
-                        min_value=None,
                     ),
-                ],
+                ]
             ),
             dbc.Switch(
                 id=ids.FLUSH_WRITE_NETWORKS,

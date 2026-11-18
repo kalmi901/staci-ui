@@ -167,6 +167,52 @@ def create_active_model_section(
         ],
     )
 
+def create_settings_grid(
+    children: list[Any],
+):
+    return html.Div(
+        className="settings-grid",
+        children=children,
+    )
+
+
+def create_number_field(
+    label: str,
+    component_id: str,
+    value: float | int | None,
+    *,
+    min_value: float | int | None = None,
+    max_value: float | int | None = None,
+    step: float | int | str = "any",
+    disabled: bool = False,
+    persist: bool = True,
+):
+    input_properties: dict[str, Any] = {
+        "id": component_id,
+        "type": "number",
+        "value": value,
+        "step": step,
+        "disabled": disabled,
+    }
+
+    if min_value is not None:
+        input_properties["min"] = min_value
+
+    if max_value is not None:
+        input_properties["max"] = max_value
+
+    if persist:
+        input_properties["persistence"] = True
+        input_properties["persistence_type"] = "memory"
+
+    return html.Div(
+        className="settings-field",
+        children=[
+            dbc.Label(label),
+            dbc.Input(**input_properties),
+        ],
+    )
+
 
 def create_color_range_control(
     label: str,

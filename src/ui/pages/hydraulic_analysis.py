@@ -9,9 +9,11 @@ from src.ui import ids
 from src.ui.pages.components import (
     create_active_model_section,
     create_color_range_control,
+    create_network_display_controls,
+    create_number_field,
     create_page_header,
     create_run_section,
-    create_network_display_controls
+    create_settings_grid
 )
 from src.visualisation.common import make_empty_network_figure
 
@@ -90,73 +92,52 @@ def _create_setup_card():
                     value=False,
                     className="hyd-override-switch"
                 ),
-                html.Div(
-                    className="hyd-options-grid",
-                    children=[
-                        html.Div(
-                            children=[
-                                dbc.Label("Duration [h]"),
-                                dbc.Input(
-                                    id=ids.HYD_DURATION_HOURS,
-                                    type="number",
-                                    min=1,
-                                    step=1,
-                                    value=24,
-                                    disabled=True
-                                )
-                            ]
+                create_settings_grid(
+                    [
+                        create_number_field(
+                            "Duration [h]",
+                            ids.HYD_DURATION_HOURS,
+                            24,
+                            min_value=1,
+                            step=1,
+                            disabled=True,
+                            persist=False,
                         ),
-                        html.Div(
-                            children=[
-                                dbc.Label("Hydraulic timestep [min]"),
-                                dbc.Input(
-                                    id=ids.HYD_TIMESTEP_MINUTES,
-                                    type="number",
-                                    min=0,
-                                    step=1,
-                                    value=5,
-                                    disabled=True
-                                )
-                            ]
+                        create_number_field(
+                            "Hydraulic timestep [min]",
+                            ids.HYD_TIMESTEP_MINUTES,
+                            5,
+                            min_value=0,
+                            step=1,
+                            disabled=True,
+                            persist=False,
                         ),
-                        html.Div(
-                            children=[
-                                dbc.Label("Report timestep [min]"),
-                                dbc.Input(
-                                    id=ids.HYD_REPORT_TIMESTEP_MINUTES,
-                                    type="number",
-                                    min=1,
-                                    step=1,
-                                    value=60,
-                                    disabled=True,
-                                ),
-                            ]
+                        create_number_field(
+                            "Report timestep [min]",
+                            ids.HYD_REPORT_TIMESTEP_MINUTES,
+                            60,
+                            min_value=1,
+                            step=1,
+                            disabled=True,
+                            persist=False,
                         ),
-                        html.Div(
-                            children=[
-                                dbc.Label("Rule timestep [min]"),
-                                dbc.Input(
-                                    id=ids.HYD_RULE_TIMESTEP_MINUTES,
-                                    type="number",
-                                    min=1,
-                                    step=1,
-                                    value=5,
-                                    disabled=True,
-                                ),
-                            ]
+                        create_number_field(
+                            "Rule timestep [min]",
+                            ids.HYD_RULE_TIMESTEP_MINUTES,
+                            5,
+                            min_value=1,
+                            step=1,
+                            disabled=True,
+                            persist=False,
                         ),
-                        html.Div(
-                            children=[
-                                dbc.Label("Demand multiplier [-]"),
-                                dbc.Input(
-                                    id=ids.HYD_DEMAND_MULTIPLIER,
-                                    type="number",
-                                    min=0,
-                                    step=0.1,
-                                    value=1.0,
-                                    disabled=True,
-                                ),
-                            ]
+                        create_number_field(
+                            "Demand multiplier [-]",
+                            ids.HYD_DEMAND_MULTIPLIER,
+                            1.0,
+                            min_value=0,
+                            step=0.1,
+                            disabled=True,
+                            persist=False,
                         ),
                     ]
                 )
