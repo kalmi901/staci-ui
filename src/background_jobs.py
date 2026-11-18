@@ -5,12 +5,11 @@ from celery.signals import setup_logging
 from dash import CeleryManager
 
 from src.config import (
-    DASH_DEBUG,
     CELERY_BROKER_URL,
     CELERY_RESULT_BACKEND,
     CELERY_RESULT_EXPIRES_SECONDS,
+    DASH_DEBUG,
 )
-
 
 celery_app = Celery(
     "staci_ui",
@@ -25,10 +24,12 @@ celery_app.conf.update(
     worker_prefetch_multiplier=1,
 )
 
+
 @setup_logging.connect
 def setup_worker_logging(**kwargs):
     # Celery's default logging setup would replace our user-aware handlers.
     from src.logging_setup import configure_logging
+
     configure_logging(debug=DASH_DEBUG)
 
 

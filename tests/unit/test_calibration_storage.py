@@ -6,7 +6,6 @@ import pytest
 
 from src.services import calibration_storage
 
-
 UPLOAD_ID = "123456abcdef"
 
 
@@ -25,9 +24,7 @@ def upload_root(
     monkeypatch.setattr(
         calibration_storage.uuid,
         "uuid4",
-        lambda: SimpleNamespace(
-            hex=f"{UPLOAD_ID}ffff"
-        ),
+        lambda: SimpleNamespace(hex=f"{UPLOAD_ID}ffff"),
     )
 
     return root
@@ -36,36 +33,23 @@ def upload_root(
 def test_store_calibration_snapshots_persists_ordered_inputs(
     upload_root: Path,
 ) -> None:
-    state = (
-        calibration_storage.store_calibration_snapshots(
-            [
-                ("first network.inp", b"period-zero"),
-                ("second.inp", b"period-one"),
-            ]
-        )
+    state = calibration_storage.store_calibration_snapshots(
+        [
+            ("first network.inp", b"period-zero"),
+            ("second.inp", b"period-one"),
+        ]
     )
 
     assert state["upload_id"] == UPLOAD_ID
-    assert [
-        item["period_index"]
-        for item in state["snapshots"]
-    ] == [0, 1]
-    assert [
-        item["filename"]
-        for item in state["snapshots"]
-    ] == [
+    assert [item["period_index"] for item in state["snapshots"]] == [0, 1]
+    assert [item["filename"] for item in state["snapshots"]] == [
         "first_network.inp",
         "second.inp",
     ]
 
-    paths = (
-        calibration_storage.resolve_calibration_snapshots(
-            UPLOAD_ID,
-            [
-                item["stored_filename"]
-                for item in state["snapshots"]
-            ],
-        )
+    paths = calibration_storage.resolve_calibration_snapshots(
+        UPLOAD_ID,
+        [item["stored_filename"] for item in state["snapshots"]],
     )
 
     assert paths[0].read_bytes() == b"period-zero"
@@ -76,17 +60,13 @@ def test_store_calibration_snapshots_rejects_non_inp(
     upload_root: Path,
 ) -> None:
     with pytest.raises(ValueError, match=".inp"):
-        calibration_storage.store_calibration_snapshots(
-            [("network.txt", b"invalid")]
-        )
+        calibration_storage.store_calibration_snapshots([("network.txt", b"invalid")])
 
 
 def test_store_calibration_measurements_persists_json(
     upload_root: Path,
 ) -> None:
-    calibration_storage.store_calibration_snapshots(
-        [("network.inp", b"network")]
-    )
+    calibration_storage.store_calibration_snapshots([("network.inp", b"network")])
 
     data = {
         "measurements": [
@@ -98,33 +78,22 @@ def test_store_calibration_measurements_persists_json(
         ]
     }
 
-    state = (
-        calibration_storage.store_calibration_measurements(
-            UPLOAD_ID,
-            "measurements.json",
-            json.dumps(data).encode("utf-8"),
-        )
+    state = calibration_storage.store_calibration_measurements(
+        UPLOAD_ID,
+        "measurements.json",
+        json.dumps(data).encode("utf-8"),
     )
 
     assert state["data"] == data
 
-    stored = (
-        upload_root
-        / "calibration"
-        / UPLOAD_ID
-        / "measurements.json"
-    )
-    assert json.loads(
-        stored.read_text(encoding="utf-8")
-    ) == data
+    stored = upload_root / "calibration" / UPLOAD_ID / "measurements.json"
+    assert json.loads(stored.read_text(encoding="utf-8")) == data
 
 
 def test_resolve_calibration_snapshots_rejects_unsafe_name(
     upload_root: Path,
 ) -> None:
-    calibration_storage.store_calibration_snapshots(
-        [("network.inp", b"network")]
-    )
+    calibration_storage.store_calibration_snapshots([("network.inp", b"network")])
 
     with pytest.raises(
         ValueError,
@@ -155,10 +124,6 @@ def test_store_calibration_snapshots_rejects_oversized_file(
         ValueError,
         match="20 MiB upload limit",
     ):
-        calibration_storage.store_calibration_snapshots(
-            [("large.inp", b"1234")]
-        )
+        calibration_storage.store_calibration_snapshots([("large.inp", b"1234")])
 
-    assert not (
-        upload_root / "calibration"
-    ).exists()
+    assert not (upload_root / "calibration").exists()

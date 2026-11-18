@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any, Dict
-from dataclasses import dataclass
 import shutil
 import uuid
 from collections import Counter
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict
 
-from src.staci.split import write_split_settings, run_staci_split
-from src.staci.error_messages import format_staci_failure
 from src.config import RUN_ROOT, STACI_SPLIT_EXECUTABLE
 from src.run_logging import log_prepared_input
+from src.staci.error_messages import format_staci_failure
+from src.staci.split import run_staci_split, write_split_settings
 
 
 @dataclass
@@ -22,12 +22,11 @@ class ParsedMembership:
     @property
     def n_communities(self) -> int:
         return len(self.n_community_members)
-    
+
+
 def parse_membership(path: Path) -> ParsedMembership:
     if not path.is_file():
-        raise FileNotFoundError(
-            f"Membership file not found: {path}"
-        )
+        raise FileNotFoundError(f"Membership file not found: {path}")
 
     n_nodes: int | None = None
     node_community: dict[str, int] = {}
@@ -55,30 +54,21 @@ def parse_membership(path: Path) -> ParsedMembership:
         if not line.startswith("#"):
             continue
 
-        parts = [
-            part.strip()
-            for part in line.split(";")
-            if part.strip()
-        ]
+        parts = [part.strip() for part in line.split(";") if part.strip()]
 
         if not parts:
             continue
 
         community_id = int(parts[0][1:])
-        
+
         for node_id in parts[1:]:
             if node_id in node_community:
-                raise ValueError(
-                    f"Node '{node_id}' appears in multiple communities."
-                )
+                raise ValueError(f"Node '{node_id}' appears in multiple communities.")
 
             node_community[node_id] = community_id
-        
 
     if n_nodes is None:
-        raise ValueError(
-            f"Could not find n_nodes in membership file: {path}"
-        )
+        raise ValueError(f"Could not find n_nodes in membership file: {path}")
 
     if len(node_community) != n_nodes:
         raise ValueError(
@@ -86,16 +76,14 @@ def parse_membership(path: Path) -> ParsedMembership:
             f"expected {n_nodes}, parsed {len(node_community)}."
         )
 
-    n_community_members  = dict(
-        sorted(Counter(node_community.values()).items())
-    )
+    n_community_members = dict(sorted(Counter(node_community.values()).items()))
 
     return ParsedMembership(
         n_nodes=n_nodes,
         node_community=node_community,
-        n_community_members=n_community_members
+        n_community_members=n_community_members,
     )
-    
+
 
 def call_staci_split_service(
     inp_path: Path | str,
@@ -104,37 +92,32 @@ def call_staci_split_service(
     optimizer_settings: Dict[str, Any] | None = None,
     seed: int = 12345,
 ) -> Dict[str, Any]:
-    
+
     inp_path = Path(inp_path)
     if not inp_path.is_file():
         raise FileNotFoundError(f"INP file does not exist: {inp_path}")
-    
+
     run_id = uuid.uuid4().hex[:12]
     run_dir = Path(RUN_ROOT) / "partition" / run_id
     run_dir.mkdir(parents=True, exist_ok=False)
-    
+
     # Keep the uploaded/original model untouched.
     run_inp = run_dir / "model.inp"
     shutil.copy2(inp_path, run_inp)
-    
+
     settings_path = run_dir / "staci_split_settings.xml"
-    
-    write_split_settings(
-        settings_path,
-        inp_path=run_inp,
-        overrides=optimizer_settings
-    )
-    
+
+    write_split_settings(settings_path, inp_path=run_inp, overrides=optimizer_settings)
+
     log_prepared_input(
-        run_inp, run_id, settings_path=settings_path, executable=STACI_SPLIT_EXECUTABLE,
+        run_inp,
+        run_id,
+        settings_path=settings_path,
+        executable=STACI_SPLIT_EXECUTABLE,
     )
 
-    split_results = run_staci_split(
-        run_inp,
-        settings_path,
-        seed=seed
-    )
-    
+    split_results = run_staci_split(run_inp, settings_path, seed=seed)
+
     if not split_results.success or not split_results.membership_path:
         raise RuntimeError(
             format_staci_failure(
@@ -144,9 +127,9 @@ def call_staci_split_service(
                 stdout_path=split_results.stdout_path,
             )
         )
-    
+
     membership = parse_membership(split_results.membership_path)
-    
+
     return {
         "success": True,
         "run_id": run_id,
@@ -156,7 +139,3 @@ def call_staci_split_service(
         "n_community_members": membership.n_community_members,
         "node_community": membership.node_community,
     }
-        
-    
-    
-    

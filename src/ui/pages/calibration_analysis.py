@@ -2,19 +2,24 @@
 # pyright: reportCallIssue=false
 from __future__ import annotations
 
+from typing import Any
+
 import dash_bootstrap_components as dbc
 from dash import dash_table, dcc, html
 from dash.development.base_component import Component
-from typing import Any
 
 from src.ui import ids
 from src.ui.pages.components import (
+    create_empty_state,
+    create_metric_item,
+    create_number_field,
     create_page_header,
-    create_run_section
+    create_run_section,
+    create_settings_grid,
 )
 from src.visualisation.calibration import (
-    make_calibration_residual_figure,
     make_calibration_history_figure,
+    make_calibration_residual_figure,
 )
 
 
@@ -43,40 +48,6 @@ def _upload_box(
                 ),
             ]
         ),
-    )
-
-
-def _number_field(
-    label: str,
-    component_id: str,
-    value: float | int | None,
-    *,
-    min_value: float | int | None = None,
-    max_value: float | int | None = None,
-    step: float | int | str = "any",
-    disabled: bool = False,
-):
-    input_properties: dict[str, Any] = {
-        "id": component_id,
-        "type": "number",
-        "value": value,
-        "step": step,
-        "disabled": disabled,
-        "persistence": True,
-        "persistence_type": "memory",
-    }
-
-    if min_value is not None:
-        input_properties["min"] = min_value
-
-    if max_value is not None:
-        input_properties["max"] = max_value
-
-    return html.Div(
-        children=[
-            dbc.Label(label),
-            dbc.Input(**input_properties),
-        ]
     )
 
 
@@ -120,36 +91,35 @@ def _create_optimizer_section():
                 persistence=True,
                 persistence_type="memory",
             ),
-            html.Div(
-                className="calibration-options-grid",
-                children=[
-                    _number_field(
+            create_settings_grid(
+                [
+                    create_number_field(
                         "Active pipe count",
                         ids.CAL_ACTIVE_PIPE_COUNT,
                         1,
                         min_value=1,
                         step=1,
                     ),
-                    _number_field(
+                    create_number_field(
                         "Diameter cutoff [m]",
                         ids.CAL_DMIN,
                         None,
                         min_value=0,
                         disabled=True,
                     ),
-                    _number_field(
+                    create_number_field(
                         "Minimum calibrated diameter [m]",
                         ids.CAL_MIN_DIAMETER,
                         None,
                         min_value=0,
                     ),
-                    _number_field(
+                    create_number_field(
                         "Maximum calibrated diameter [m]",
                         ids.CAL_MAX_DIAMETER,
                         None,
                         min_value=0,
                     ),
-                    _number_field(
+                    create_number_field(
                         "Pressure-error weight",
                         ids.CAL_PRESSURE_WEIGHT,
                         0.5,
@@ -157,27 +127,27 @@ def _create_optimizer_section():
                         max_value=1,
                         step=0.05,
                     ),
-                    _number_field(
+                    create_number_field(
                         "Period length [h]",
                         ids.CAL_PERIOD_HOURS,
                         0.01,
                         min_value=0.001,
                     ),
-                    _number_field(
+                    create_number_field(
                         "Population size",
                         ids.CAL_POPSIZE,
                         20,
                         min_value=1,
                         step=1,
                     ),
-                    _number_field(
+                    create_number_field(
                         "Generations",
                         ids.CAL_NGEN,
                         50,
                         min_value=1,
                         step=1,
                     ),
-                    _number_field(
+                    create_number_field(
                         "Mutation probability",
                         ids.CAL_PMUT,
                         0.2,
@@ -185,7 +155,7 @@ def _create_optimizer_section():
                         max_value=1,
                         step=0.05,
                     ),
-                    _number_field(
+                    create_number_field(
                         "Crossover probability",
                         ids.CAL_PCROSS,
                         0.8,
@@ -193,14 +163,14 @@ def _create_optimizer_section():
                         max_value=1,
                         step=0.05,
                     ),
-                    _number_field(
+                    create_number_field(
                         "Random seed",
                         ids.CAL_SEED,
                         12345,
                         min_value=0,
                         step=1,
                     ),
-                ],
+                ]
             ),
             dbc.Label(
                 "Explicit pipe IDs",
@@ -226,30 +196,13 @@ def _create_optimizer_section():
 
 
 def _empty_results():
-    return html.Div(
-        className="calibration-results-placeholder",
-        children=[
-            html.Div(
-                "🎯",
-                className="calibration-placeholder-icon",
-            ),
-            html.H3("No calibration result yet"),
-            html.P(
-                "Prepare the network snapshots and measurement "
-                "dataset. Optimizer controls and execution will "
-                "be added in the next step."
-            ),
-        ],
-    )
-
-
-def _metric(label: str, value: str):
-    return html.Div(
-        className="meta-item",
-        children=[
-            html.Div(label, className="meta-label"),
-            html.Div(value, className="meta-value"),
-        ],
+    return create_empty_state(
+        "🎯",
+        "No calibration result yet",
+        (
+            "Upload the network snapshots and measurement data, "
+            "configure the optimizer, and run the calibration."
+        ),
     )
 
 
@@ -277,13 +230,11 @@ def render_calibration_results(
         html.Div(
             className="meta-grid calibration-meta-grid",
             children=[
-                _metric(
+                create_metric_item(
                     "Status",
-                    str(
-                        run_state.get("status", "—")
-                    ).title(),
+                    str(run_state.get("status", "—")).title(),
                 ),
-                _metric(
+                create_metric_item(
                     "Snapshots",
                     str(
                         summary.get(
@@ -292,7 +243,7 @@ def render_calibration_results(
                         )
                     ),
                 ),
-                _metric(
+                create_metric_item(
                     "Measurements",
                     str(
                         summary.get(
@@ -301,7 +252,7 @@ def render_calibration_results(
                         )
                     ),
                 ),
-                _metric(
+                create_metric_item(
                     "Calibrated pipes",
                     str(
                         summary.get(
@@ -380,18 +331,12 @@ def render_calibration_results(
                     html.Div(
                         children=[
                             html.H3(
-                                "Optimizer convergence (sampled every 10 generations).",
-                                className=(
-                                    "calibration-result-heading"
-                                ),
+                                "Optimizer convergence (sampled every 10 generations)",
+                                className=("calibration-result-heading"),
                             ),
                             dcc.Graph(
                                 id=ids.CAL_HISTORY_GRAPH,
-                                figure=(
-                                    make_calibration_history_figure(
-                                        run_state
-                                    )
-                                ),
+                                figure=(make_calibration_history_figure(run_state)),
                                 config={
                                     "displaylogo": False,
                                 },
@@ -402,17 +347,11 @@ def render_calibration_results(
                         children=[
                             html.H3(
                                 "Calibration residuals",
-                                className=(
-                                    "calibration-result-heading"
-                                ),
+                                className=("calibration-result-heading"),
                             ),
                             dcc.Graph(
                                 id=ids.CAL_RESIDUAL_GRAPH,
-                                figure=(
-                                    make_calibration_residual_figure(
-                                        run_state
-                                    )
-                                ),
+                                figure=(make_calibration_residual_figure(run_state)),
                                 config={
                                     "displaylogo": False,
                                 },
@@ -431,7 +370,7 @@ def _create_input_card():
     return dbc.Card(
         className="app-card calibration-input-card",
         children=[
-            dbc.CardHeader("Calibration Inputs"),
+            dbc.CardHeader("Calibration inputs"),
             dbc.CardBody(
                 children=[
                     html.Div(
@@ -450,12 +389,8 @@ def _create_input_card():
                                 multiple=True,
                             ),
                             html.Div(
-                                id=(
-                                    ids.CAL_SNAPSHOT_UPLOAD_STATUS
-                                ),
-                                className=(
-                                    "small-status upload-status"
-                                ),
+                                id=(ids.CAL_SNAPSHOT_UPLOAD_STATUS),
+                                className=("small-status upload-status"),
                             ),
                         ],
                     ),
@@ -473,9 +408,7 @@ def _create_input_card():
                                 id=ids.CAL_SNAPSHOT_SELECTION,
                                 options=[],
                                 value=[],
-                                className=(
-                                    "calibration-snapshot-list"
-                                ),
+                                className=("calibration-snapshot-list"),
                                 persistence=True,
                                 persistence_type="memory",
                             ),
@@ -493,16 +426,14 @@ def _create_input_card():
                             ),
                             _upload_box(
                                 ids.CAL_UPLOAD_MEASUREMENTS,
-                                "Drop measurements JSON here",
+                                "Drop a JSON file with measurements here",
                                 "Upload snapshots first",
                                 multiple=False,
                                 disabled=True,
                             ),
                             html.Div(
                                 id=ids.CAL_MEASUREMENTS_STATUS,
-                                className=(
-                                    "small-status upload-status"
-                                ),
+                                className=("small-status upload-status"),
                             ),
                         ],
                     ),
@@ -510,18 +441,16 @@ def _create_input_card():
                     html.Div(
                         id=ids.CAL_INPUT_SUMMARY,
                         className="soft-panel",
-                        children=(
-                            "Upload network snapshots to begin."
-                        ),
+                        children=("Upload network snapshots to begin."),
                     ),
                     html.Hr(),
                     _create_optimizer_section(),
                     html.Hr(),
                     create_run_section(
-                        "Run Calibration",
+                        "Run calibration",
                         ids.CAL_RUN_BUTTON,
                         ids.CAL_RUN_STATUS,
-                        status_class_name="calibration-run-status"
+                        status_class_name="calibration-run-status",
                     ),
                 ]
             ),
@@ -533,19 +462,15 @@ def _create_workspace_card():
     return dbc.Card(
         className="app-card calibration-workspace-card",
         children=[
-            dbc.CardHeader("Measurements & Results"),
+            dbc.CardHeader("Measurements and results"),
             dbc.CardBody(
                 children=[
                     html.Div(
-                        className=(
-                            "calibration-table-header"
-                        ),
+                        className=("calibration-table-header"),
                         children=[
                             html.Div(
                                 children=[
-                                    html.H3(
-                                        "Measurement editor"
-                                    ),
+                                    html.H3("Measurement editor"),
                                     html.P(
                                         "Node values are pressure "
                                         "head in metres. Pool values "
@@ -589,7 +514,7 @@ def _create_workspace_card():
                                         "value": "node",
                                     },
                                     {
-                                        "label": "Pool",
+                                        "label": "Tank / pool",
                                         "value": "pool",
                                     },
                                 ]
@@ -633,7 +558,7 @@ def create_layout():
         className="page calibration-page",
         children=[
             create_page_header(
-                "Pipe Diameter Calibration",
+                "Pipe diameter calibration",
                 (
                     "Estimate selected pipe diameters from "
                     "multiple steady-state network snapshots "
@@ -642,10 +567,7 @@ def create_layout():
                 "STACI Calibrate",
             ),
             html.Div(
-                className=(
-                    "analysis-workspace "
-                    "calibration-workspace"
-                ),
+                className=("analysis-workspace calibration-workspace"),
                 children=[
                     _create_input_card(),
                     _create_workspace_card(),

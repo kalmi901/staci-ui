@@ -10,4 +10,4 @@ def local_path(pathname: str | None) -> str | None:
         return None
     if not pathname.startswith(APP_URL_PREFIX):
         return None
-    return "/" + pathname[len(APP_URL_PREFIX):]
+    return "/" + pathname[len(APP_URL_PREFIX) :]

@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-
 _STRUCTURED_ERROR = re.compile(
     (
         r"^ERROR\s+"
@@ -57,10 +56,7 @@ def _add_unique(
         return
 
     if len(detail) > _MAX_DETAIL_LENGTH:
-        detail = (
-            detail[: _MAX_DETAIL_LENGTH - 3]
-            + "..."
-        )
+        detail = detail[: _MAX_DETAIL_LENGTH - 3] + "..."
 
     if detail not in details:
         details.append(detail)
@@ -116,10 +112,7 @@ def format_staci_failure(
     if not details:
         details = _extract_error_details(stdout_path)
 
-    message = (
-        f"{tool_name} failed "
-        f"(return code {returncode})."
-    )
+    message = f"{tool_name} failed (return code {returncode})."
 
     if not details:
         return message
@@ -130,13 +123,7 @@ def format_staci_failure(
     hidden_count = len(details) - len(visible_details)
 
     if hidden_count:
-        noun = (
-            "error"
-            if hidden_count == 1
-            else "errors"
-        )
-        message += (
-            f" (+{hidden_count} more {noun}.)"
-        )
+        noun = "error" if hidden_count == 1 else "errors"
+        message += f" (+{hidden_count} more {noun}.)"
 
     return message

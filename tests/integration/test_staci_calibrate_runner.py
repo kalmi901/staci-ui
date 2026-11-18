@@ -6,25 +6,18 @@ from pathlib import Path
 import pytest
 
 from src.config import STACI_CALIBRATE_EXECUTABLE
+from src.results.calibration import parse_calibration_best, parse_calibration_history
 from src.staci.calibrate import (
     run_staci_calibrate,
     write_calibrate_settings,
 )
-
-from src.results.calibration import (
-    parse_calibration_best,
-    parse_calibration_history
-)
-
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
 NETWORK_FIXTURES = (
     FIXTURE_DIR / "staci_calibrate_network_0.inp",
     FIXTURE_DIR / "staci_calibrate_network_1.inp",
 )
-MEASUREMENTS_FIXTURE = (
-    FIXTURE_DIR / "staci_calibrate_measurements.json"
-)
+MEASUREMENTS_FIXTURE = FIXTURE_DIR / "staci_calibrate_measurements.json"
 
 
 def _read_if_present(path: Path) -> str:
@@ -46,8 +39,6 @@ def test_run_staci_calibrate_runs_real_executable(
             "Set STACI_CALIBRATE_EXECUTABLE to run this test."
         )
 
-
-    targets_path = tmp_path / "calibrate_targets.json"
     settings_path = tmp_path / "staci_calibrate_settings.json"
 
     for index, fixture_path in enumerate(NETWORK_FIXTURES):
@@ -108,7 +99,4 @@ def test_run_staci_calibrate_runs_real_executable(
     assert len(best.comparisons) == 4
 
     assert history
-    assert all(
-        entry.function_evaluations >= 0
-        for entry in history
-    )
+    assert all(entry.function_evaluations >= 0 for entry in history)

@@ -1,17 +1,18 @@
-# pyright: reportCallIssue=false 
+# pyright: reportCallIssue=false
 from __future__ import annotations
+
 from dash import Input, Output, html
-import dash_bootstrap_components as dbc
 
 from src.ui import ids
-from src.ui.paths import local_path
-from src.ui.pages import(
+from src.ui.pages import (
+    calibration_analysis,
+    flushing_analysis,
+    hydraulic_analysis,
     network_load,
     network_partitioning,
-    hydraulic_analysis,
-    flushing_analysis,
-    calibration_analysis
 )
+from src.ui.paths import local_path
+
 
 def _not_found_page(pathname: str | None):
     route = pathname or "/"
@@ -32,8 +33,8 @@ def _not_found_page(pathname: str | None):
             )
         ],
     )
-    
-    
+
+
 def register_routing_callbacks(app):
     @app.callback(Output(ids.PAGE_CONTENT, "children"), Input(ids.URL, "pathname"))
     def route(pathname):
@@ -48,5 +49,5 @@ def register_routing_callbacks(app):
             return flushing_analysis.create_layout()
         if pathname == "/analysis/calibration":
             return calibration_analysis.create_layout()
-        
+
         return _not_found_page(pathname)

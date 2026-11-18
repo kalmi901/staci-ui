@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import math
-import plotly.graph_objects as go
-
+from collections.abc import Mapping, Sequence
 from typing import Any
-from collections.abc import Sequence, Mapping
 
+import plotly.graph_objects as go
 
 DEFAULT_FIGURE_LAYOUT = {
     "template": "plotly_white",
@@ -43,6 +42,28 @@ NETWORK_FIGURE_LAYOUT = {
 }
 
 
+EMPTY_FIGURE_TONES = {
+    "neutral": {
+        "background": "rgba(240, 249, 255, 0.56)",
+        "icon": "#137fc4",
+        "title": "#14324a",
+        "message": "#668295",
+    },
+    "warning": {
+        "background": "rgba(255, 247, 237, 0.82)",
+        "icon": "#d97706",
+        "title": "#9a3412",
+        "message": "#9a3412",
+    },
+    "danger": {
+        "background": "rgba(254, 242, 242, 0.82)",
+        "icon": "#dc2626",
+        "title": "#991b1b",
+        "message": "#7f1d1d",
+    },
+}
+
+
 def normalize_display_value(
     value: Any,
     *,
@@ -64,13 +85,9 @@ def normalize_display_value(
     )
 
 
-def make_discrete_colorscale(
-    colors: Sequence[str]
-) -> list[list[float | str]]:
+def make_discrete_colorscale(colors: Sequence[str]) -> list[list[float | str]]:
     if not colors:
-        raise ValueError(
-            "At least one color is required."
-        )
+        raise ValueError("At least one color is required.")
 
     colorscale: list[list[float | str]] = []
     color_count = len(colors)
@@ -115,12 +132,8 @@ def append_line_segment(
     start: tuple[float, float],
     end: tuple[float, float],
 ) -> None:
-    coordinates["x"].extend(
-        [start[0], end[0], None]
-    )
-    coordinates["y"].extend(
-        [start[1], end[1], None]
-    )
+    coordinates["x"].extend([start[0], end[0], None])
+    coordinates["y"].extend([start[1], end[1], None])
 
 
 def model_ids_are_compatible(
@@ -131,9 +144,7 @@ def model_ids_are_compatible(
     second_model_id = second_state.get("model_id")
 
     return not (
-        first_model_id
-        and second_model_id
-        and first_model_id != second_model_id
+        first_model_id and second_model_id and first_model_id != second_model_id
     )
 
 
@@ -183,25 +194,87 @@ def apply_network_layout(
 def make_empty_figure(
     message: str,
     *,
+    icon: str | None = None,
+    title: str | None = None,
+    tone: str = "neutral",
     layout: Mapping[str, Any] | None = None,
 ) -> go.Figure:
-    figure_layout = {
-        **dict(layout or {}),
-        "annotations": [
+    if tone not in EMPTY_FIGURE_TONES:
+        raise ValueError(f"Unsupported empty-figure tone: {tone!r}")
+
+    tone_style = EMPTY_FIGURE_TONES[tone]
+
+    if tone == "warning":
+        icon = icon or "!"
+        title = title or "Check the selected data"
+
+    if tone == "danger":
+        icon = icon or "✕"
+        title = title or "Unable to display results"
+
+    decorated = bool(icon or title)
+
+    annotations: list[dict[str, Any]] = [
+        {
+            "text": message,
+            "xref": "paper",
+            "yref": "paper",
+            "x": 0.5,
+            "y": 0.38 if decorated else 0.5,
+            "showarrow": False,
+            "align": "center",
+            "font": {
+                "size": 15,
+                "color": tone_style["message"],
+            },
+        }
+    ]
+
+    if title:
+        annotations.append(
             {
-                "text": message,
+                "text": f"<b>{title}</b>",
                 "xref": "paper",
                 "yref": "paper",
                 "x": 0.5,
                 "y": 0.5,
                 "showarrow": False,
+                "align": "center",
                 "font": {
-                    "size": 15,
-                    "color": "#6b7280",
+                    "size": 20,
+                    "color": tone_style["title"],
                 },
             }
-        ],
+        )
+
+    if icon:
+        annotations.append(
+            {
+                "text": icon,
+                "xref": "paper",
+                "yref": "paper",
+                "x": 0.5,
+                "y": 0.64,
+                "showarrow": False,
+                "font": {
+                    "size": 42,
+                    "color": tone_style["icon"],
+                },
+            }
+        )
+
+    figure_layout = {
+        **dict(layout or {}),
+        "annotations": annotations,
     }
+
+    if decorated:
+        figure_layout.update(
+            {
+                "paper_bgcolor": tone_style["background"],
+                "plot_bgcolor": tone_style["background"],
+            }
+        )
 
     return apply_figure_layout(
         go.Figure(),
@@ -210,11 +283,16 @@ def make_empty_figure(
 
 
 def make_empty_network_figure(
-    message: str = (
-        "Upload a model to view the network preview."
-    ),
+    message: str = ("Upload a model to view the network preview."),
+    *,
+    icon: str | None = None,
+    title: str | None = None,
+    tone: str = "neutral",
 ) -> go.Figure:
     return make_empty_figure(
         message,
+        icon=icon,
+        title=title,
+        tone=tone,
         layout=NETWORK_FIGURE_LAYOUT,
     )

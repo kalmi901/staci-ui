@@ -8,7 +8,6 @@ from src.visualisation.network_preview import (
     make_partitioned_network_figure,
 )
 
-
 NETWORK_VIEW_STATE = {
     "model_id": "abcdef123456",
     "nodes": {
@@ -115,8 +114,7 @@ def test_node_preview_uses_shared_attribute_renderer() -> None:
         trace.marker.colorbar.title.text  # type: ignore[union-attr]
         for trace in figure.data
         if (
-            hasattr(trace, "marker")
-            and trace.marker.showscale  # type: ignore[union-attr]
+            hasattr(trace, "marker") and trace.marker.showscale  # type: ignore[union-attr]
         )
     }
 
@@ -133,12 +131,8 @@ def test_node_preview_reports_invalid_color_range() -> None:
     )
 
     assert figure.layout.annotations
-    assert (
-        figure.layout.annotations[0].text
-        == (
-            "Node color minimum must not be greater "
-            "than maximum."
-        )
+    assert figure.layout.annotations[0].text == (
+        "Node color minimum must not be greater than maximum."
     )
 
 
@@ -161,8 +155,7 @@ def test_hydraulic_figure_uses_shared_renderer() -> None:
     }
 
     with patch(
-        "src.visualisation.network_preview."
-        "open_eps_hydraulic_results",
+        "src.visualisation.network_preview.open_eps_hydraulic_results",
         return_value=FakeHydraulicResults(),
     ):
         figure = make_hydraulic_timestep_figure(
@@ -189,8 +182,7 @@ def test_hydraulic_figure_uses_shared_renderer() -> None:
         trace.marker.colorbar.title.text  # type: ignore[union-attr]
         for trace in figure.data
         if (
-            hasattr(trace, "marker")
-            and trace.marker.showscale  # type: ignore[union-attr]
+            hasattr(trace, "marker") and trace.marker.showscale  # type: ignore[union-attr]
         )
     }
 

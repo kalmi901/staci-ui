@@ -48,11 +48,7 @@ def test_format_staci_failure_falls_back_to_stdout(
         encoding="utf-8",
     )
     stdout_path.write_text(
-        (
-            "Building system...\n"
-            "!!!ERROR!!! edge 10 and node 10 "
-            "have the same ID!\n"
-        ),
+        ("Building system...\n!!!ERROR!!! edge 10 and node 10 have the same ID!\n"),
         encoding="utf-8",
     )
 
@@ -74,11 +70,15 @@ def test_format_staci_failure_has_generic_fallback(
     stderr_path = tmp_path / "stderr.log"
     stderr_path.write_text("", encoding="utf-8")
 
-    assert format_staci_failure(
-        "STACI EPS",
-        1,
-        stderr_path=stderr_path,
-    ) == "STACI EPS failed (return code 1)."
+    assert (
+        format_staci_failure(
+            "STACI EPS",
+            1,
+            stderr_path=stderr_path,
+        )
+        == "STACI EPS failed (return code 1)."
+    )
+
 
 def test_format_staci_failure_prefers_structured_error(
     tmp_path: Path,

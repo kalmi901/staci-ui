@@ -1,17 +1,19 @@
 # pylint: disable=not-callable
 # pyright: reportCallIssue=false
 from __future__ import annotations
-from dash import dcc, html
+
+from typing import Any, Dict
+
 import dash_bootstrap_components as dbc
-from typing import Dict, Any
+from dash import dcc, html
 
 from src.ui import ids
 from src.ui.pages.components import (
     create_color_range_control,
     create_metric_item,
+    create_network_display_controls,
     create_page_header,
     render_empty_model_summary,
-    create_network_display_controls
 )
 from src.visualisation.common import make_empty_network_figure
 
@@ -27,16 +29,16 @@ def _create_preview_toolbar():
                     dcc.Dropdown(
                         id=ids.NODE_COLOR_BY,
                         options=[
-                            {"label": "None", "value" : "none"},
+                            {"label": "None", "value": "none"},
                             {"label": "Elevation", "value": "elevation"},
                             {"label": "Demand", "value": "demand"},
                         ],
                         value="none",
                         clearable=False,
                         persistence=True,
-                        persistence_type="memory"
-                    )
-                ]
+                        persistence_type="memory",
+                    ),
+                ],
             ),
             html.Div(
                 className="plot-control",
@@ -47,15 +49,15 @@ def _create_preview_toolbar():
                         options=[
                             {"label": "None", "value": "none"},
                             {"label": "Length", "value": "length"},
-                            {"label": "Diameters", "value": "diameter"},
+                            {"label": "Diameter", "value": "diameter"},
                             {"label": "Roughness", "value": "roughness"},
                         ],
                         value="none",
                         clearable=False,
                         persistence=True,
-                        persistence_type="memory"
-                    )
-                ]
+                        persistence_type="memory",
+                    ),
+                ],
             ),
             create_color_range_control(
                 "Node min / max",
@@ -74,22 +76,20 @@ def _create_preview_toolbar():
                 ids.NETWORK_MARKER_SIZE,
                 ids.NETWORK_HIDE_NODES,
             ),
-        ]
+        ],
     )
+
 
 def render_model_summary(network_state: Dict[str, Any] | None):
     if not network_state:
-        return render_empty_model_summary(
-                "Upload an EPANET .inp file"
-            )
-    
+        return render_empty_model_summary("Upload an EPANET INP file.")
+
     summary = network_state.get("summary", {})
     nodes = summary.get("Nodes", {})
     links = summary.get("Links", {})
     spatial = network_state.get("spatial", {})
-    status  = network_state.get("status", "uploaded")
-    
-        
+    status = network_state.get("status", "uploaded")
+
     return html.Div(
         className="model-summary",
         children=[
@@ -154,12 +154,15 @@ def render_model_summary(network_state: Dict[str, Any] | None):
             html.Div(
                 className="model-storage-note",
                 children=[
-                    html.Div(f"Coordinate system: {spatial.get('coordinate_system', '—')}"),
+                    html.Div(
+                        f"Coordinate system: {spatial.get('coordinate_system', '—')}"
+                    ),
                     html.Div(f"Background mode: {spatial.get('background_mode', '—')}"),
                 ],
             ),
         ],
     )
+
 
 def create_layout():
     return html.Div(
@@ -190,25 +193,33 @@ def create_layout():
                                         className="setup-section",
                                         children=[
                                             html.H3("Water network model"),
-                                            html.P("Choose an EPANET input file."),  # The file will be saved server-side, while the dashboard keeps only a lightweight active-model reference.")
-
+                                            html.P(
+                                                "Choose an EPANET input file."
+                                            ),  # The file will be saved server-side, while the dashboard keeps only a lightweight active-model reference.")
                                             dcc.Upload(
                                                 id=ids.UPLOAD_INP,
                                                 className="model-upload",
                                                 children=html.Div(
                                                     children=[
-                                                        html.Div("Drop .inp file here", className="model-upload-title"),
-                                                        html.Div("or click to browse", className="model-upload-title")
+                                                        html.Div(
+                                                            "Drop an INP file here",
+                                                            className="model-upload-title",
+                                                        ),
+                                                        html.Div(
+                                                            "or click to browse",
+                                                            className="model-upload-title",
+                                                        ),
                                                     ]
-                                                ), multiple=False
+                                                ),
+                                                multiple=False,
                                             ),
-                                            
                                             html.Div(
                                                 id=ids.UPLOAD_STATUS,
                                                 className="small-status upload-status",
-                                            )   
-                                        ]
-                                    ), html.Hr(),
+                                            ),
+                                        ],
+                                    ),
+                                    html.Hr(),
                                     # -- MODEL SUMMARY --
                                     html.Div(
                                         className="setup-section",
@@ -217,25 +228,25 @@ def create_layout():
                                             html.Div(
                                                 id=ids.ACTIVE_MODEL_SUMMARY,
                                                 children=render_empty_model_summary(
-                                                        "Upload an EPANET .inp file"
-                                                    )
-                                            )
-                                        ]
+                                                    "Upload an EPANET INP file."
+                                                ),
+                                            ),
+                                        ],
                                     ),
                                     html.P(
-                                            id=ids.LOAD_MODEL_STATUS,
-                                            className="small-status",
-                                            children="",
-                                        ),
+                                        id=ids.LOAD_MODEL_STATUS,
+                                        className="small-status",
+                                        children="",
+                                    ),
                                 ]
-                            )
-                        ]
+                            ),
+                        ],
                     ),
                     # -- Network Preview --
                     dbc.Card(
                         className="app-card load-preview-card",
                         children=[
-                            dbc.CardHeader("Network Preview"),
+                            dbc.CardHeader("Network preview"),
                             dbc.CardBody(
                                 children=[
                                     _create_preview_toolbar(),
@@ -243,13 +254,17 @@ def create_layout():
                                         id=ids.NETWORK_GRAPH,
                                         className="network-graph",
                                         config={"displaylogo": False},
-                                        figure=make_empty_network_figure()
-                                    )
+                                        figure=make_empty_network_figure(
+                                            "Upload an EPANET INP file to preview the network.",
+                                            icon="📂",
+                                            title="No network model loaded",
+                                        ),
+                                    ),
                                 ]
-                            )
-                        ]
-                    )
-                ]
+                            ),
+                        ],
+                    ),
+                ],
             ),
-        ]
+        ],
     )

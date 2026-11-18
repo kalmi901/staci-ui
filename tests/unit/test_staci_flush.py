@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from src.staci import flush
+from src.staci import flush, runtime
 
 
 @pytest.fixture
@@ -104,7 +104,7 @@ def test_run_staci_flush_builds_command_and_collects_outputs(
             stderr="flush stderr\n",
         )
 
-    monkeypatch.setattr(flush.subprocess, "run", fake_run)
+    monkeypatch.setattr(runtime.subprocess, "run", fake_run)
 
     result = flush.run_staci_flush(inp_path, config_path)
 
@@ -127,24 +127,14 @@ def test_run_staci_flush_builds_command_and_collects_outputs(
     assert result.output_dir == output_dir.resolve()
     assert result.success is True
     assert result.partial is False
-    assert result.plan_csv_path == (
-        output_dir.resolve() / "flushing_plan.csv"
-    )
-    assert result.stdout_path.read_text(
-        encoding="utf-8"
-    ) == "flush stdout\n"
-    assert result.stderr_path.read_text(
-        encoding="utf-8"
-    ) == "flush stderr\n"
+    assert result.plan_csv_path == (output_dir.resolve() / "flushing_plan.csv")
+    assert result.stdout_path.read_text(encoding="utf-8") == "flush stdout\n"
+    assert result.stderr_path.read_text(encoding="utf-8") == "flush stderr\n"
     assert result.scenario_hydrants_path == (
-        output_dir.resolve()
-        / "scenario_hydrants.csv"
+        output_dir.resolve() / "scenario_hydrants.csv"
     )
 
-    assert result.scenario_pipes_path == (
-        output_dir.resolve()
-        / "scenario_pipes.csv"
-    )
+    assert result.scenario_pipes_path == (output_dir.resolve() / "scenario_pipes.csv")
 
 
 def test_run_staci_flush_recognizes_partial_results(
@@ -169,7 +159,7 @@ def test_run_staci_flush_recognizes_partial_results(
             stderr="invalid scenario\n",
         )
 
-    monkeypatch.setattr(flush.subprocess, "run", fake_run)
+    monkeypatch.setattr(runtime.subprocess, "run", fake_run)
 
     result = flush.run_staci_flush(inp_path, config_path)
 
@@ -231,18 +221,18 @@ def test_run_staci_flush_writes_partial_logs_on_timeout(
             stderr=b"partial flush \xffstderr",
         )
 
-    monkeypatch.setattr(flush.subprocess, "run", fake_run)
+    monkeypatch.setattr(runtime.subprocess, "run", fake_run)
 
     with pytest.raises(TimeoutError, match="29 s timeout"):
         flush.run_staci_flush(inp_path, config_path)
 
-    assert (
-        config_path.parent / "staci_flush.stdout.log"
-    ).read_text(encoding="utf-8") == "partial flush stdout"
+    assert (config_path.parent / "staci_flush.stdout.log").read_text(
+        encoding="utf-8"
+    ) == "partial flush stdout"
 
-    assert (
-        config_path.parent / "staci_flush.stderr.log"
-    ).read_text(encoding="utf-8") == "partial flush \ufffdstderr"
+    assert (config_path.parent / "staci_flush.stderr.log").read_text(
+        encoding="utf-8"
+    ) == "partial flush \ufffdstderr"
 
 
 def test_run_staci_flush_wraps_process_start_failure(
@@ -258,7 +248,7 @@ def test_run_staci_flush_wraps_process_start_failure(
     ) -> subprocess.CompletedProcess[str]:
         raise OSError("process could not start")
 
-    monkeypatch.setattr(flush.subprocess, "run", fake_run)
+    monkeypatch.setattr(runtime.subprocess, "run", fake_run)
 
     with pytest.raises(
         RuntimeError,

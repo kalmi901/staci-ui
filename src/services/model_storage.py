@@ -5,8 +5,7 @@ import uuid
 from pathlib import Path
 from typing import TypedDict
 
-from src.config import UPLOAD_ROOT, MAX_INP_UPLOAD_BYTES, MAX_INP_UPLOAD_MIB
-
+from src.config import MAX_INP_UPLOAD_BYTES, MAX_INP_UPLOAD_MIB, UPLOAD_ROOT
 
 _MODEL_ID_PATTERN = re.compile(r"^[a-f0-9]{12}$")
 _UNSAFE_FILENAME_PATTERN = re.compile(r"[^A-Za-z0-9_.-]+")
@@ -36,9 +35,7 @@ def store_uploaded_model(
 
     if len(file_bytes) > MAX_INP_UPLOAD_BYTES:
         raise ValueError(
-            f"INP file exceeds the "
-            f"{MAX_INP_UPLOAD_MIB} MiB upload limit: "
-            f"{safe_name}"
+            f"INP file exceeds the {MAX_INP_UPLOAD_MIB} MiB upload limit: {safe_name}"
         )
 
     model_id = uuid.uuid4().hex[:12]
@@ -66,18 +63,12 @@ def resolve_uploaded_model(
 
     upload_root = UPLOAD_ROOT.resolve()
 
-    path = (
-        upload_root
-        / model_id
-        / Path(filename).name
-    ).resolve()
+    path = (upload_root / model_id / Path(filename).name).resolve()
 
     if not path.is_relative_to(upload_root):
         raise ValueError("Invalid uploaded model path.")
 
     if not path.is_file():
-        raise FileNotFoundError(
-            f"Uploaded model does not exist: {path}"
-        )
+        raise FileNotFoundError(f"Uploaded model does not exist: {path}")
 
     return path

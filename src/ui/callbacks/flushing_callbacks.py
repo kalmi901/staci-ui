@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import math
 import re
 
 import dash_bootstrap_components as dbc
@@ -9,14 +8,17 @@ from dash import Input, Output, State, html
 from dash.exceptions import PreventUpdate
 
 from src.run_logging import logged_run
-from src.services.flushing_runner import call_staci_flush_service, load_flushing_scenario
+from src.services.flushing_runner import (
+    call_staci_flush_service,
+    load_flushing_scenario,
+)
 from src.services.model_storage import resolve_uploaded_model
 from src.ui import ids
+from src.ui.callbacks.helpers import nonnegative_number, positive_number
 from src.ui.pages.components import render_active_model_summary
 from src.ui.pages.flushing_analysis import render_flushing_results
-from src.visualisation.flushing import make_flushing_scenario_figure
 from src.visualisation.common import make_empty_network_figure
-
+from src.visualisation.flushing import make_flushing_scenario_figure
 
 logger = logging.getLogger(__name__)
 
@@ -25,11 +27,7 @@ def parse_hydrant_ids(value: str | None) -> list[str]:
     if not value:
         raise ValueError("Enter at least one hydrant junction ID.")
 
-    node_ids = [
-        part.strip()
-        for part in re.split(r"[,;\r\n]+", value)
-        if part.strip()
-    ]
+    node_ids = [part.strip() for part in re.split(r"[,;\r\n]+", value) if part.strip()]
 
     if not node_ids:
         raise ValueError("Enter at least one hydrant junction ID.")
@@ -38,30 +36,6 @@ def parse_hydrant_ids(value: str | None) -> list[str]:
         raise ValueError("Hydrant junction IDs must be unique.")
 
     return node_ids
-
-
-def _positive_number(value, label: str) -> float:
-    try:
-        number = float(value)
-    except (TypeError, ValueError) as exc:
-        raise ValueError(f"{label} must be a number.") from exc
-
-    if not math.isfinite(number) or number <= 0:
-        raise ValueError(f"{label} must be greater than zero.")
-
-    return number
-
-
-def _nonnegative_number(value, label: str) -> float:
-    try:
-        number = float(value)
-    except (TypeError, ValueError) as exc:
-        raise ValueError(f"{label} must be a number.") from exc
-
-    if not math.isfinite(number) or number < 0:
-        raise ValueError(f"{label} must be zero or greater.")
-
-    return number
 
 
 def register_flushing_callbacks(app):
@@ -126,22 +100,10 @@ def register_flushing_callbacks(app):
             if mode not in {"single", "multi"}:
                 raise ValueError("Select a valid flushing mode.")
 
-            area = _positive_number(
-                hydrant_area,
-                "Outlet area",
-            )
-            coefficient = _positive_number(
-                loss_coefficient,
-                "Total loss coefficient",
-            )
-            threshold = _nonnegative_number(
-                velocity_threshold,
-                "Velocity threshold",
-            )
-            pressure = _nonnegative_number(
-                min_pressure_head,
-                "Minimum pressure head",
-            )
+            area = positive_number(hydrant_area, "Outlet area")
+            coefficient = positive_number(loss_coefficient, "Total loss coefficient")
+            threshold = nonnegative_number(velocity_threshold, "Velocity threshold")
+            pressure = nonnegative_number(min_pressure_head, "Minimum pressure head")
 
             inp_path = resolve_uploaded_model(
                 network_state["model_id"],
@@ -149,8 +111,7 @@ def register_flushing_callbacks(app):
             )
 
             logger.info(
-                "Flushing plan started: "
-                "model_id=%s mode=%s hydrants=%d",
+                "Flushing plan started: model_id=%s mode=%s hydrants=%d",
                 network_state.get("model_id", ""),
                 mode,
                 len(hydrant_ids),
@@ -169,8 +130,7 @@ def register_flushing_callbacks(app):
             )
 
             logger.info(
-                "Flushing plan finished: "
-                "run_id=%s model_id=%s status=%s scenarios=%s",
+                "Flushing plan finished: run_id=%s model_id=%s status=%s scenarios=%s",
                 run_state.get("run_id", ""),
                 run_state.get("model_id", ""),
                 run_state.get("status", ""),
@@ -188,11 +148,7 @@ def register_flushing_callbacks(app):
                 className="upload-alert",
             )
 
-        color = (
-            "warning"
-            if run_state.get("partial")
-            else "success"
-        )
+        color = "warning" if run_state.get("partial") else "success"
         message = (
             "Flushing plan completed with partial results."
             if run_state.get("partial")
@@ -243,7 +199,9 @@ def register_flushing_callbacks(app):
     ):
         if not run_state or not scenario_id:
             return make_empty_network_figure(
-                "Run STACI Flush and select a scenario."
+                "Run STACI Flush and select a scenario.",
+                icon="🚿",
+                title="No flushing scenario selected",
             )
 
         try:
@@ -254,14 +212,14 @@ def register_flushing_callbacks(app):
 
         except Exception as exc:
             logger.exception(
-                "Flushing scenario load failed: "
-                "run_id=%s scenario_id=%s",
+                "Flushing scenario load failed: run_id=%s scenario_id=%s",
                 run_state.get("run_id", ""),
                 scenario_id,
             )
 
             return make_empty_network_figure(
-                f"Could not load flushing scenario: {exc}"
+                f"Could not load flushing scenario: {exc}",
+                tone="danger",
             )
 
         candidate_ids = (
@@ -281,5 +239,5 @@ def register_flushing_callbacks(app):
             candidate_hydrant_ids=candidate_ids,
             line_width_scale=line_width_scale,
             marker_size=marker_size,
-            hide_nodes=hide_nodes
+            hide_nodes=hide_nodes,
         )

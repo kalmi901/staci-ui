@@ -4,43 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from dash import dcc, html
 import dash_bootstrap_components as dbc
-
-
-_COLOR_RANGE_DIGITS = {
-    "elevation": 2,
-    "length": 2,
-    "roughness": 2,
-    "head": 2,
-    "pressure": 2,
-    "diameter": 4,
-    "velocity": 4,
-    "headloss": 4,
-    "demand": 6,
-    "flowrate": 6,
-}
-
-
-def round_color_range_value(
-    attribute: str | None,
-    value: Any,
-) -> float | None:
-    if value is None:
-        return None
-
-    try:
-        number = float(value)
-    except (TypeError, ValueError):
-        return None
-
-    digits = _COLOR_RANGE_DIGITS.get(
-        str(attribute),
-        4,
-    )
-
-    return round(number, digits)
-
+from dash import dcc, html
 
 
 def create_page_header(
@@ -97,7 +62,7 @@ def render_active_model_summary(
 ):
     if not network_state:
         return render_empty_model_summary(
-            "Go to Load Model and upload an EPANET .inp file first."
+            "Go to Load Model and upload an EPANET INP file first."
         )
 
     summary = network_state.get("summary", {})
@@ -117,14 +82,13 @@ def render_active_model_summary(
                                 className="model-summary-title",
                             ),
                             html.Div(
-                                f"Model ID: "
-                                f"{network_state.get('model_id', '—')}",
+                                f"Model ID: {network_state.get('model_id', '—')}",
                                 className="small-status",
                             ),
                         ],
                     ),
                     dbc.Badge(
-                        "Model Ready",
+                        "Model ready",
                         color="success",
                     ),
                 ],
@@ -168,6 +132,53 @@ def create_active_model_section(
     )
 
 
+def create_settings_grid(
+    children: list[Any],
+):
+    return html.Div(
+        className="settings-grid",
+        children=children,
+    )
+
+
+def create_number_field(
+    label: str,
+    component_id: str,
+    value: float | int | None,
+    *,
+    min_value: float | int | None = None,
+    max_value: float | int | None = None,
+    step: float | int | str = "any",
+    disabled: bool = False,
+    persist: bool = True,
+):
+    input_properties: dict[str, Any] = {
+        "id": component_id,
+        "type": "number",
+        "value": value,
+        "step": step,
+        "disabled": disabled,
+    }
+
+    if min_value is not None:
+        input_properties["min"] = min_value
+
+    if max_value is not None:
+        input_properties["max"] = max_value
+
+    if persist:
+        input_properties["persistence"] = True
+        input_properties["persistence_type"] = "memory"
+
+    return html.Div(
+        className="settings-field",
+        children=[
+            dbc.Label(label),
+            dbc.Input(**input_properties),
+        ],
+    )
+
+
 def create_color_range_control(
     label: str,
     minimum_id: str,
@@ -186,7 +197,7 @@ def create_color_range_control(
                         id=minimum_id,
                         type="number",
                         step="any",
-                        placeholder=f"{placeholder_prefix}-min",
+                        placeholder="Minimum",
                         persistence=True,
                         persistence_type="memory",
                     ),
@@ -194,7 +205,7 @@ def create_color_range_control(
                         id=maximum_id,
                         type="number",
                         step="any",
-                        placeholder=f"{placeholder_prefix}-max",
+                        placeholder="Maximum",
                         persistence=True,
                         persistence_type="memory",
                     ),
@@ -217,7 +228,7 @@ def create_network_display_controls(
             html.Div(
                 className="plot-control",
                 children=[
-                    dbc.Label("Line width scale"),
+                    dbc.Label("Line width"),
                     dbc.Input(
                         id=line_width_id,
                         type="number",
@@ -247,9 +258,7 @@ def create_network_display_controls(
                 ],
             ),
             html.Div(
-                className=(
-                    "plot-control network-display-toggle"
-                ),
+                className=("plot-control network-display-toggle"),
                 children=[
                     dbc.Label("Network nodes"),
                     dbc.Switch(
@@ -293,12 +302,35 @@ def create_run_section(
                         show_initially=show_initially,
                         children=html.Div(
                             id=status_id,
-                            className=(
-                                f"small-status {status_class_name}"
-                            ),
+                            className=(f"small-status {status_class_name}"),
                         ),
                     )
                 ],
             ),
+        ],
+    )
+
+
+def create_empty_state(
+    icon: str,
+    title: str,
+    message: str,
+    *,
+    large: bool = False,
+):
+    class_name = "results-placeholder"
+
+    if large:
+        class_name += " results-placeholder-large"
+
+    return html.Div(
+        className=class_name,
+        children=[
+            html.Div(
+                icon,
+                className="results-placeholder-icon",
+            ),
+            html.H3(title),
+            html.P(message),
         ],
     )
