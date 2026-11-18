@@ -7,7 +7,6 @@ import pytest
 from src.config import STACI_SPLIT_EXECUTABLE
 from src.services import partition_runner
 
-
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "net1.inp"
 RUN_ID = "123456abcdef"
 MODEL_ID = "012345abcdef"
@@ -58,9 +57,7 @@ def test_call_staci_split_service_runs_real_executable(
     assert 1 <= result["n_communities"] <= 3
     assert len(result["node_community"]) == result["n_nodes"]
     assert sum(result["n_community_members"].values()) == result["n_nodes"]
-    assert set(result["node_community"].values()) == set(
-        result["n_community_members"]
-    )
+    assert set(result["node_community"].values()) == set(result["n_community_members"])
     assert {"10", "11", "12"}.issubset(result["node_community"])
 
     assert copied_input.read_bytes() == FIXTURE_PATH.read_bytes()
@@ -71,7 +68,7 @@ def test_call_staci_split_service_runs_real_executable(
 
     settings_root = ET.parse(settings_path).getroot()
     settings = {element.tag: element.text for element in settings_root}
-    assert Path(settings["fname"]) == copied_input.resolve()    # type: ignore
+    assert Path(settings["fname"]) == copied_input.resolve()  # type: ignore
     assert settings["n_comm"] == "3"
     assert settings["popsize"] == "8"
     assert settings["ngen"] == "10"

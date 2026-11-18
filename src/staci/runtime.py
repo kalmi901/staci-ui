@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
 import os
-from pathlib import Path
 import subprocess
+from collections.abc import Sequence
+from pathlib import Path
 from typing import Literal
 
 
@@ -15,17 +15,9 @@ def default_staci_executable(
         "staci_flush",
     ] = "staci",
 ) -> Path:
-    bin_dir = (
-        Path(__file__).resolve().parents[1]
-        / "bin"
-        / "staci"
-    )
+    bin_dir = Path(__file__).resolve().parents[1] / "bin" / "staci"
 
-    executable = (
-        f"{module}.exe"
-        if os.name == "nt"
-        else module
-    )
+    executable = f"{module}.exe" if os.name == "nt" else module
 
     return bin_dir / executable
 
@@ -89,13 +81,11 @@ def run_staci_process(
             stderr=exc.stderr,
         )
         raise TimeoutError(
-            f"{operation} exceeded the "
-            f"{timeout_seconds} s timeout."
+            f"{operation} exceeded the {timeout_seconds} s timeout."
         ) from exc
     except OSError as exc:
         raise RuntimeError(
-            f"{operation} execution failed: "
-            f"{type(exc).__name__}: {exc}"
+            f"{operation} execution failed: {type(exc).__name__}: {exc}"
         ) from exc
 
     _write_process_logs(

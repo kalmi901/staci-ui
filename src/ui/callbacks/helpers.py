@@ -5,7 +5,6 @@ import math
 from collections.abc import Mapping
 from typing import Any
 
-
 _COLOR_RANGE_DIGITS = {
     "elevation": 2,
     "length": 2,
@@ -34,9 +33,7 @@ def decode_upload_contents(
             validate=True,
         )
     except (TypeError, ValueError) as exc:
-        raise ValueError(
-            "Invalid uploaded file encoding."
-        ) from exc
+        raise ValueError("Invalid uploaded file encoding.") from exc
 
 
 def finite_number(
@@ -44,21 +41,15 @@ def finite_number(
     label: str,
 ) -> float:
     if isinstance(value, bool):
-        raise ValueError(
-            f"{label} must be a number."
-        )
+        raise ValueError(f"{label} must be a number.")
 
     try:
         number = float(value)
     except (TypeError, ValueError) as exc:
-        raise ValueError(
-            f"{label} must be a number."
-        ) from exc
+        raise ValueError(f"{label} must be a number.") from exc
 
     if not math.isfinite(number):
-        raise ValueError(
-            f"{label} must be a finite number."
-        )
+        raise ValueError(f"{label} must be a finite number.")
 
     return number
 
@@ -70,9 +61,7 @@ def positive_number(
     number = finite_number(value, label)
 
     if number <= 0:
-        raise ValueError(
-            f"{label} must be greater than zero."
-        )
+        raise ValueError(f"{label} must be greater than zero.")
 
     return number
 
@@ -84,9 +73,7 @@ def nonnegative_number(
     number = finite_number(value, label)
 
     if number < 0:
-        raise ValueError(
-            f"{label} must be zero or greater."
-        )
+        raise ValueError(f"{label} must be zero or greater.")
 
     return number
 
@@ -134,10 +121,7 @@ def resolve_color_range_outputs(
         info.get("max"),
     )
 
-    disabled = (
-        minimum is None
-        or maximum is None
-    )
+    disabled = minimum is None or maximum is None
 
     return (
         minimum,

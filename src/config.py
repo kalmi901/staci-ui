@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import os
 from pathlib import Path
 
@@ -32,22 +33,14 @@ MAX_UPLOAD_REQUEST_MIB = int(
 )
 
 if MAX_INP_UPLOAD_MIB <= 0:
-    raise ValueError(
-        "STACI_UI_MAX_INP_UPLOAD_MIB must be positive."
-    )
+    raise ValueError("STACI_UI_MAX_INP_UPLOAD_MIB must be positive.")
 
 if MAX_UPLOAD_REQUEST_MIB <= 0:
-    raise ValueError(
-        "STACI_UI_MAX_UPLOAD_REQUEST_MIB must be positive."
-    )
+    raise ValueError("STACI_UI_MAX_UPLOAD_REQUEST_MIB must be positive.")
 
-MAX_INP_UPLOAD_BYTES = (
-    MAX_INP_UPLOAD_MIB * 1024 * 1024
-)
+MAX_INP_UPLOAD_BYTES = MAX_INP_UPLOAD_MIB * 1024 * 1024
 
-MAX_UPLOAD_REQUEST_BYTES = (
-    MAX_UPLOAD_REQUEST_MIB * 1024 * 1024
-)
+MAX_UPLOAD_REQUEST_BYTES = MAX_UPLOAD_REQUEST_MIB * 1024 * 1024
 
 CELERY_BROKER_URL = os.getenv(
     "CELERY_BROKER_URL",
@@ -59,27 +52,23 @@ CELERY_RESULT_BACKEND = os.getenv(
     "redis://localhost:6379/1",
 )
 
-CELERY_RESULT_EXPIRES_SECONDS = int(
-    os.getenv("CELERY_RESULT_EXPIRES_SECONDS", "3600")
-)
+CELERY_RESULT_EXPIRES_SECONDS = int(os.getenv("CELERY_RESULT_EXPIRES_SECONDS", "3600"))
 
 if CELERY_RESULT_EXPIRES_SECONDS <= 0:
-    raise ValueError(
-        "CELERY_RESULT_EXPIRES_SECONDS must be positive."
-    )
+    raise ValueError("CELERY_RESULT_EXPIRES_SECONDS must be positive.")
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 _data_root_env = os.getenv("STACI_UI_DATA_DIR")
 
 DATA_ROOT = (
-    Path(_data_root_env).expanduser().resolve() 
+    Path(_data_root_env).expanduser().resolve()
     if _data_root_env
     else PROJECT_ROOT / "data"
 )
 
 UPLOAD_ROOT = DATA_ROOT / "uploads"
-RUN_ROOT    = DATA_ROOT / "runs"
+RUN_ROOT = DATA_ROOT / "runs"
 
 _staci_executable = os.getenv("STACI_EXECUTABLE")
 _staci_split_executable = os.getenv("STACI_SPLIT_EXECUTABLE")
@@ -87,14 +76,16 @@ _staci_calibrate_executable = os.getenv("STACI_CALIBRATE_EXECUTABLE")
 _staci_flush_executable = os.getenv("STACI_FLUSH_EXECUTABLE")
 
 STACI_EXECUTABLE = (
-    Path(_staci_executable).expanduser().resolve() 
+    Path(_staci_executable).expanduser().resolve()
     if _staci_executable
-    else default_staci_executable("staci"))
+    else default_staci_executable("staci")
+)
 
 STACI_SPLIT_EXECUTABLE = (
     Path(_staci_split_executable).expanduser().resolve()
     if _staci_split_executable
-    else default_staci_executable("staci_split"))
+    else default_staci_executable("staci_split")
+)
 
 STACI_CALIBRATE_EXECUTABLE = (
     Path(_staci_calibrate_executable).expanduser().resolve()
@@ -108,6 +99,4 @@ STACI_FLUSH_EXECUTABLE = (
     else default_staci_executable("staci_flush")
 )
 
-STACI_TIMEOUT_SECONDS = int(
-    os.getenv("STACI_TIMEOUT_SECONDS", "300")
-)
+STACI_TIMEOUT_SECONDS = int(os.getenv("STACI_TIMEOUT_SECONDS", "300"))

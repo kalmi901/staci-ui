@@ -1,8 +1,10 @@
 from __future__ import annotations
+
 from dash import dcc, html
 
 from src.ui import ids
 from src.ui.sidebar import create_sidebar
+
 
 def create_app_shell():
     return html.Div(
@@ -18,6 +20,6 @@ def create_app_shell():
             dcc.Store(id=ids.CAL_MEASUREMENT_STORE, storage_type="memory"),
             dcc.Store(id=ids.CAL_RUN_STORE, storage_type="memory"),
             create_sidebar(),
-            html.Main(id=ids.PAGE_CONTENT, className="page-content")
-        ]
+            html.Main(id=ids.PAGE_CONTENT, className="page-content"),
+        ],
     )

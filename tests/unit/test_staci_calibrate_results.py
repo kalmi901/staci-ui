@@ -7,6 +7,7 @@ from src.results.calibration import (
     parse_calibration_history,
 )
 
+
 def test_parse_calibration_best_returns_pipes_and_comparisons(
     tmp_path: Path,
 ) -> None:
@@ -17,18 +18,9 @@ def test_parse_calibration_best_returns_pipes_and_comparisons(
                 "Small ; Large ;",
                 "1.10000e-01 ; 2.10000e-01 ;",
                 "1.10000e+00 ; 1.05000e+00 ;",
-                (
-                    "Sollwert J1 ; J1 ; "
-                    "Sollwert T1 ; T1 ;"
-                ),
-                (
-                    "3.03000e+01 ; 3.02000e+01 ; "
-                    "3.00000e+01 ; 3.00000e+01 ;"
-                ),
-                (
-                    "3.02000e+01 ; 3.01000e+01 ; "
-                    "3.01000e+01 ; 3.00900e+01 ;"
-                ),
+                ("Sollwert J1 ; J1 ; Sollwert T1 ; T1 ;"),
+                ("3.03000e+01 ; 3.02000e+01 ; 3.00000e+01 ; 3.00000e+01 ;"),
+                ("3.02000e+01 ; 3.01000e+01 ; 3.01000e+01 ; 3.00900e+01 ;"),
             ]
         )
         + "\n",
@@ -47,12 +39,8 @@ def test_parse_calibration_best_returns_pipes_and_comparisons(
     assert len(result.comparisons) == 4
     assert result.comparisons[0].period_index == 0
     assert result.comparisons[0].measurement_id == "J1"
-    assert result.comparisons[0].measured_value == pytest.approx(
-        30.3
-    )
-    assert result.comparisons[0].computed_value == pytest.approx(
-        30.2
-    )
+    assert result.comparisons[0].measured_value == pytest.approx(30.3)
+    assert result.comparisons[0].computed_value == pytest.approx(30.2)
 
 
 def test_parse_calibration_history_returns_optimizer_log(
@@ -60,8 +48,7 @@ def test_parse_calibration_history_returns_optimizer_log(
 ) -> None:
     path = tmp_path / "bog.dat"
     path.write_text(
-        "1;6;1.25000e-02;3.00000e-03;\n"
-        "10;60;2.50000e-03;1.00000e-03;\n",
+        "1;6;1.25000e-02;3.00000e-03;\n10;60;2.50000e-03;1.00000e-03;\n",
         encoding="utf-8",
     )
 
@@ -79,13 +66,7 @@ def test_parse_calibration_history_returns_optimizer_log(
     [
         "",
         "Pipe1;\n0.1;\n1.0;\n",
-        (
-            "Pipe1;Pipe2;\n"
-            "0.1;\n"
-            "1.0;1.0;\n"
-            "Sollwert J1;J1;\n"
-            "10.0;10.0;\n"
-        ),
+        ("Pipe1;Pipe2;\n0.1;\n1.0;1.0;\nSollwert J1;J1;\n10.0;10.0;\n"),
     ],
 )
 def test_parse_calibration_best_rejects_malformed_results(

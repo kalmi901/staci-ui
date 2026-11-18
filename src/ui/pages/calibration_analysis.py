@@ -2,10 +2,11 @@
 # pyright: reportCallIssue=false
 from __future__ import annotations
 
+from typing import Any
+
 import dash_bootstrap_components as dbc
 from dash import dash_table, dcc, html
 from dash.development.base_component import Component
-from typing import Any
 
 from src.ui import ids
 from src.ui.pages.components import (
@@ -14,11 +15,11 @@ from src.ui.pages.components import (
     create_number_field,
     create_page_header,
     create_run_section,
-    create_settings_grid
+    create_settings_grid,
 )
 from src.visualisation.calibration import (
+    make_calibration_history_figure,
     make_calibration_residual_figure,
-    make_calibration_history_figure
 )
 
 
@@ -231,9 +232,7 @@ def render_calibration_results(
             children=[
                 create_metric_item(
                     "Status",
-                    str(
-                        run_state.get("status", "—")
-                    ).title(),
+                    str(run_state.get("status", "—")).title(),
                 ),
                 create_metric_item(
                     "Snapshots",
@@ -333,17 +332,11 @@ def render_calibration_results(
                         children=[
                             html.H3(
                                 "Optimizer convergence (sampled every 10 generations)",
-                                className=(
-                                    "calibration-result-heading"
-                                ),
+                                className=("calibration-result-heading"),
                             ),
                             dcc.Graph(
                                 id=ids.CAL_HISTORY_GRAPH,
-                                figure=(
-                                    make_calibration_history_figure(
-                                        run_state
-                                    )
-                                ),
+                                figure=(make_calibration_history_figure(run_state)),
                                 config={
                                     "displaylogo": False,
                                 },
@@ -354,17 +347,11 @@ def render_calibration_results(
                         children=[
                             html.H3(
                                 "Calibration residuals",
-                                className=(
-                                    "calibration-result-heading"
-                                ),
+                                className=("calibration-result-heading"),
                             ),
                             dcc.Graph(
                                 id=ids.CAL_RESIDUAL_GRAPH,
-                                figure=(
-                                    make_calibration_residual_figure(
-                                        run_state
-                                    )
-                                ),
+                                figure=(make_calibration_residual_figure(run_state)),
                                 config={
                                     "displaylogo": False,
                                 },
@@ -402,12 +389,8 @@ def _create_input_card():
                                 multiple=True,
                             ),
                             html.Div(
-                                id=(
-                                    ids.CAL_SNAPSHOT_UPLOAD_STATUS
-                                ),
-                                className=(
-                                    "small-status upload-status"
-                                ),
+                                id=(ids.CAL_SNAPSHOT_UPLOAD_STATUS),
+                                className=("small-status upload-status"),
                             ),
                         ],
                     ),
@@ -425,9 +408,7 @@ def _create_input_card():
                                 id=ids.CAL_SNAPSHOT_SELECTION,
                                 options=[],
                                 value=[],
-                                className=(
-                                    "calibration-snapshot-list"
-                                ),
+                                className=("calibration-snapshot-list"),
                                 persistence=True,
                                 persistence_type="memory",
                             ),
@@ -452,9 +433,7 @@ def _create_input_card():
                             ),
                             html.Div(
                                 id=ids.CAL_MEASUREMENTS_STATUS,
-                                className=(
-                                    "small-status upload-status"
-                                ),
+                                className=("small-status upload-status"),
                             ),
                         ],
                     ),
@@ -462,9 +441,7 @@ def _create_input_card():
                     html.Div(
                         id=ids.CAL_INPUT_SUMMARY,
                         className="soft-panel",
-                        children=(
-                            "Upload network snapshots to begin."
-                        ),
+                        children=("Upload network snapshots to begin."),
                     ),
                     html.Hr(),
                     _create_optimizer_section(),
@@ -473,7 +450,7 @@ def _create_input_card():
                         "Run calibration",
                         ids.CAL_RUN_BUTTON,
                         ids.CAL_RUN_STATUS,
-                        status_class_name="calibration-run-status"
+                        status_class_name="calibration-run-status",
                     ),
                 ]
             ),
@@ -489,15 +466,11 @@ def _create_workspace_card():
             dbc.CardBody(
                 children=[
                     html.Div(
-                        className=(
-                            "calibration-table-header"
-                        ),
+                        className=("calibration-table-header"),
                         children=[
                             html.Div(
                                 children=[
-                                    html.H3(
-                                        "Measurement editor"
-                                    ),
+                                    html.H3("Measurement editor"),
                                     html.P(
                                         "Node values are pressure "
                                         "head in metres. Pool values "
@@ -594,10 +567,7 @@ def create_layout():
                 "STACI Calibrate",
             ),
             html.Div(
-                className=(
-                    "analysis-workspace "
-                    "calibration-workspace"
-                ),
+                className=("analysis-workspace calibration-workspace"),
                 children=[
                     _create_input_card(),
                     _create_workspace_card(),

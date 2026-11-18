@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import math
-import plotly.graph_objects as go
-
+from collections.abc import Mapping, Sequence
 from typing import Any
-from collections.abc import Sequence, Mapping
 
+import plotly.graph_objects as go
 
 DEFAULT_FIGURE_LAYOUT = {
     "template": "plotly_white",
@@ -64,6 +63,7 @@ EMPTY_FIGURE_TONES = {
     },
 }
 
+
 def normalize_display_value(
     value: Any,
     *,
@@ -85,13 +85,9 @@ def normalize_display_value(
     )
 
 
-def make_discrete_colorscale(
-    colors: Sequence[str]
-) -> list[list[float | str]]:
+def make_discrete_colorscale(colors: Sequence[str]) -> list[list[float | str]]:
     if not colors:
-        raise ValueError(
-            "At least one color is required."
-        )
+        raise ValueError("At least one color is required.")
 
     colorscale: list[list[float | str]] = []
     color_count = len(colors)
@@ -136,12 +132,8 @@ def append_line_segment(
     start: tuple[float, float],
     end: tuple[float, float],
 ) -> None:
-    coordinates["x"].extend(
-        [start[0], end[0], None]
-    )
-    coordinates["y"].extend(
-        [start[1], end[1], None]
-    )
+    coordinates["x"].extend([start[0], end[0], None])
+    coordinates["y"].extend([start[1], end[1], None])
 
 
 def model_ids_are_compatible(
@@ -152,9 +144,7 @@ def model_ids_are_compatible(
     second_model_id = second_state.get("model_id")
 
     return not (
-        first_model_id
-        and second_model_id
-        and first_model_id != second_model_id
+        first_model_id and second_model_id and first_model_id != second_model_id
     )
 
 
@@ -210,9 +200,7 @@ def make_empty_figure(
     layout: Mapping[str, Any] | None = None,
 ) -> go.Figure:
     if tone not in EMPTY_FIGURE_TONES:
-        raise ValueError(
-            f"Unsupported empty-figure tone: {tone!r}"
-        )
+        raise ValueError(f"Unsupported empty-figure tone: {tone!r}")
 
     tone_style = EMPTY_FIGURE_TONES[tone]
 
@@ -295,9 +283,7 @@ def make_empty_figure(
 
 
 def make_empty_network_figure(
-    message: str = (
-        "Upload a model to view the network preview."
-    ),
+    message: str = ("Upload a model to view the network preview."),
     *,
     icon: str | None = None,
     title: str | None = None,

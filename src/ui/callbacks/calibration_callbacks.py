@@ -1,15 +1,11 @@
 from __future__ import annotations
+
 import logging
 import re
 from typing import Any
 
 import dash_bootstrap_components as dbc
-from dash import (
-    Input,
-    Output,
-    State,
-    html
-)
+from dash import Input, Output, State, html
 from dash.exceptions import PreventUpdate
 
 from src.run_logging import logged_run
@@ -20,12 +16,12 @@ from src.services.calibration_storage import (
     store_calibration_snapshots,
 )
 from src.ui import ids
-from src.ui.pages.calibration_analysis import render_calibration_results
 from src.ui.callbacks.helpers import (
     decode_upload_contents,
     finite_number,
     positive_number,
 )
+from src.ui.pages.calibration_analysis import render_calibration_results
 
 logger = logging.getLogger(__name__)
 
@@ -55,9 +51,7 @@ def _measurement_columns(
 
         columns.append(
             {
-                "name": (
-                    f"Period {period_index} · {filename}"
-                ),
+                "name": (f"Period {period_index} · {filename}"),
                 "id": f"value_{period_index}",
                 "type": "numeric",
             }
@@ -73,17 +67,11 @@ def _measurement_rows(
     if not snapshot_state or not measurement_state:
         return []
 
-    if (
-        measurement_state.get("upload_id")
-        != snapshot_state.get("upload_id")
-    ):
+    if measurement_state.get("upload_id") != snapshot_state.get("upload_id"):
         return []
 
     result: list[dict[str, Any]] = []
-    measurements = (
-        measurement_state.get("data", {})
-        .get("measurements", [])
-    )
+    measurements = measurement_state.get("data", {}).get("measurements", [])
 
     for measurement in measurements:
         values = measurement.get("values", [])
@@ -92,13 +80,9 @@ def _measurement_rows(
             "type": measurement.get("type", "node"),
         }
 
-        for period_index, _snapshot in enumerate(
-            snapshot_state.get("snapshots", [])
-        ):
+        for period_index, _snapshot in enumerate(snapshot_state.get("snapshots", [])):
             row[f"value_{period_index}"] = (
-                values[period_index]
-                if period_index < len(values)
-                else None
+                values[period_index] if period_index < len(values) else None
             )
 
         result.append(row)
@@ -123,9 +107,7 @@ def _positive_integer(
     number = positive_number(value, label)
 
     if not number.is_integer():
-        raise ValueError(
-            f"{label} must be an integer."
-        )
+        raise ValueError(f"{label} must be an integer.")
 
     return int(number)
 
@@ -137,9 +119,7 @@ def _nonnegative_integer(
     number = finite_number(value, label)
 
     if number < 0 or not number.is_integer():
-        raise ValueError(
-            f"{label} must be a non-negative integer."
-        )
+        raise ValueError(f"{label} must be a non-negative integer.")
 
     return int(number)
 
@@ -151,9 +131,7 @@ def _probability(
     number = finite_number(value, label)
 
     if number < 0 or number > 1:
-        raise ValueError(
-            f"{label} must be between 0 and 1."
-        )
+        raise ValueError(f"{label} must be between 0 and 1.")
 
     return number
 
@@ -171,14 +149,10 @@ def _parse_pipe_ids(
     ]
 
     if not pipe_ids:
-        raise ValueError(
-            "Enter at least one pipe ID."
-        )
+        raise ValueError("Enter at least one pipe ID.")
 
     if len(set(pipe_ids)) != len(pipe_ids):
-        raise ValueError(
-            "Pipe IDs must be unique."
-        )
+        raise ValueError("Pipe IDs must be unique.")
 
     return pipe_ids
 
@@ -189,38 +163,24 @@ def _prepare_calibration_inputs(
     measurement_rows: list[dict[str, Any]] | None,
 ) -> tuple[list[str], dict[str, Any]]:
     if not snapshot_state:
-        raise ValueError(
-            "Upload calibration INP snapshots first."
-        )
+        raise ValueError("Upload calibration INP snapshots first.")
 
     snapshots = snapshot_state.get("snapshots", [])
 
     if not isinstance(snapshots, list) or not snapshots:
-        raise ValueError(
-            "No calibration snapshots are available."
-        )
+        raise ValueError("No calibration snapshots are available.")
 
-    selected = {
-        str(filename)
-        for filename in (selected_snapshots or [])
-    }
+    selected = {str(filename) for filename in (selected_snapshots or [])}
 
     if not selected:
-        raise ValueError(
-            "Include at least one calibration snapshot."
-        )
+        raise ValueError("Include at least one calibration snapshot.")
 
-    available = {
-        str(snapshot["stored_filename"])
-        for snapshot in snapshots
-    }
+    available = {str(snapshot["stored_filename"]) for snapshot in snapshots}
 
     unknown = selected - available
 
     if unknown:
-        raise ValueError(
-            "The snapshot selection contains unknown files."
-        )
+        raise ValueError("The snapshot selection contains unknown files.")
 
     included_snapshots = [
         snapshot
@@ -229,55 +189,37 @@ def _prepare_calibration_inputs(
     ]
 
     if not measurement_rows:
-        raise ValueError(
-            "Enter at least one calibration measurement."
-        )
+        raise ValueError("Enter at least one calibration measurement.")
 
     measurements: list[dict[str, Any]] = []
     measurement_ids: set[str] = set()
 
     for row_index, row in enumerate(measurement_rows):
-        measurement_id = str(
-            row.get("id", "")
-        ).strip()
+        measurement_id = str(row.get("id", "")).strip()
 
         if not measurement_id:
-            raise ValueError(
-                "Measurement row "
-                f"{row_index + 1} requires an element ID."
-            )
+            raise ValueError(f"Measurement row {row_index + 1} requires an element ID.")
 
         if measurement_id in measurement_ids:
-            raise ValueError(
-                "Measurement IDs must be unique: "
-                f"{measurement_id!r}."
-            )
+            raise ValueError(f"Measurement IDs must be unique: {measurement_id!r}.")
 
-        measurement_type = str(
-            row.get("type", "")
-        ).lower()
+        measurement_type = str(row.get("type", "")).lower()
 
         if measurement_type not in {"node", "pool"}:
             raise ValueError(
-                f"Measurement {measurement_id!r} must "
-                "have type 'node' or 'pool'."
+                f"Measurement {measurement_id!r} must have type 'node' or 'pool'."
             )
 
         values: list[float] = []
 
         for snapshot in included_snapshots:
-            period_index = int(
-                snapshot["period_index"]
-            )
+            period_index = int(snapshot["period_index"])
             field = f"value_{period_index}"
 
             values.append(
                 finite_number(
                     row.get(field),
-                    (
-                        f"Measurement {measurement_id!r}, "
-                        f"period {period_index}"
-                    ),
+                    (f"Measurement {measurement_id!r}, period {period_index}"),
                 )
             )
 
@@ -291,8 +233,7 @@ def _prepare_calibration_inputs(
         )
 
     stored_filenames = [
-        str(snapshot["stored_filename"])
-        for snapshot in included_snapshots
+        str(snapshot["stored_filename"]) for snapshot in included_snapshots
     ]
 
     return stored_filenames, {
@@ -324,9 +265,7 @@ def _build_optimizer_settings(
     }
 
     if pipe_selection not in supported_selections:
-        raise ValueError(
-            "Select a valid pipe-selection method."
-        )
+        raise ValueError("Select a valid pipe-selection method.")
 
     settings: dict[str, Any] = {
         "type_of_pipe_selection": pipe_selection,
@@ -360,11 +299,9 @@ def _build_optimizer_settings(
         "largest_diameter",
         "most_sensitive",
     }:
-        settings["num_of_active_pipes"] = (
-            _positive_integer(
-                active_pipe_count,
-                "Active pipe count",
-            )
+        settings["num_of_active_pipes"] = _positive_integer(
+            active_pipe_count,
+            "Active pipe count",
         )
 
     elif pipe_selection == "Dmin":
@@ -374,9 +311,7 @@ def _build_optimizer_settings(
         )
 
     elif pipe_selection == "list":
-        settings["pipe_ids"] = _parse_pipe_ids(
-            pipe_ids
-        )
+        settings["pipe_ids"] = _parse_pipe_ids(pipe_ids)
 
     minimum = _optional_positive_number(
         min_diameter,
@@ -387,14 +322,9 @@ def _build_optimizer_settings(
         "Maximum calibrated diameter",
     )
 
-    if (
-        minimum is not None
-        and maximum is not None
-        and minimum >= maximum
-    ):
+    if minimum is not None and maximum is not None and minimum >= maximum:
         raise ValueError(
-            "Minimum calibrated diameter must be "
-            "less than maximum calibrated diameter."
+            "Minimum calibrated diameter must be less than maximum calibrated diameter."
         )
 
     if minimum is not None:
@@ -415,14 +345,14 @@ def register_calibration_callbacks(app):
     )
     def toggle_pipe_selection_controls(pipe_selection):
         return (
-            pipe_selection not in {
+            pipe_selection
+            not in {
                 "largest_diameter",
                 "most_sensitive",
             },
             pipe_selection != "list",
             pipe_selection != "Dmin",
         )
-
 
     @app.callback(
         Output(ids.CAL_SNAPSHOT_STORE, "data"),
@@ -476,13 +406,9 @@ def register_calibration_callbacks(app):
                     strict=True,
                 )
             ]
-            snapshot_state = (
-                store_calibration_snapshots(files)
-            )
+            snapshot_state = store_calibration_snapshots(files)
         except Exception as exc:
-            logger.exception(
-                "Calibration snapshot upload failed."
-            )
+            logger.exception("Calibration snapshot upload failed.")
             return (
                 None,
                 dbc.Alert(
@@ -507,14 +433,10 @@ def register_calibration_callbacks(app):
             for snapshot in snapshot_state["snapshots"]
         ]
 
-        selected = [
-            option["value"]
-            for option in options
-        ]
+        selected = [option["value"] for option in options]
 
         logger.info(
-            "Calibration snapshots uploaded: "
-            "upload_id=%s snapshots=%d",
+            "Calibration snapshots uploaded: upload_id=%s snapshots=%d",
             snapshot_state["upload_id"],
             len(options),
         )
@@ -555,17 +477,13 @@ def register_calibration_callbacks(app):
             )
 
         try:
-            measurement_state = (
-                store_calibration_measurements(
-                    snapshot_state["upload_id"],
-                    filename or "measurements.json",
-                    decode_upload_contents(contents),
-                )
+            measurement_state = store_calibration_measurements(
+                snapshot_state["upload_id"],
+                filename or "measurements.json",
+                decode_upload_contents(contents),
             )
         except Exception as exc:
-            logger.exception(
-                "Calibration measurement upload failed."
-            )
+            logger.exception("Calibration measurement upload failed.")
             return None, dbc.Alert(
                 f"Measurement upload failed: {exc}",
                 color="danger",
@@ -573,8 +491,7 @@ def register_calibration_callbacks(app):
             )
 
         logger.info(
-            "Calibration measurements uploaded: "
-            "upload_id=%s filename=%s",
+            "Calibration measurements uploaded: upload_id=%s filename=%s",
             snapshot_state["upload_id"],
             measurement_state["filename"],
         )
@@ -626,10 +543,7 @@ def register_calibration_callbacks(app):
         if not n_clicks:
             raise PreventUpdate
 
-        row: dict[str, Any] = {
-            column["id"]: None
-            for column in (columns or [])
-        }
+        row: dict[str, Any] = {column["id"]: None for column in (columns or [])}
         row["id"] = ""
         row["type"] = "node"
 
@@ -666,27 +580,20 @@ def register_calibration_callbacks(app):
                         else "Inputs incomplete"
                     ),
                     color=(
-                        "success"
-                        if included_count and measurement_count
-                        else "warning"
+                        "success" if included_count and measurement_count else "warning"
                     ),
                     className="mb-2",
                 ),
                 dbc.Row(
                     [
-                        dbc.Col(
-                            f"Snapshots: {included_count}/{total_count}"
-                        ),
-                        dbc.Col(
-                            f"Measurements: {measurement_count}"
-                        ),
+                        dbc.Col(f"Snapshots: {included_count}/{total_count}"),
+                        dbc.Col(f"Measurements: {measurement_count}"),
                     ],
                     className="small-status",
                 ),
-        ],
-        not inputs_ready
+            ],
+            not inputs_ready,
         )
-
 
     @app.callback(
         Output(ids.CAL_RUN_STORE, "data"),
@@ -751,21 +658,19 @@ def register_calibration_callbacks(app):
                 measurement_rows,
             )
 
-            optimizer_settings = (
-                _build_optimizer_settings(
-                    pipe_selection=pipe_selection,
-                    active_pipe_count=active_pipe_count,
-                    pipe_ids=pipe_ids,
-                    dmin=dmin,
-                    min_diameter=min_diameter,
-                    max_diameter=max_diameter,
-                    pressure_weight=pressure_weight,
-                    period_hours=period_hours,
-                    popsize=popsize,
-                    ngen=ngen,
-                    pmut=pmut,
-                    pcross=pcross,
-                )
+            optimizer_settings = _build_optimizer_settings(
+                pipe_selection=pipe_selection,
+                active_pipe_count=active_pipe_count,
+                pipe_ids=pipe_ids,
+                dmin=dmin,
+                min_diameter=min_diameter,
+                max_diameter=max_diameter,
+                pressure_weight=pressure_weight,
+                period_hours=period_hours,
+                popsize=popsize,
+                ngen=ngen,
+                pmut=pmut,
+                pcross=pcross,
             )
 
             seed_value = _nonnegative_integer(
@@ -773,11 +678,9 @@ def register_calibration_callbacks(app):
                 "Random seed",
             )
 
-            snapshot_paths = (
-                resolve_calibration_snapshots(
-                    snapshot_state["upload_id"],
-                    stored_filenames,
-                )
+            snapshot_paths = resolve_calibration_snapshots(
+                snapshot_state["upload_id"],
+                stored_filenames,
             )
 
             logger.info(
@@ -798,29 +701,17 @@ def register_calibration_callbacks(app):
             )
 
             logger.info(
-                "Calibration finished: "
-                "run_id=%s snapshots=%s "
-                "measurements=%s pipes=%s",
+                "Calibration finished: run_id=%s snapshots=%s measurements=%s pipes=%s",
                 run_state.get("run_id", ""),
-                run_state.get(
-                    "summary", {}
-                ).get("snapshot_count", ""),
-                run_state.get(
-                    "summary", {}
-                ).get("measurement_count", ""),
-                run_state.get(
-                    "summary", {}
-                ).get("calibrated_pipe_count", ""),
+                run_state.get("summary", {}).get("snapshot_count", ""),
+                run_state.get("summary", {}).get("measurement_count", ""),
+                run_state.get("summary", {}).get("calibrated_pipe_count", ""),
             )
 
         except Exception as exc:
             logger.exception(
                 "Calibration failed: upload_id=%s",
-                (
-                    snapshot_state.get("upload_id", "")
-                    if snapshot_state
-                    else ""
-                ),
+                (snapshot_state.get("upload_id", "") if snapshot_state else ""),
             )
 
             return None, dbc.Alert(
@@ -850,7 +741,6 @@ def register_calibration_callbacks(app):
             color="success",
             className="upload-alert",
         )
-
 
     @app.callback(
         Output(ids.CAL_RESULTS, "children"),

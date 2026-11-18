@@ -2,7 +2,6 @@ from src.visualisation.flushing import (
     make_flushing_scenario_figure,
 )
 
-
 NETWORK_VIEW_STATE = {
     "nodes": {
         "id": ["A", "B", "C"],
@@ -63,7 +62,7 @@ def test_make_flushing_coverage_figure_marks_results() -> None:
     )
 
     traces = {
-        trace.name: trace   # type: ignore[arg-type]
+        trace.name: trace  # type: ignore[arg-type]
         for trace in figure.data
     }
 
@@ -73,11 +72,11 @@ def test_make_flushing_coverage_figure_marks_results() -> None:
     assert "Open hydrants" in traces
 
     assert tuple(
-        traces["Open hydrants"].x # type: ignore
+        traces["Open hydrants"].x  # type: ignore
     ) == (1.0,)
 
     assert tuple(
-        traces["Candidate hydrants"].x # type: ignore
+        traces["Candidate hydrants"].x  # type: ignore
     ) == (2.0,)
 
 
@@ -91,10 +90,10 @@ def test_make_flushing_velocity_figure_adds_scale() -> None:
     scale_trace = next(
         trace
         for trace in figure.data
-        if trace.name == "Velocity scale"   # type: ignore[arg-type]
+        if trace.name == "Velocity scale"  # type: ignore[arg-type]
     )
 
-    assert scale_trace.marker.showscale is True # type: ignore[arg-type]
+    assert scale_trace.marker.showscale is True  # type: ignore[arg-type]
 
     assert "Open hydrants" in {
         trace.name  # type: ignore[arg-type]

@@ -7,7 +7,6 @@ import pytest
 from src.config import STACI_EXECUTABLE
 from src.services import hydraulic_runner
 
-
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "tiny_network.inp"
 RUN_ID = "fedcba543210"
 MODEL_ID = "012345abcdef"

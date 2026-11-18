@@ -2,8 +2,8 @@
 # pyright: reportCallIssue=false
 from __future__ import annotations
 
-from dash import dcc, html
 import dash_bootstrap_components as dbc
+from dash import dcc, html
 from dash.development.base_component import Component
 
 from src.ui import ids
@@ -15,7 +15,7 @@ from src.ui.pages.components import (
     create_number_field,
     create_page_header,
     create_run_section,
-    create_settings_grid
+    create_settings_grid,
 )
 from src.visualisation.common import make_empty_network_figure
 
@@ -56,21 +56,14 @@ def make_flushing_scenario_options(
 
     options = [
         {
-            "label": (
-                f"#{row.get('rank', '?')} · "
-                f"{row['node_id']}"
-            ),
+            "label": (f"#{row.get('rank', '?')} · {row['node_id']}"),
             "value": str(row["node_id"]),
         }
         for row in plan
         if row.get("node_id")
     ]
 
-    selected = (
-        options[0]["value"]
-        if options
-        else None
-    )
+    selected = options[0]["value"] if options else None
 
     return options, selected
 
@@ -92,9 +85,8 @@ def render_flushing_results(run_state):
         return _empty_results()
 
     plan = run_state.get("plan") or []
-    
-    scenario_options, selected_scenario = \
-        make_flushing_scenario_options(run_state)
+
+    scenario_options, selected_scenario = make_flushing_scenario_options(run_state)
 
     final_coverage = (
         _format_number(
@@ -112,9 +104,7 @@ def render_flushing_results(run_state):
             children=[
                 create_metric_item(
                     "Status",
-                    str(
-                        run_state.get("status", "—")
-                    ).title(),
+                    str(run_state.get("status", "—")).title(),
                 ),
                 create_metric_item(
                     "Scenarios",
@@ -172,9 +162,7 @@ def render_flushing_results(run_state):
     rows = []
 
     for row in plan:
-        redundant = str(
-            row.get("redundant", "0")
-        ).lower() in {
+        redundant = str(row.get("redundant", "0")).lower() in {
             "1",
             "true",
             "yes",
@@ -191,25 +179,11 @@ def render_flushing_results(run_state):
                             scale=1000.0,
                         )
                     ),
+                    html.Td(_format_number(row.get("qualifying_volume_m3"))),
+                    html.Td(_format_number(row.get("additional_volume_m3"))),
                     html.Td(
                         _format_number(
-                            row.get(
-                                "qualifying_volume_m3"
-                            )
-                        )
-                    ),
-                    html.Td(
-                        _format_number(
-                            row.get(
-                                "additional_volume_m3"
-                            )
-                        )
-                    ),
-                    html.Td(
-                        _format_number(
-                            row.get(
-                                "cumulative_volume_percent"
-                            ),
+                            row.get("cumulative_volume_percent"),
                             digits=1,
                         )
                     ),
@@ -221,24 +195,14 @@ def render_flushing_results(run_state):
                     ),
                     html.Td(
                         _format_number(
-                            row.get(
-                                "volume_over_flow_time_min"
-                            ),
+                            row.get("volume_over_flow_time_min"),
                             digits=1,
                         )
                     ),
                     html.Td(
                         dbc.Badge(
-                            (
-                                "Redundant"
-                                if redundant
-                                else "Selected"
-                            ),
-                            color=(
-                                "secondary"
-                                if redundant
-                                else "success"
-                            ),
+                            ("Redundant" if redundant else "Selected"),
+                            color=("secondary" if redundant else "success"),
                         )
                     ),
                 ]
@@ -251,14 +215,7 @@ def render_flushing_results(run_state):
                 className="flush-plan-table-wrap",
                 children=dbc.Table(
                     children=[
-                        html.Thead(
-                            html.Tr(
-                                [
-                                    html.Th(header)
-                                    for header in headers
-                                ]
-                            )
-                        ),
+                        html.Thead(html.Tr([html.Th(header) for header in headers])),
                         html.Tbody(rows),
                     ],
                     bordered=False,
@@ -316,13 +273,9 @@ def render_flushing_results(run_state):
                 color="blue",
                 children=dcc.Graph(
                     id=ids.FLUSH_NETWORK_GRAPH,
-                    className=(
-                        "network-graph flush-network-graph"
-                    ),
+                    className=("network-graph flush-network-graph"),
                     config={"displaylogo": False},
-                    figure=make_empty_network_figure(
-                        "Loading flushing scenario…"
-                    ),
+                    figure=make_empty_network_figure("Loading flushing scenario…"),
                 ),
             ),
         ]
@@ -336,10 +289,7 @@ def _create_hydrant_section():
         className="setup-section",
         children=[
             html.H3("Hydrants"),
-            html.P(
-                "Enter exact junction IDs separated by commas "
-                "or new lines."
-            ),
+            html.P("Enter exact junction IDs separated by commas or new lines."),
             dbc.Label("Hydrant junction IDs"),
             dbc.Textarea(
                 id=ids.FLUSH_HYDRANT_IDS,
@@ -417,7 +367,6 @@ def _create_outlet_settings_section():
             ),
         ],
     )
-
 
 
 def _create_setup_card():

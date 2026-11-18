@@ -6,16 +6,11 @@ import uuid
 from pathlib import Path
 from typing import Any, Sequence, TypedDict
 
-from src.config import UPLOAD_ROOT, MAX_INP_UPLOAD_BYTES, MAX_INP_UPLOAD_MIB
-
+from src.config import MAX_INP_UPLOAD_BYTES, MAX_INP_UPLOAD_MIB, UPLOAD_ROOT
 
 _UPLOAD_ID_PATTERN = re.compile(r"^[a-f0-9]{12}$")
-_SNAPSHOT_NAME_PATTERN = re.compile(
-    r"^snapshot_[0-9]{3}\.inp$"
-)
-_UNSAFE_FILENAME_PATTERN = re.compile(
-    r"[^A-Za-z0-9_.-]+"
-)
+_SNAPSHOT_NAME_PATTERN = re.compile(r"^snapshot_[0-9]{3}\.inp$")
+_UNSAFE_FILENAME_PATTERN = re.compile(r"[^A-Za-z0-9_.-]+")
 
 
 class StoredCalibrationSnapshot(TypedDict):
@@ -38,9 +33,7 @@ class CalibrationMeasurementUpload(TypedDict):
 
 
 def _safe_filename(filename: str) -> str:
-    name = Path(
-        (filename or "input.json").replace("\\", "/")
-    ).name
+    name = Path((filename or "input.json").replace("\\", "/")).name
     name = _UNSAFE_FILENAME_PATTERN.sub("_", name)
     return name or "input.json"
 
@@ -49,9 +42,7 @@ def _upload_dir(upload_id: str) -> Path:
     if not _UPLOAD_ID_PATTERN.fullmatch(upload_id):
         raise ValueError(f"Invalid calibration upload id: {upload_id!r}")
 
-    root = (
-        Path(UPLOAD_ROOT) / "calibration"
-    ).resolve()
+    root = (Path(UPLOAD_ROOT) / "calibration").resolve()
     upload_dir = (root / upload_id).resolve()
 
     if not upload_dir.is_relative_to(root):
@@ -73,8 +64,7 @@ def store_calibration_snapshots(
 
         if not safe_name.lower().endswith(".inp"):
             raise ValueError(
-                "Calibration snapshots must use the "
-                f".inp extension: {safe_name}"
+                f"Calibration snapshots must use the .inp extension: {safe_name}"
             )
 
         if not isinstance(file_bytes, bytes) or not file_bytes:
@@ -95,9 +85,7 @@ def store_calibration_snapshots(
 
     snapshots: list[StoredCalibrationSnapshot] = []
 
-    for period_index, (filename, file_bytes) in enumerate(
-        prepared
-    ):
+    for period_index, (filename, file_bytes) in enumerate(prepared):
         stored_filename = f"snapshot_{period_index:03d}.inp"
         stored_path = upload_dir / stored_filename
         stored_path.write_bytes(file_bytes)
@@ -125,12 +113,9 @@ def resolve_calibration_snapshots(
     resolved: list[Path] = []
 
     for stored_filename in stored_filenames:
-        if not _SNAPSHOT_NAME_PATTERN.fullmatch(
-            stored_filename
-        ):
+        if not _SNAPSHOT_NAME_PATTERN.fullmatch(stored_filename):
             raise ValueError(
-                "Invalid calibration snapshot filename: "
-                f"{stored_filename!r}"
+                f"Invalid calibration snapshot filename: {stored_filename!r}"
             )
 
         path = (upload_dir / stored_filename).resolve()
@@ -139,10 +124,7 @@ def resolve_calibration_snapshots(
             raise ValueError("Invalid calibration snapshot path.")
 
         if not path.is_file():
-            raise FileNotFoundError(
-                "Calibration snapshot does not exist: "
-                f"{path}"
-            )
+            raise FileNotFoundError(f"Calibration snapshot does not exist: {path}")
 
         resolved.append(path)
 
@@ -157,10 +139,7 @@ def store_calibration_measurements(
     upload_dir = _upload_dir(upload_id)
 
     if not upload_dir.is_dir():
-        raise FileNotFoundError(
-            "Calibration upload does not exist: "
-            f"{upload_dir}"
-        )
+        raise FileNotFoundError(f"Calibration upload does not exist: {upload_dir}")
 
     safe_name = _safe_filename(filename)
 
@@ -174,18 +153,12 @@ def store_calibration_measurements(
         raise ValueError("Calibration measurements contain invalid JSON.") from exc
 
     if not isinstance(data, dict):
-        raise ValueError(
-            "Calibration measurements must contain "
-            "a JSON object."
-        )
+        raise ValueError("Calibration measurements must contain a JSON object.")
 
     measurements = data.get("measurements")
 
     if not isinstance(measurements, list):
-        raise ValueError(
-            "Calibration JSON must contain a "
-            "measurements array."
-        )
+        raise ValueError("Calibration JSON must contain a measurements array.")
 
     stored_path = upload_dir / "measurements.json"
     stored_path.write_text(

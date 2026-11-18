@@ -6,7 +6,6 @@ import pytest
 
 from src.services import hydraulic_runner
 
-
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "tiny_network.inp"
 RUN_ID = "abcdef012345"
 MODEL_ID = "012345abcdef"
@@ -64,9 +63,7 @@ def test_call_hydraulic_simulator_runs_wntr_and_writes_results(
     }
 
     result_files = [
-        filename
-        for group in manifest["files"].values()
-        for filename in group.values()
+        filename for group in manifest["files"].values() for filename in group.values()
     ]
     for filename in result_files:
         path = run_dir / filename

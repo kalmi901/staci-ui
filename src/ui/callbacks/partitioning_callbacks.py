@@ -1,36 +1,37 @@
 from __future__ import annotations
+
+import logging
+
+import dash_bootstrap_components as dbc
 from dash import Input, Output, State
 from dash.exceptions import PreventUpdate
-import dash_bootstrap_components as dbc
 
+from src.run_logging import logged_run
+from src.services.model_storage import resolve_uploaded_model
+from src.services.partition_runner import call_staci_split_service
 from src.ui import ids
 from src.ui.pages.components import render_active_model_summary
 from src.ui.pages.network_partitioning import render_success_alert
-from src.services.model_storage import resolve_uploaded_model
-from src.services.partition_runner import call_staci_split_service
 from src.visualisation.network_preview import make_partitioned_network_figure
 
-from src.run_logging import logged_run
-
-import logging
 logger = logging.getLogger(__name__)
 
+
 def register_partitioning_callbacks(app):
-    
+
     @app.callback(
         Output(ids.PART_ACTIVE_MODEL_SUMMARY, "children"),
         Output(ids.PART_RUN_BUTTON, "disabled"),
-        Input(ids.NETWORK_STORE, "data")
+        Input(ids.NETWORK_STORE, "data"),
     )
     def sync_active_model(network_state):
         if not network_state:
             return render_active_model_summary(network_state), True
-        
+
         return render_active_model_summary(network_state), False
 
     @app.callback(
-        Output(ids.PART_WEIGHT_MOD, "disabled"),
-        Input(ids.PART_WEIGHT_TYPE, "value")
+        Output(ids.PART_WEIGHT_MOD, "disabled"), Input(ids.PART_WEIGHT_TYPE, "value")
     )
     def toggle_sensitivity_parameter(weight_type):
         return weight_type != "sensitivity"
@@ -71,102 +72,94 @@ def register_partitioning_callbacks(app):
         ngen,
         pmut,
         pcross,
-        seed
+        seed,
     ):
         if not n_clicks:
             raise PreventUpdate
-        
+
         if not network_state:
             return None, dbc.Alert(
                 "No active INP file. Upload a model first.",
                 color="warning",
-                className="upload-alert"
-            ) # pyright: ignore[reportCallIssue]
-        
+                className="upload-alert",
+            )  # pyright: ignore[reportCallIssue]
+
         try:
             inp_path = resolve_uploaded_model(
-                network_state["model_id"],
-                network_state["filename"]
+                network_state["model_id"], network_state["filename"]
             )
-            
+
             optimizer_settings = {
-                "n_comm" : n_comm,
-                "obj_type" : obj_type,
-                "weight_type" : weight_type,
-                "weight_type_mod" : weight_type_mod,
-                "popsize" : popsize,
-                "ngen" : ngen,
-                "pmut" : pmut,
-                "pcross" : pcross
+                "n_comm": n_comm,
+                "obj_type": obj_type,
+                "weight_type": weight_type,
+                "weight_type_mod": weight_type_mod,
+                "popsize": popsize,
+                "ngen": ngen,
+                "pmut": pmut,
+                "pcross": pcross,
             }
-            
+
             logger.info(
                 "Network partitioning started: model_id=%s n_comm=%d objs_type=%s seed=%d",
                 network_state.get("model_id", ""),
                 n_comm,
                 obj_type,
-                seed
+                seed,
             )
-            
+
             partition_state = call_staci_split_service(
                 inp_path,
                 model_id=network_state.get("model_id"),
                 optimizer_settings=optimizer_settings,
-                seed=seed
+                seed=seed,
             )
-            
+
             logger.info(
                 "Network partitioning finished: run_id=%s model_id=%s n_comm=%d objs_type=%s seed=%d",
                 partition_state.get("run_id", ""),
                 partition_state.get("model_id", ""),
                 n_comm,
                 obj_type,
-                seed
+                seed,
             )
 
         except Exception as exc:
             logger.exception(
-                "Network partitioning failed: model_id=%s",
-                network_state["model_id"]
+                "Network partitioning failed: model_id=%s", network_state["model_id"]
             )
             return None, dbc.Alert(
                 f"Network partitioning failed: {exc}",
                 color="danger",
-                className="upload-alert"
-            ) # pyright: ignore[reportCallIssue]
-            
+                className="upload-alert",
+            )  # pyright: ignore[reportCallIssue]
+
         return partition_state, render_success_alert(partition_state)
-    
 
     @app.callback(
         Output(ids.PART_COMMUNITY_FILTER, "options"),
         Output(ids.PART_COMMUNITY_FILTER, "value"),
-        Input(ids.PART_RUN_STORE, "data")
-    )    
-    def update_plot_toolbar(
-        partition_state
-    ):
+        Input(ids.PART_RUN_STORE, "data"),
+    )
+    def update_plot_toolbar(partition_state):
         if not partition_state:
             return [], []
-        
+
         node_community = partition_state.get("node_community")
-        
+
         if not node_community:
             return [], []
-        
+
         options = [
             {
                 "label": f"Community {community_id}",
                 "value": community_id,
             }
-            for community_id in sorted(
-                set(node_community.values())
-            )
+            for community_id in sorted(set(node_community.values()))
         ]
-        
+
         return options, []
-    
-    
+
     @app.callback(
         Output(ids.PART_NETWORK_GRAPH, "figure"),
         Input(ids.PART_RUN_STORE, "data"),
@@ -194,5 +187,4 @@ def register_partitioning_callbacks(app):
             line_width_scale=line_width_scale,
             marker_size=marker_size,
             hide_nodes=hide_nodes,
-        )    
-    
+        )

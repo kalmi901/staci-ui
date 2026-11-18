@@ -38,9 +38,7 @@ def _read_lines(path: Path, description: str) -> list[str]:
     path = Path(path)
 
     if not path.is_file():
-        raise FileNotFoundError(
-            f"{description} file not found: {path}"
-        )
+        raise FileNotFoundError(f"{description} file not found: {path}")
 
     lines = [
         line.strip()
@@ -58,11 +56,7 @@ def _read_lines(path: Path, description: str) -> list[str]:
 
 
 def _fields(line: str) -> list[str]:
-    return [
-        field.strip()
-        for field in line.split(";")
-        if field.strip()
-    ]
+    return [field.strip() for field in line.split(";") if field.strip()]
 
 
 def _finite_float(
@@ -73,14 +67,10 @@ def _finite_float(
     try:
         result = float(value)
     except ValueError as exc:
-        raise ValueError(
-            f"Invalid numeric value for {field}: {value!r}"
-        ) from exc
+        raise ValueError(f"Invalid numeric value for {field}: {value!r}") from exc
 
     if not math.isfinite(result):
-        raise ValueError(
-            f"Non-finite numeric value for {field}: {value!r}"
-        )
+        raise ValueError(f"Non-finite numeric value for {field}: {value!r}")
 
     return result
 
@@ -91,25 +81,17 @@ def parse_calibration_best(
     lines = _read_lines(path, "STACI calibration best result")
 
     if len(lines) < 5:
-        raise ValueError(
-            "STACI calibration best result has too few rows."
-        )
+        raise ValueError("STACI calibration best result has too few rows.")
 
     pipe_ids = _fields(lines[0])
     diameters = _fields(lines[1])
     ratios = _fields(lines[2])
 
     if not pipe_ids:
-        raise ValueError(
-            "STACI calibration result contains no calibrated pipes."
-        )
+        raise ValueError("STACI calibration result contains no calibrated pipes.")
 
-    if not (
-        len(pipe_ids) == len(diameters) == len(ratios)
-    ):
-        raise ValueError(
-            "STACI calibration pipe result column counts differ."
-        )
+    if not (len(pipe_ids) == len(diameters) == len(ratios)):
+        raise ValueError("STACI calibration pipe result column counts differ.")
 
     pipes = tuple(
         CalibratedPipe(
@@ -150,17 +132,11 @@ def parse_calibration_best(
                 f"calibration result: {measured_header!r}"
             )
 
-        measurement_id = measured_header.removeprefix(
-            "Sollwert "
-        ).strip()
+        measurement_id = measured_header.removeprefix("Sollwert ").strip()
 
-        if (
-            not measurement_id
-            or computed_header != measurement_id
-        ):
+        if not measurement_id or computed_header != measurement_id:
             raise ValueError(
-                "STACI calibration measured/computed "
-                "headers do not match."
+                "STACI calibration measured/computed headers do not match."
             )
 
         measurement_ids.append(measurement_id)
@@ -177,9 +153,7 @@ def parse_calibration_best(
                 f"expected {len(headers)}."
             )
 
-        for measurement_index, measurement_id in enumerate(
-            measurement_ids
-        ):
+        for measurement_index, measurement_id in enumerate(measurement_ids):
             offset = 2 * measurement_index
 
             comparisons.append(
@@ -188,17 +162,11 @@ def parse_calibration_best(
                     measurement_id=measurement_id,
                     measured_value=_finite_float(
                         values[offset],
-                        field=(
-                            f"measured value for "
-                            f"{measurement_id}"
-                        ),
+                        field=(f"measured value for {measurement_id}"),
                     ),
                     computed_value=_finite_float(
                         values[offset + 1],
-                        field=(
-                            f"computed value for "
-                            f"{measurement_id}"
-                        ),
+                        field=(f"computed value for {measurement_id}"),
                     ),
                 )
             )
@@ -220,8 +188,7 @@ def parse_calibration_history(
 
         if len(values) != 4:
             raise ValueError(
-                "STACI calibration history row "
-                f"{row_index} must contain four values."
+                f"STACI calibration history row {row_index} must contain four values."
             )
 
         try:
@@ -234,9 +201,7 @@ def parse_calibration_history(
             ) from exc
 
         if generation < 0 or function_evaluations < 0:
-            raise ValueError(
-                "Calibration history counters cannot be negative."
-            )
+            raise ValueError("Calibration history counters cannot be negative.")
 
         entries.append(
             CalibrationHistoryEntry(

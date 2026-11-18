@@ -5,7 +5,6 @@ import pytest
 
 from src.services import model_storage
 
-
 VALID_MODEL_ID = "012345abcdef"
 
 
@@ -119,6 +118,7 @@ def test_resolve_uploaded_model_uses_only_filename_component(
     )
 
     assert resolved_path == model_path.resolve()
+
 
 def test_store_uploaded_model_rejects_oversized_file(
     upload_root: Path,

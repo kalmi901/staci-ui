@@ -81,8 +81,7 @@ def _resolve_output_dir(config_path: Path) -> Path:
 
     if not isinstance(output_dir_value, str) or not output_dir_value.strip():
         raise ValueError(
-            "STACI Flush configuration must contain a non-empty "
-            "string output_dir."
+            "STACI Flush configuration must contain a non-empty string output_dir."
         )
 
     output_dir = Path(output_dir_value).expanduser()
@@ -105,9 +104,7 @@ def run_staci_flush(
     config_path = config_path.resolve()
 
     if not inp_path.is_file():
-        raise FileNotFoundError(
-            f"STACI Flush input file not found: {inp_path}"
-        )
+        raise FileNotFoundError(f"STACI Flush input file not found: {inp_path}")
 
     if not config_path.is_file():
         raise FileNotFoundError(
@@ -152,5 +149,5 @@ def run_staci_flush(
         pipes_above_threshold_path=output_dir / "pipes_above_threshold.csv",
         pipe_coverage_path=output_dir / "pipe_coverage.csv",
         scenario_hydrants_path=output_dir / "scenario_hydrants.csv",
-        scenario_pipes_path=output_dir / "scenario_pipes.csv"
+        scenario_pipes_path=output_dir / "scenario_pipes.csv",
     )

@@ -72,9 +72,7 @@ def _read_topology(path: Path) -> _NetworkTopology:
             )
         )
     except (KeyError, TypeError, ValueError) as exc:
-        raise ValueError(
-            f"Could not read calibration topology from {path}."
-        ) from exc
+        raise ValueError(f"Could not read calibration topology from {path}.") from exc
 
     return _NetworkTopology(
         nodes=node_topology,
@@ -99,18 +97,14 @@ def _validate_snapshot_topologies(
             differences.append("node IDs, ordering, or types")
 
         if candidate.links != reference.links:
-            differences.append(
-                "link IDs, ordering, types, or endpoints"
-            )
+            differences.append("link IDs, ordering, types, or endpoints")
 
         if differences:
             raise ValueError(
                 "Calibration snapshot "
                 f"{period_index} ({snapshot_path.name}) is not "
                 f"topologically compatible with period 0 "
-                f"({reference_path.name}): "
-                + "; ".join(differences)
-                + "."
+                f"({reference_path.name}): " + "; ".join(differences) + "."
             )
 
 
@@ -119,16 +113,13 @@ def _normalise_measurements(
     snapshot_count: int,
 ) -> dict[str, Any]:
     if not isinstance(measurements, dict):
-        raise ValueError(
-            "Calibration measurements must be a JSON object."
-        )
+        raise ValueError("Calibration measurements must be a JSON object.")
 
     rows = measurements.get("measurements")
 
     if not isinstance(rows, list) or not rows:
         raise ValueError(
-            "Calibration measurements must contain a "
-            "non-empty measurements array."
+            "Calibration measurements must contain a non-empty measurements array."
         )
 
     normalised_rows: list[dict[str, Any]] = []
@@ -137,44 +128,35 @@ def _normalise_measurements(
     for row_index, row in enumerate(rows):
         if not isinstance(row, dict):
             raise ValueError(
-                f"Calibration measurement row {row_index} "
-                "must be an object."
+                f"Calibration measurement row {row_index} must be an object."
             )
 
         measurement_id = row.get("id")
         measurement_type = row.get("type")
         values = row.get("values")
 
-        if (
-            not isinstance(measurement_id, str)
-            or not measurement_id.strip()
-        ):
+        if not isinstance(measurement_id, str) or not measurement_id.strip():
             raise ValueError(
-                f"Calibration measurement row {row_index} "
-                "requires a non-empty id."
+                f"Calibration measurement row {row_index} requires a non-empty id."
             )
 
         measurement_id = measurement_id.strip()
 
         if measurement_id in measurement_ids:
             raise ValueError(
-                "Calibration measurement IDs must be unique: "
-                f"{measurement_id!r}."
+                f"Calibration measurement IDs must be unique: {measurement_id!r}."
             )
 
-        if (
-            not isinstance(measurement_type, str)
-            or measurement_type.lower() not in {"node", "pool"}
-        ):
+        if not isinstance(measurement_type, str) or measurement_type.lower() not in {
+            "node",
+            "pool",
+        }:
             raise ValueError(
                 f"Calibration measurement {measurement_id!r} "
                 "must have type 'node' or 'pool'."
             )
 
-        if (
-            not isinstance(values, list)
-            or len(values) != snapshot_count
-        ):
+        if not isinstance(values, list) or len(values) != snapshot_count:
             raise ValueError(
                 f"Calibration measurement {measurement_id!r} "
                 f"must contain exactly {snapshot_count} values."
@@ -220,37 +202,26 @@ def call_staci_calibrate_service(
     seed: int = 12345,
 ) -> dict[str, Any]:
     if isinstance(snapshot_paths, (str, Path)):
-        raise ValueError(
-            "Calibration snapshots must be supplied as a sequence."
-        )
+        raise ValueError("Calibration snapshots must be supplied as a sequence.")
 
-    source_paths = [
-        Path(path).resolve()
-        for path in snapshot_paths
-    ]
+    source_paths = [Path(path).resolve() for path in snapshot_paths]
 
     if not source_paths:
-        raise ValueError(
-            "At least one calibration INP snapshot is required."
-        )
+        raise ValueError("At least one calibration INP snapshot is required.")
 
     for snapshot_path in source_paths:
         if not snapshot_path.is_file():
             raise FileNotFoundError(
-                "Calibration INP snapshot does not exist: "
-                f"{snapshot_path}"
+                f"Calibration INP snapshot does not exist: {snapshot_path}"
             )
 
         if snapshot_path.suffix.lower() != ".inp":
             raise ValueError(
-                "Calibration snapshots must use the .inp "
-                f"extension: {snapshot_path}"
+                f"Calibration snapshots must use the .inp extension: {snapshot_path}"
             )
 
     if len(set(source_paths)) != len(source_paths):
-        raise ValueError(
-            "Calibration snapshot paths must be unique."
-        )
+        raise ValueError("Calibration snapshot paths must be unique.")
 
     normalised_measurements = _normalise_measurements(
         measurements,
@@ -342,9 +313,7 @@ def call_staci_calibrate_service(
         "snapshots": snapshot_state,
         "summary": {
             "snapshot_count": len(stored_snapshots),
-            "measurement_count": len(
-                normalised_measurements["measurements"]
-            ),
+            "measurement_count": len(normalised_measurements["measurements"]),
             "calibrated_pipe_count": len(pipes),
             "comparison_count": len(comparisons),
             "history_point_count": len(history_entries),
@@ -354,10 +323,7 @@ def call_staci_calibrate_service(
         "history": history_entries,
         "files": {
             "manifest": manifest_path.name,
-            "snapshots": [
-                path.name
-                for path in stored_snapshots
-            ],
+            "snapshots": [path.name for path in stored_snapshots],
             "measurements": measurements_path.name,
             "settings": settings_path.name,
             "best": _relative_path(result.best_data_path, run_dir),
@@ -367,8 +333,12 @@ def call_staci_calibrate_service(
             "diagnostics": _relative_path(result.diagnostics_path, run_dir),
             "calibration_log": _relative_path(result.calibration_log_path, run_dir),
             "best_log": _relative_path(result.best_log_path, run_dir),
-            "sensitivity_mass_flow": _relative_path(result.sensitivity_mass_flow_path, run_dir),
-            "sensitivity_pressure": _relative_path(result.sensitivity_pressure_path, run_dir),
+            "sensitivity_mass_flow": _relative_path(
+                result.sensitivity_mass_flow_path, run_dir
+            ),
+            "sensitivity_pressure": _relative_path(
+                result.sensitivity_pressure_path, run_dir
+            ),
         },
     }
 
@@ -393,18 +363,11 @@ def load_calibration_run(run_id: str) -> dict[str, Any]:
     manifest_path = run_dir / "run.json"
 
     if not manifest_path.is_file():
-        raise FileNotFoundError(
-            "Calibration run manifest not found: "
-            f"{manifest_path}"
-        )
+        raise FileNotFoundError(f"Calibration run manifest not found: {manifest_path}")
 
-    run_state = json.loads(
-        manifest_path.read_text(encoding="utf-8")
-    )
+    run_state = json.loads(manifest_path.read_text(encoding="utf-8"))
 
     if not isinstance(run_state, dict):
-        raise ValueError(
-            f"Invalid calibration run manifest: {manifest_path}"
-        )
+        raise ValueError(f"Invalid calibration run manifest: {manifest_path}")
 
     return run_state

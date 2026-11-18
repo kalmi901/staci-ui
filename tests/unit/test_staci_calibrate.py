@@ -93,9 +93,7 @@ def test_write_calibrate_settings_writes_expected_json(
         '{"measurements": []}',
         encoding="utf-8",
     )
-    settings_path = (
-        run_dir / "staci_calibrate_settings.json"
-    )
+    settings_path = run_dir / "staci_calibrate_settings.json"
 
     calibrate.write_calibrate_settings(
         settings_path,
@@ -109,21 +107,15 @@ def test_write_calibrate_settings_writes_expected_json(
         },
     )
 
-    settings = json.loads(
-        settings_path.read_text(encoding="utf-8")
-    )
+    settings = json.loads(settings_path.read_text(encoding="utf-8"))
 
-    assert settings["dir_name"] == (
-        str(run_dir.resolve()) + os.sep
-    )
+    assert settings["dir_name"] == (str(run_dir.resolve()) + os.sep)
     assert settings["sollwert_dfile"] == "targets.json"
     assert settings["fname_prefix"] == "network_"
     assert settings["network_extension"] == ".inp"
     assert settings["Start_of_Periods"] == 0
     assert settings["Num_of_Periods"] == 2
-    assert settings["type_of_pipe_selection"] == (
-        "most_sensitive"
-    )
+    assert settings["type_of_pipe_selection"] == ("most_sensitive")
     assert settings["num_of_active_pipes"] == 7
     assert settings["popsize"] == 8
     assert settings["ngen"] == 10
@@ -145,9 +137,7 @@ def test_write_calibrate_settings_handles_dmin_selection(
         '{"measurements": []}',
         encoding="utf-8",
     )
-    settings_path = (
-        tmp_path / "staci_calibrate_settings.json"
-    )
+    settings_path = tmp_path / "staci_calibrate_settings.json"
 
     calibrate.write_calibrate_settings(
         settings_path,
@@ -159,9 +149,7 @@ def test_write_calibrate_settings_handles_dmin_selection(
         },
     )
 
-    settings = json.loads(
-        settings_path.read_text(encoding="utf-8")
-    )
+    settings = json.loads(settings_path.read_text(encoding="utf-8"))
 
     assert settings["Dmin"] == 0.15
     assert "num_of_active_pipes" not in settings
@@ -234,12 +222,8 @@ def test_run_staci_calibrate_builds_command_and_collects_outputs(
     assert result.success is True
     assert result.best_data_path == run_dir / "best.dat"
     assert result.history_path == run_dir / "bog.dat"
-    assert result.stdout_path.read_text(
-        encoding="utf-8"
-    ) == "calibrate stdout\n"
-    assert result.stderr_path.read_text(
-        encoding="utf-8"
-    ) == "calibrate stderr\n"
+    assert result.stdout_path.read_text(encoding="utf-8") == "calibrate stdout\n"
+    assert result.stderr_path.read_text(encoding="utf-8") == "calibrate stderr\n"
 
 
 def test_run_staci_calibrate_is_not_successful_without_results(
@@ -280,9 +264,7 @@ def test_run_staci_calibrate_rejects_missing_executable(
         FileNotFoundError,
         match="executable not found",
     ):
-        calibrate.run_staci_calibrate(
-            tmp_path / "staci_calibrate_settings.json"
-        )
+        calibrate.run_staci_calibrate(tmp_path / "staci_calibrate_settings.json")
 
 
 def test_run_staci_calibrate_writes_partial_logs_on_timeout(
@@ -315,15 +297,11 @@ def test_run_staci_calibrate_writes_partial_logs_on_timeout(
     ):
         calibrate.run_staci_calibrate(settings_path)
 
-    assert (
-        run_dir / "staci_calibrate.stdout.log"
-    ).read_text(
+    assert (run_dir / "staci_calibrate.stdout.log").read_text(
         encoding="utf-8"
     ) == "partial calibrate stdout"
 
-    assert (
-        run_dir / "staci_calibrate.stderr.log"
-    ).read_text(
+    assert (run_dir / "staci_calibrate.stderr.log").read_text(
         encoding="utf-8"
     ) == "partial calibrate \ufffdstderr"
 
@@ -353,6 +331,7 @@ def test_run_staci_calibrate_wraps_process_start_failure(
     ):
         calibrate.run_staci_calibrate(settings_path)
 
+
 def test_write_calibrate_settings_handles_explicit_pipe_list(
     tmp_path: Path,
 ) -> None:
@@ -379,9 +358,7 @@ def test_write_calibrate_settings_handles_explicit_pipe_list(
         },
     )
 
-    settings = json.loads(
-        settings_path.read_text(encoding="utf-8")
-    )
+    settings = json.loads(settings_path.read_text(encoding="utf-8"))
 
     assert settings["pipe_ids"] == ["Small", "Large"]
     assert settings["min_diameter_m"] == 0.05
@@ -411,14 +388,13 @@ def test_write_calibrate_settings_handles_all_pipes(
         },
     )
 
-    settings = json.loads(
-        settings_path.read_text(encoding="utf-8")
-    )
+    settings = json.loads(settings_path.read_text(encoding="utf-8"))
 
     assert settings["type_of_pipe_selection"] == "all"
     assert "pipe_ids" not in settings
     assert "num_of_active_pipes" not in settings
     assert "Dmin" not in settings
+
 
 @pytest.mark.parametrize(
     ("minimum", "maximum"),

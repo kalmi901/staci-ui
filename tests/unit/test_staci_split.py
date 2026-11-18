@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from src.staci import split, runtime
+from src.staci import runtime, split
 
 
 @pytest.fixture

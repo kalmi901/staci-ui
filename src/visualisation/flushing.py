@@ -9,12 +9,11 @@ from plotly.colors import sample_colorscale
 from src.visualisation.common import (
     append_line_segment,
     apply_network_layout,
+    make_discrete_colorscale,
     make_empty_network_figure,
     node_positions,
-    make_discrete_colorscale,
-    normalize_display_value
+    normalize_display_value,
 )
-
 
 MapMode = Literal["coverage", "velocity"]
 
@@ -42,7 +41,8 @@ _VELOCITY_COLORS = sample_colorscale(
     [0.05, 0.275, 0.5, 0.725, 0.95],
 )
 
-_VELOCITY_COLORSCALE = make_discrete_colorscale(_VELOCITY_COLORS)   # type: ignore
+_VELOCITY_COLORSCALE = make_discrete_colorscale(_VELOCITY_COLORS)  # type: ignore
+
 
 def _coverage_group(
     pipe: dict[str, Any] | None,
@@ -67,11 +67,7 @@ def _velocity_bin(
         return 0
 
     return min(
-        int(
-            value
-            / maximum
-            * len(_VELOCITY_COLORS)
-        ),
+        int(value / maximum * len(_VELOCITY_COLORS)),
         len(_VELOCITY_COLORS) - 1,
     )
 
@@ -81,15 +77,10 @@ def _pipe_hover_text(
     pipe: dict[str, Any] | None,
 ) -> str:
     if pipe is None:
-        return (
-            f"<b>{pipe_id}</b><br>"
-            "No flushing scenario data"
-        )
+        return f"<b>{pipe_id}</b><br>No flushing scenario data"
 
     threshold_status = (
-        "Above threshold"
-        if pipe.get("above_threshold")
-        else "Below threshold"
+        "Above threshold" if pipe.get("above_threshold") else "Below threshold"
     )
 
     return (
@@ -133,8 +124,7 @@ def make_flushing_scenario_figure(
 
     if not network_view_state:
         return make_empty_network_figure(
-            "Upload a model to inspect flushing scenarios.",
-            tone="warning"
+            "Upload a model to inspect flushing scenarios.", tone="warning"
         )
 
     if not scenario_state:
@@ -145,10 +135,7 @@ def make_flushing_scenario_figure(
         )
 
     if map_mode not in {"coverage", "velocity"}:
-        return make_empty_network_figure(
-            "Unknown flushing map mode.",
-            tone="danger"
-        )
+        return make_empty_network_figure("Unknown flushing map mode.", tone="danger")
 
     nodes = network_view_state.get("nodes", {})
     links = network_view_state.get("links", {})
@@ -156,8 +143,7 @@ def make_flushing_scenario_figure(
 
     if not positions:
         return make_empty_network_figure(
-            "The loaded model has no valid node coordinates.",
-            tone="danger"
+            "The loaded model has no valid node coordinates.", tone="danger"
         )
 
     pipe_results = {
@@ -236,11 +222,7 @@ def make_flushing_scenario_figure(
 
         else:
             bin_id = _velocity_bin(
-                float(
-                    pipe[
-                        "absolute_velocity_mps"
-                    ]
-                ),
+                float(pipe["absolute_velocity_mps"]),
                 maximum_velocity,
             )
 
@@ -250,12 +232,8 @@ def make_flushing_scenario_figure(
                 end,
             )
 
-        hover_x.append(
-            (start[0] + end[0]) / 2.0
-        )
-        hover_y.append(
-            (start[1] + end[1]) / 2.0
-        )
+        hover_x.append((start[0] + end[0]) / 2.0)
+        hover_y.append((start[1] + end[1]) / 2.0)
         hover_text.append(
             _pipe_hover_text(
                 pipe_id,
@@ -266,9 +244,7 @@ def make_flushing_scenario_figure(
     figure = go.Figure()
 
     if map_mode == "coverage":
-        for name, coordinates in (
-            coverage_groups.items()
-        ):
+        for name, coordinates in coverage_groups.items():
             if not coordinates["x"]:
                 continue
 
@@ -281,10 +257,7 @@ def make_flushing_scenario_figure(
                     mode="lines",
                     line={
                         **style,
-                        "width": (
-                            float(style["width"])
-                            * line_width_scale
-                        ),
+                        "width": (float(style["width"]) * line_width_scale),
                     },
                     hoverinfo="skip",
                     name=name,
@@ -307,9 +280,7 @@ def make_flushing_scenario_figure(
                 )
             )
 
-        for bin_id, coordinates in enumerate(
-            velocity_groups
-        ):
+        for bin_id, coordinates in enumerate(velocity_groups):
             if not coordinates["x"]:
                 continue
 
@@ -319,18 +290,11 @@ def make_flushing_scenario_figure(
                     y=coordinates["y"],
                     mode="lines",
                     line={
-                        "color": (
-                            _VELOCITY_COLORS[
-                                bin_id
-                            ]
-                        ),
+                        "color": (_VELOCITY_COLORS[bin_id]),
                         "width": 1.7 * line_width_scale,
                     },
                     hoverinfo="skip",
-                    name=(
-                        f"Velocity bin "
-                        f"{bin_id + 1}"
-                    ),
+                    name=(f"Velocity bin {bin_id + 1}"),
                     showlegend=False,
                 )
             )
@@ -341,12 +305,8 @@ def make_flushing_scenario_figure(
         )
 
         velocity_bin_edges = [
-            maximum_velocity
-            * index
-            / len(_VELOCITY_COLORS)
-            for index in range(
-                len(_VELOCITY_COLORS) + 1
-            )
+            maximum_velocity * index / len(_VELOCITY_COLORS)
+            for index in range(len(_VELOCITY_COLORS) + 1)
         ]
 
         figure.add_trace(
@@ -361,25 +321,17 @@ def make_flushing_scenario_figure(
                     ],
                     "cmin": 0.0,
                     "cmax": velocity_scale_max,
-                    "colorscale": (
-                        _VELOCITY_COLORSCALE
-                    ),
+                    "colorscale": (_VELOCITY_COLORSCALE),
                     "showscale": True,
                     "colorbar": {
                         "title": "|v| [m/s]",
                         "thickness": 12,
                         "tickmode": "array",
                         "tickvals": (
-                            velocity_bin_edges
-                            if maximum_velocity > 0
-                            else [0.0]
+                            velocity_bin_edges if maximum_velocity > 0 else [0.0]
                         ),
                         "ticktext": (
-                            [
-                                f"{value:.3g}"
-                                for value
-                                in velocity_bin_edges
-                            ]
+                            [f"{value:.3g}" for value in velocity_bin_edges]
                             if maximum_velocity > 0
                             else ["0"]
                         ),
@@ -409,35 +361,17 @@ def make_flushing_scenario_figure(
         )
     )
 
-    node_ids = [
-        str(value)
-        for value in nodes.get("id", [])
-    ]
-    node_types = [
-        str(value)
-        for value in nodes.get("type", [])
-    ]
-    node_type_by_id = dict(
-        zip(node_ids, node_types)
-    )
+    node_ids = [str(value) for value in nodes.get("id", [])]
+    node_types = [str(value) for value in nodes.get("type", [])]
+    node_type_by_id = dict(zip(node_ids, node_types))
 
-    plotted_node_ids = [
-        node_id
-        for node_id in node_ids
-        if node_id in positions
-    ]
+    plotted_node_ids = [node_id for node_id in node_ids if node_id in positions]
 
     if not hide_nodes:
         figure.add_trace(
             go.Scattergl(
-                x=[
-                    positions[node_id][0]
-                    for node_id in plotted_node_ids
-                ],
-                y=[
-                    positions[node_id][1]
-                    for node_id in plotted_node_ids
-                ],
+                x=[positions[node_id][0] for node_id in plotted_node_ids],
+                y=[positions[node_id][1] for node_id in plotted_node_ids],
                 mode="markers",
                 marker={
                     "size": marker_size,
@@ -458,37 +392,20 @@ def make_flushing_scenario_figure(
             )
         )
 
-    active_hydrants = (
-        scenario_state.get("hydrants", [])
-    )
-    active_ids = {
-        str(row.get("node_id", ""))
-        for row in active_hydrants
-    }
+    active_hydrants = scenario_state.get("hydrants", [])
+    active_ids = {str(row.get("node_id", "")) for row in active_hydrants}
 
     candidate_ids = [
         node_id
-        for node_id in dict.fromkeys(
-            str(value)
-            for value in candidate_hydrant_ids
-        )
-        if (
-            node_id in positions
-            and node_id not in active_ids
-        )
+        for node_id in dict.fromkeys(str(value) for value in candidate_hydrant_ids)
+        if (node_id in positions and node_id not in active_ids)
     ]
 
     if candidate_ids:
         figure.add_trace(
             go.Scattergl(
-                x=[
-                    positions[node_id][0]
-                    for node_id in candidate_ids
-                ],
-                y=[
-                    positions[node_id][1]
-                    for node_id in candidate_ids
-                ],
+                x=[positions[node_id][0] for node_id in candidate_ids],
+                y=[positions[node_id][1] for node_id in candidate_ids],
                 mode="markers",
                 marker={
                     "size": 8,
@@ -498,38 +415,21 @@ def make_flushing_scenario_figure(
                         "color": "white",
                     },
                 },
-                text=[
-                    f"Candidate hydrant: {node_id}"
-                    for node_id in candidate_ids
-                ],
+                text=[f"Candidate hydrant: {node_id}" for node_id in candidate_ids],
                 hoverinfo="text",
                 name="Candidate hydrants",
             )
         )
 
     active_rows = [
-        row
-        for row in active_hydrants
-        if str(
-            row.get("node_id", "")
-        ) in positions
+        row for row in active_hydrants if str(row.get("node_id", "")) in positions
     ]
 
     if active_rows:
         figure.add_trace(
             go.Scattergl(
-                x=[
-                    positions[
-                        str(row["node_id"])
-                    ][0]
-                    for row in active_rows
-                ],
-                y=[
-                    positions[
-                        str(row["node_id"])
-                    ][1]
-                    for row in active_rows
-                ],
+                x=[positions[str(row["node_id"])][0] for row in active_rows],
+                y=[positions[str(row["node_id"])][1] for row in active_rows],
                 mode="markers",
                 marker={
                     "size": 14,
@@ -561,20 +461,16 @@ def make_flushing_scenario_figure(
         )
 
     figure = apply_network_layout(
-            figure,
-            uirevision=(
-                f"flushing-"
-                f"{scenario_state.get('scenario_id', '')}-"
-                f"{map_mode}"
-            ),
-            legend={
-                "orientation": "h",
-                "x": 0.5,
-                "y": -0.08,
-                "xanchor": "center",
-                "yanchor": "top",
-            },
-        )
+        figure,
+        uirevision=(f"flushing-{scenario_state.get('scenario_id', '')}-{map_mode}"),
+        legend={
+            "orientation": "h",
+            "x": 0.5,
+            "y": -0.08,
+            "xanchor": "center",
+            "yanchor": "top",
+        },
+    )
 
     figure.update_layout(
         margin={

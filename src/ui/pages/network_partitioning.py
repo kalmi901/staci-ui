@@ -1,9 +1,11 @@
 # pylint: disable=not-callable
 # pyright: reportCallIssue=false
 from __future__ import annotations
-from dash import dcc, html
+
+from typing import Any, Dict
+
 import dash_bootstrap_components as dbc
-from typing import Dict, Any
+from dash import dcc, html
 
 from src.ui import ids
 from src.ui.pages.components import (
@@ -12,21 +14,20 @@ from src.ui.pages.components import (
     create_number_field,
     create_page_header,
     create_run_section,
-    create_settings_grid
+    create_settings_grid,
 )
 from src.visualisation.common import make_empty_network_figure
 
 
 def render_success_alert(partition_state: Dict[str, Any]):
-    n_nodes = partition_state.get("n_nodes", '—')
+    n_nodes = partition_state.get("n_nodes", "—")
     n_community_members = partition_state.get("n_community_members", {})
     n_communities = partition_state.get("n_communities", 0)
-    
+
     community_summary = " · ".join(
         f"Community {community_id}: {member_count} nodes"
         for community_id, member_count in sorted(n_community_members.items())
     )
-
 
     return dbc.Alert(
         className="upload-alert",
@@ -36,17 +37,16 @@ def render_success_alert(partition_state: Dict[str, Any]):
             html.Div(
                 children=[
                     html.Span(
-                        f"{n_nodes} nodes partitioned into "
-                        f"{n_communities} communities"
+                        f"{n_nodes} nodes partitioned into {n_communities} communities"
                     ),
                 ],
-                className="mt-1"
+                className="mt-1",
             ),
             html.Div(
                 community_summary or "No community information available.",
                 className="mt-1 small",
-            )
-        ]
+            ),
+        ],
     )
 
 
@@ -71,6 +71,7 @@ def _label_with_help(
             ),
         ],
     )
+
 
 # Setup Card
 def _create_setup_card():
@@ -153,9 +154,7 @@ def _create_setup_card():
                                     id=ids.PART_WEIGHT_MOD,
                                     options=[
                                         {
-                                            "label": (
-                                                "Friction coefficient"
-                                            ),
+                                            "label": ("Friction coefficient"),
                                             "value": "friction_coeff",
                                         },
                                         {
@@ -281,9 +280,9 @@ def _create_network_partition_card():
                             multi=True,
                             placeholder="All communities",
                             persistence=True,
-                            persistence_type="memory"
-                        )
-                    ]
+                            persistence_type="memory",
+                        ),
+                    ],
                 ),
                 html.Div(
                     className="plot-control",
@@ -294,16 +293,16 @@ def _create_network_partition_card():
                             value=False,
                             label="Highlight",
                             persistence=True,
-                            persistence_type="memory"
-                        )
-                    ]
+                            persistence_type="memory",
+                        ),
+                    ],
                 ),
                 create_network_display_controls(
                     ids.PART_LINE_WIDTH,
                     ids.PART_MARKER_SIZE,
                     ids.PART_HIDE_NODES,
                 ),
-            ]
+            ],
         )
 
     return dbc.Card(
@@ -320,12 +319,12 @@ def _create_network_partition_card():
                         figure=make_empty_network_figure(
                             "Run partitioning to view the resulting communities.",
                             icon="🧩",
-                            title="No partitioning result yet"
-                        )
-                    )
+                            title="No partitioning result yet",
+                        ),
+                    ),
                 ]
-            )
-        ]
+            ),
+        ],
     )
 
 
@@ -346,11 +345,7 @@ def create_layout():
             # ---- Workspace ---
             html.Div(
                 className="analysis-workspace partition-workspace",
-                children=[
-                    _create_setup_card(),
-                    _create_network_partition_card()
-                ]
-            )
-        ]
-        
+                children=[_create_setup_card(), _create_network_partition_card()],
+            ),
+        ],
     )

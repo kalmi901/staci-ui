@@ -3,21 +3,22 @@
 File appends and rotation are serialized across the web and Celery processes.
 Only Caddy may reach the app; it must replace both identity headers after auth.
 """
+
 from __future__ import annotations
 
 import json
 import logging
-from logging.handlers import RotatingFileHandler
 import os
-from pathlib import Path
 import re
 import stat
 import time
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
 from urllib.parse import unquote
 
-from flask import has_request_context, request
 from dash import ctx
 from dash.exceptions import MissingCallbackContextException
+from flask import has_request_context, request
 
 from src.run_logging import execution_id
 
@@ -53,8 +54,9 @@ class PrivateRotatingFileHandler(RotatingFileHandler):
         descriptor = None
         try:
             import fcntl
+
             # A fresh descriptor gives each process its own flock after Celery forks.
-            lock_path = Path(self.baseFilename).parent / '.application.lock'
+            lock_path = Path(self.baseFilename).parent / ".application.lock"
             descriptor = os.open(lock_path, os.O_WRONLY | os.O_CREAT, 0o640)
             fcntl.flock(descriptor, fcntl.LOCK_EX)
             # Reopen because another process may have rotated the current file.
@@ -72,7 +74,9 @@ class PrivateRotatingFileHandler(RotatingFileHandler):
         descriptor = os.open(
             self.baseFilename, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o640
         )
-        return os.fdopen(descriptor, self.mode, encoding=self.encoding, errors=self.errors)
+        return os.fdopen(
+            descriptor, self.mode, encoding=self.encoding, errors=self.errors
+        )
 
 
 def configure_logging(*, debug: bool = False) -> None:
@@ -88,10 +92,15 @@ def configure_logging(*, debug: bool = False) -> None:
                 os.chown(log_dir, -1, int(reader_gid))
             if stat.S_IMODE(log_dir.stat().st_mode) != 0o2750:
                 os.chmod(log_dir, 0o2750)
-        handlers.append(PrivateRotatingFileHandler(
-            log_dir / "application.log", maxBytes=5 * 1024 * 1024,
-            backupCount=5, encoding="utf-8", errors="backslashreplace",
-        ))
+        handlers.append(
+            PrivateRotatingFileHandler(
+                log_dir / "application.log",
+                maxBytes=5 * 1024 * 1024,
+                backupCount=5,
+                encoding="utf-8",
+                errors="backslashreplace",
+            )
+        )
 
     formatter = logging.Formatter(
         "%(asctime)sZ | %(levelname)-8s | %(name)s | "

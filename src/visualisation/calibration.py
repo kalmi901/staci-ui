@@ -14,25 +14,13 @@ from src.visualisation.common import (
 def make_calibration_history_figure(
     run_state: dict[str, Any] | None,
 ) -> go.Figure:
-    history = (
-        run_state.get("history", [])
-        if run_state
-        else []
-    )
+    history = run_state.get("history", []) if run_state else []
 
     if not history:
-        return make_empty_figure(
-            "No optimizer history is available."
-        )
+        return make_empty_figure("No optimizer history is available.")
 
-    generations = [
-        row["generation"]
-        for row in history
-    ]
-    objectives = [
-        row["best_objective"]
-        for row in history
-    ]
+    generations = [row["generation"] for row in history]
+    objectives = [row["best_objective"] for row in history]
     customdata = [
         [
             row["function_evaluations"],
@@ -100,16 +88,10 @@ def make_calibration_history_figure(
 def make_calibration_residual_figure(
     run_state: dict[str, Any] | None,
 ) -> go.Figure:
-    comparisons = (
-        run_state.get("comparisons", [])
-        if run_state
-        else []
-    )
+    comparisons = run_state.get("comparisons", []) if run_state else []
 
     if not comparisons:
-        return make_empty_figure(
-            "No calibration residuals are available."
-        )
+        return make_empty_figure("No calibration residuals are available.")
 
     grouped: dict[
         str,
@@ -117,36 +99,22 @@ def make_calibration_residual_figure(
     ] = defaultdict(list)
 
     for row in comparisons:
-        grouped[
-            str(row["measurement_id"])
-        ].append(row)
+        grouped[str(row["measurement_id"])].append(row)
 
     figure = go.Figure()
 
     for measurement_id, rows in grouped.items():
         ordered_rows = sorted(
             rows,
-            key=lambda row: int(
-                row["period_index"]
-            ),
+            key=lambda row: int(row["period_index"]),
         )
 
-        periods = [
-            int(row["period_index"])
-            for row in ordered_rows
-        ]
-        measured = [
-            float(row["measured_value"])
-            for row in ordered_rows
-        ]
-        computed = [
-            float(row["computed_value"])
-            for row in ordered_rows
-        ]
+        periods = [int(row["period_index"]) for row in ordered_rows]
+        measured = [float(row["measured_value"]) for row in ordered_rows]
+        computed = [float(row["computed_value"]) for row in ordered_rows]
         residuals = [
             computed_value - measured_value
-            for measured_value, computed_value
-            in zip(
+            for measured_value, computed_value in zip(
                 measured,
                 computed,
                 strict=True,
@@ -158,8 +126,7 @@ def make_calibration_residual_figure(
                 measured_value,
                 computed_value,
             ]
-            for measured_value, computed_value
-            in zip(
+            for measured_value, computed_value in zip(
                 measured,
                 computed,
                 strict=True,
@@ -170,11 +137,7 @@ def make_calibration_residual_figure(
             go.Scatter(
                 x=periods,
                 y=residuals,
-                mode=(
-                    "lines+markers"
-                    if len(periods) > 1
-                    else "markers"
-                ),
+                mode=("lines+markers" if len(periods) > 1 else "markers"),
                 name=measurement_id,
                 customdata=customdata,
                 marker={"size": 9},
@@ -204,7 +167,7 @@ def make_calibration_residual_figure(
     return apply_figure_layout(
         figure,
         uirevision=str(
-            run_state.get( # type: ignore
+            run_state.get(  # type: ignore
                 "run_id",
                 "calibration-run",
             )

@@ -7,7 +7,6 @@ import pytest
 from src.services import calibration_runner, run_storage
 from src.staci.calibrate import StaciCalibrateResults
 
-
 RUN_ID = "123456abcdef"
 
 
@@ -31,9 +30,7 @@ def run_root(
     monkeypatch.setattr(
         calibration_runner.uuid,
         "uuid4",
-        lambda: SimpleNamespace(
-            hex=f"{RUN_ID}ffff"
-        ),
+        lambda: SimpleNamespace(hex=f"{RUN_ID}ffff"),
     )
 
     return root
@@ -87,12 +84,8 @@ def _result(run_dir: Path, returncode: int = 0):
         best_log_path=run_dir / "calibrate-best.log",
         best_data_path=run_dir / "best.dat",
         history_path=run_dir / "bog.dat",
-        sensitivity_mass_flow_path=(
-            run_dir / "sensitivity_MassFlowRates.dat"
-        ),
-        sensitivity_pressure_path=(
-            run_dir / "sensitivity_Pressures.dat"
-        ),
+        sensitivity_mass_flow_path=(run_dir / "sensitivity_MassFlowRates.dat"),
+        sensitivity_pressure_path=(run_dir / "sensitivity_Pressures.dat"),
     )
 
 
@@ -126,9 +119,7 @@ def test_call_staci_calibrate_service_persists_inputs_and_results(
     )
 
     def fake_run(settings_path: Path, *, seed: int):
-        assert settings_path == (
-            run_dir / "staci_calibrate_settings.json"
-        )
+        assert settings_path == (run_dir / "staci_calibrate_settings.json")
         assert seed == 12345
 
         (run_dir / "best.dat").write_text(
@@ -164,39 +155,31 @@ def test_call_staci_calibrate_service_persists_inputs_and_results(
         fake_run,
     )
 
-    state = (
-        calibration_runner.call_staci_calibrate_service(
-            snapshots,
-            measurements={
-                "measurements": [
-                    {
-                        "id": "J1",
-                        "type": "node",
-                        "values": [30.3, 30.2],
-                    }
-                ]
-            },
-            optimizer_settings={
-                "type_of_pipe_selection": "list",
-                "pipe_ids": ["Large"],
-                "popsize": 6,
-                "ngen": 10,
-            },
-            seed=12345,
-        )
+    state = calibration_runner.call_staci_calibrate_service(
+        snapshots,
+        measurements={
+            "measurements": [
+                {
+                    "id": "J1",
+                    "type": "node",
+                    "values": [30.3, 30.2],
+                }
+            ]
+        },
+        optimizer_settings={
+            "type_of_pipe_selection": "list",
+            "pipe_ids": ["Large"],
+            "popsize": 6,
+            "ngen": 10,
+        },
+        seed=12345,
     )
 
-    assert (
-        run_dir / "network_0.inp"
-    ).read_bytes() == snapshots[0].read_bytes()
-    assert (
-        run_dir / "network_1.inp"
-    ).read_bytes() == snapshots[1].read_bytes()
+    assert (run_dir / "network_0.inp").read_bytes() == snapshots[0].read_bytes()
+    assert (run_dir / "network_1.inp").read_bytes() == snapshots[1].read_bytes()
 
     settings = json.loads(
-        (
-            run_dir / "staci_calibrate_settings.json"
-        ).read_text(encoding="utf-8")
+        (run_dir / "staci_calibrate_settings.json").read_text(encoding="utf-8")
     )
     assert settings["Num_of_Periods"] == 2
     assert settings["network_extension"] == ".inp"
@@ -211,16 +194,11 @@ def test_call_staci_calibrate_service_persists_inputs_and_results(
     assert state["pipes"][0]["pipe_id"] == "Large"
 
     assert logged["run_id"] == RUN_ID
-    assert logged["inp_path"] == (
-        run_dir / "network_0.inp"
-    )
+    assert logged["inp_path"] == (run_dir / "network_0.inp")
 
-    saved_state = json.loads(
-        (run_dir / "run.json").read_text(
-            encoding="utf-8"
-        )
-    )
+    saved_state = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
     assert saved_state == state
+
 
 def test_call_staci_calibrate_service_rejects_topology_mismatch(
     snapshots: list[Path],
@@ -256,9 +234,8 @@ def test_call_staci_calibrate_service_rejects_topology_mismatch(
             },
         )
 
-    assert not (
-        run_root / "calibration" / RUN_ID
-    ).exists()
+    assert not (run_root / "calibration" / RUN_ID).exists()
+
 
 def test_call_staci_calibrate_service_rejects_measurement_count(
     snapshots: list[Path],
@@ -280,6 +257,7 @@ def test_call_staci_calibrate_service_rejects_measurement_count(
                 ]
             },
         )
+
 
 def test_call_staci_calibrate_service_rejects_failed_run(
     snapshots: list[Path],
@@ -341,7 +319,4 @@ def test_load_calibration_run_returns_manifest(
         encoding="utf-8",
     )
 
-    assert (
-        calibration_runner.load_calibration_run(RUN_ID)
-        == expected
-    )
+    assert calibration_runner.load_calibration_run(RUN_ID) == expected

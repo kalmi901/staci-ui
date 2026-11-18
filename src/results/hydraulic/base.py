@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from typing import Literal
 
@@ -6,6 +7,7 @@ import numpy as np
 import pandas as pd
 
 ResultType = Literal["node", "link"]
+
 
 class EPSHydraulicResults(ABC):
     @property

@@ -1,26 +1,29 @@
 from __future__ import annotations
-from dash import Input, Output, State, no_update, ctx
-from dash.exceptions import PreventUpdate
-import dash_bootstrap_components as dbc
-
-from src.ui import ids
-from src.ui.pages.components import render_active_model_summary
-from src.ui.pages.hydraulic_analysis import render_success_alert
-from src.services.hydraulic_runner import call_hydraulic_simulator
-from src.services.model_storage import resolve_uploaded_model
-from src.services.inp_model_reader import read_model_options
-from src.visualisation.network_preview import make_hydraulic_timestep_figure
-from src.ui.callbacks.helpers import resolve_color_range_outputs
-from src.run_logging import logged_run
 
 import logging
+
+import dash_bootstrap_components as dbc
+from dash import Input, Output, State, ctx, no_update
+from dash.exceptions import PreventUpdate
+
+from src.run_logging import logged_run
+from src.services.hydraulic_runner import call_hydraulic_simulator
+from src.services.inp_model_reader import read_model_options
+from src.services.model_storage import resolve_uploaded_model
+from src.ui import ids
+from src.ui.callbacks.helpers import resolve_color_range_outputs
+from src.ui.pages.components import render_active_model_summary
+from src.ui.pages.hydraulic_analysis import render_success_alert
+from src.visualisation.network_preview import make_hydraulic_timestep_figure
+
 logger = logging.getLogger(__name__)
 
-PLAY_STR  = "▶ Play"
+PLAY_STR = "▶ Play"
 PAUSE_STR = "⏸ Pause"
 
+
 def register_hydraulic_callbacks(app):
-    
+
     @app.callback(
         Output(ids.HYD_ACTIVE_MODEL_SUMMARY, "children"),
         Output(ids.HYD_RUN_BUTTON, "disabled"),
@@ -29,58 +32,54 @@ def register_hydraulic_callbacks(app):
     def sync_hydraulic_active_model(network_state):
         if not network_state:
             return render_active_model_summary(network_state), True
-        
+
         return render_active_model_summary(network_state), False
-    
-    
+
     @app.callback(
-    Output(ids.HYD_DURATION_HOURS, "disabled"),
-    Output(ids.HYD_TIMESTEP_MINUTES, "disabled"),
-    Output(ids.HYD_REPORT_TIMESTEP_MINUTES, "disabled"),
-    Output(ids.HYD_RULE_TIMESTEP_MINUTES, "disabled"),
-    Output(ids.HYD_DEMAND_MULTIPLIER, "disabled"),
-    Input(ids.HYD_OVERRIDE_OPTIONS, "value"),
+        Output(ids.HYD_DURATION_HOURS, "disabled"),
+        Output(ids.HYD_TIMESTEP_MINUTES, "disabled"),
+        Output(ids.HYD_REPORT_TIMESTEP_MINUTES, "disabled"),
+        Output(ids.HYD_RULE_TIMESTEP_MINUTES, "disabled"),
+        Output(ids.HYD_DEMAND_MULTIPLIER, "disabled"),
+        Input(ids.HYD_OVERRIDE_OPTIONS, "value"),
     )
     def toggle_hydraulic_overrides(enabled):
         disabled = not bool(enabled)
         return disabled, disabled, disabled, disabled, disabled
-    
+
     @app.callback(
-    Output(ids.HYD_DURATION_HOURS, "value"),
-    Output(ids.HYD_TIMESTEP_MINUTES, "value"),
-    Output(ids.HYD_REPORT_TIMESTEP_MINUTES, "value"),
-    Output(ids.HYD_RULE_TIMESTEP_MINUTES, "value"),
-    Output(ids.HYD_DEMAND_MULTIPLIER, "value"),
-    Input(ids.NETWORK_STORE, "data")
+        Output(ids.HYD_DURATION_HOURS, "value"),
+        Output(ids.HYD_TIMESTEP_MINUTES, "value"),
+        Output(ids.HYD_REPORT_TIMESTEP_MINUTES, "value"),
+        Output(ids.HYD_RULE_TIMESTEP_MINUTES, "value"),
+        Output(ids.HYD_DEMAND_MULTIPLIER, "value"),
+        Input(ids.NETWORK_STORE, "data"),
     )
-    def render_simulation_options(
-        network_state
-    ):
+    def render_simulation_options(network_state):
         if not network_state:
             return None, None, None, None, None
-        
+
         try:
             inp_path = resolve_uploaded_model(
-                network_state["model_id"],
-                network_state["filename"]
+                network_state["model_id"], network_state["filename"]
             )
             options = read_model_options(inp_path)
-            
+
             return (
-                options["duration"] / 3600,             # seconds --> hours
-                options["hydraulic_timestep"] / 60,     # seconds --> minutes
-                options["report_timestep"] / 60,        # seconds --> minutes
-                options["rule_timestep"] / 60,          # seconds --> minutes
-                options["demand_multiplier"]
+                options["duration"] / 3600,  # seconds --> hours
+                options["hydraulic_timestep"] / 60,  # seconds --> minutes
+                options["report_timestep"] / 60,  # seconds --> minutes
+                options["rule_timestep"] / 60,  # seconds --> minutes
+                options["demand_multiplier"],
             )
-        
+
         except Exception:
             logger.exception(
                 "Failed to read hydraulic options: model_id=%s",
                 network_state.get("model_id", ""),
             )
             return None, None, None, None, None
-    
+
     @app.callback(
         Output(ids.HYD_RUN_STORE, "data"),
         Output(ids.HYD_RUN_STATUS, "children"),
@@ -101,7 +100,8 @@ def register_hydraulic_callbacks(app):
                 False,
             ),
         ],
-        prevent_initial_call=True)
+        prevent_initial_call=True,
+    )
     @logged_run("hydraulic")
     def run_hydraulic_simulation(
         n_clicks,
@@ -113,23 +113,22 @@ def register_hydraulic_callbacks(app):
         report_timestep,
         rule_timestep,
         demand_multiplier,
-        ):
+    ):
         if not n_clicks:
             raise PreventUpdate
-        
+
         if not network_state:
             return None, dbc.Alert(
                 "No active INP file. Upload a model first.",
                 color="warning",
-                className="upload-alert"
-            ) # pyright: ignore[reportCallIssue]
-                   
+                className="upload-alert",
+            )  # pyright: ignore[reportCallIssue]
+
         try:
             inp_path = resolve_uploaded_model(
-                network_state["model_id"],
-                network_state["filename"]
+                network_state["model_id"], network_state["filename"]
             )
-            
+
             option_overrides = None
             if override_enabled:
                 required_values = {
@@ -141,16 +140,12 @@ def register_hydraulic_callbacks(app):
                 }
 
                 missing = [
-                    name
-                    for name, value in required_values.items()
-                    if value is None
+                    name for name, value in required_values.items() if value is None
                 ]
 
                 if missing:
                     raise ValueError(
-                        "Missing hydraulic override values: "
-                        + ", ".join(missing)
-                        + "."
+                        "Missing hydraulic override values: " + ", ".join(missing) + "."
                     )
 
                 if duration < 0:
@@ -158,7 +153,8 @@ def register_hydraulic_callbacks(app):
                 for name, value in (
                     ("Hydraulic timestep", hydraulic_timestep),
                     ("Report timestep", report_timestep),
-                    ("Rule timestep", rule_timestep)):
+                    ("Rule timestep", rule_timestep),
+                ):
                     if value <= 0:
                         raise ValueError(f"{name} must be greater than zero.")
 
@@ -170,42 +166,42 @@ def register_hydraulic_callbacks(app):
                     "hydraulic_timestep": hydraulic_timestep * 60,
                     "report_timestep": report_timestep * 60,
                     "rule_timestep": rule_timestep * 60,
-                    "demand_multiplier": demand_multiplier
+                    "demand_multiplier": demand_multiplier,
                 }
 
             logger.info(
                 "Hydraulic simulation started: model_id=%s, backend=%s",
                 network_state.get("model_id"),
-                backend
+                backend,
             )
 
             run_state = call_hydraulic_simulator(
                 inp_path,
                 model_id=network_state.get("model_id", ""),
                 backend=backend,
-                option_overrides=option_overrides
+                option_overrides=option_overrides,
             )
-            
+
             logger.info(
                 "Hydraulic simulation finished: model_id=%s, run_id=%s, backend=%s",
                 run_state.get("model_id", ""),
                 run_state.get("run_id", ""),
-                run_state.get("backend", "")
+                run_state.get("backend", ""),
             )
-            
+
         except Exception as exc:
             logger.exception(
                 "Hydraulic simulation failed: model_id=%s",
-                network_state.get("model_id", "")
+                network_state.get("model_id", ""),
             )
             return None, dbc.Alert(
                 f"Hydraulic simulation failed: {exc}",
                 color="danger",
                 className="upload-alert",
             )  # pyright: ignore[reportCallIssue]
-              
+
         return run_state, render_success_alert(run_state)
-    
+
     # -- Animation --
     @app.callback(
         Output(ids.HYD_TIME_SLIDER, "min"),
@@ -221,29 +217,24 @@ def register_hydraulic_callbacks(app):
         Input(ids.HYD_PLAY_BUTTON, "n_clicks"),
         Input(ids.HYD_ANIMATION_INTERVAL, "n_intervals"),
         State(ids.HYD_TIME_SLIDER, "value"),
-        State(ids.HYD_ANIMATION_INTERVAL, "disabled")
+        State(ids.HYD_ANIMATION_INTERVAL, "disabled"),
     )
     def control_hydraulic_time(
-        pathname,
-        run_state,
-        play_clicks,
-        n_intervals,
-        current_value,
-        interval_disabled
+        pathname, run_state, play_clicks, n_intervals, current_value, interval_disabled
     ):
-               
+
         # Enable / Disable Control
         if not run_state or run_state.get("status") != "success":
             return 0, 0, {0: "0"}, 0, True, True, PLAY_STR, True
-        
+
         time = run_state.get("time", [])
         if not time:
             return 0, 0, {0: "0"}, 0, True, True, PLAY_STR, True
-        
+
         max_index = len(time) - 1
         if max_index <= 0:
             return 0, 0, {0: "0"}, 0, True, True, PLAY_STR, True
-        
+
         # Mark settings
         mark_indices = sorted(
             set(
@@ -256,35 +247,41 @@ def register_hydraulic_callbacks(app):
                 ]
             )
         )
-        
-        marks = {
-            i: f"{int(time[i] / 3600)} h"
-            for i in mark_indices
-        }
-        
+
+        marks = {i: f"{int(time[i] / 3600)} h" for i in mark_indices}
+
         # -- Handle Inputs --
-        # 1) Store Available 
+        # 1) Store Available
         if ctx.triggered_id == ids.HYD_RUN_STORE:
             return 0, max_index, marks, 0, False, True, PLAY_STR, False
-        
+
         # 2) PLAY/PAUSE Button pressed
         if ctx.triggered_id == ids.HYD_PLAY_BUTTON:
             should_start = bool(interval_disabled)
-            
+
             if should_start:
-                return 0, max_index, marks, current_value or 0, False, False, PAUSE_STR, False
-        
+                return (
+                    0,
+                    max_index,
+                    marks,
+                    current_value or 0,
+                    False,
+                    False,
+                    PAUSE_STR,
+                    False,
+                )
+
             return 0, max_index, marks, current_value or 0, False, True, PLAY_STR, False
-        
+
         # 3) Increse time value
         if ctx.triggered_id == ids.HYD_ANIMATION_INTERVAL:
             value = current_value or 0
             value = (value + 1) % (max_index + 1)
-            
+
             return 0, max_index, marks, value, False, False, PAUSE_STR, False
-        
+
         return 0, max_index, marks, current_value or 0, False, True, PLAY_STR, False
-    
+
     @app.callback(
         Output(ids.HYD_NODE_COLOR_MIN, "value"),
         Output(ids.HYD_NODE_COLOR_MAX, "value"),
@@ -297,19 +294,21 @@ def register_hydraulic_callbacks(app):
         Input(ids.HYD_RUN_STORE, "data"),
         Input(ids.HYD_NODE_RESULT, "value"),
         Input(ids.HYD_LINK_RESULT, "value"),
-        prevent_initial_call=True
+        prevent_initial_call=True,
     )
-    def sync_hydraulic_color_range(
-        run_state,
-        node_result,
-        link_result
-    ):       
+    def sync_hydraulic_color_range(run_state, node_result, link_result):
         if not run_state or run_state.get("status") != "success":
             return (
-                None, None, True, True,
-                None, None, True, True,
+                None,
+                None,
+                True,
+                True,
+                None,
+                None,
+                True,
+                True,
             )
-    
+
         ranges = run_state.get("ranges", {})
         node_values = resolve_color_range_outputs(ranges, node_result)
         link_values = resolve_color_range_outputs(ranges, link_result)
@@ -322,7 +321,6 @@ def register_hydraulic_callbacks(app):
 
         return *node_values, *link_values
 
-    
     @app.callback(
         Output(ids.HYD_NETWORK_GRAPH, "figure"),
         Input(ids.HYD_RUN_STORE, "data"),
@@ -350,8 +348,8 @@ def register_hydraulic_callbacks(app):
         network_view_state,
         line_width_scale,
         marker_size,
-        hide_nodes
-    ):  
+        hide_nodes,
+    ):
         return make_hydraulic_timestep_figure(
             network_view_state=network_view_state,
             run_state=run_state,
@@ -364,5 +362,5 @@ def register_hydraulic_callbacks(app):
             link_cmax=link_cmax,
             line_width_scale=line_width_scale,
             marker_size=marker_size,
-            hide_nodes=hide_nodes
+            hide_nodes=hide_nodes,
         )

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from dash import dcc, html
 import dash_bootstrap_components as dbc
+from dash import dcc, html
 
 
 def create_page_header(
@@ -82,8 +82,7 @@ def render_active_model_summary(
                                 className="model-summary-title",
                             ),
                             html.Div(
-                                f"Model ID: "
-                                f"{network_state.get('model_id', '—')}",
+                                f"Model ID: {network_state.get('model_id', '—')}",
                                 className="small-status",
                             ),
                         ],
@@ -131,6 +130,7 @@ def create_active_model_section(
             ),
         ],
     )
+
 
 def create_settings_grid(
     children: list[Any],
@@ -258,9 +258,7 @@ def create_network_display_controls(
                 ],
             ),
             html.Div(
-                className=(
-                    "plot-control network-display-toggle"
-                ),
+                className=("plot-control network-display-toggle"),
                 children=[
                     dbc.Label("Network nodes"),
                     dbc.Switch(
@@ -304,9 +302,7 @@ def create_run_section(
                         show_initially=show_initially,
                         children=html.Div(
                             id=status_id,
-                            className=(
-                                f"small-status {status_class_name}"
-                            ),
+                            className=(f"small-status {status_class_name}"),
                         ),
                     )
                 ],
