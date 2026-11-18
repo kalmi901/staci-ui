@@ -348,3 +348,28 @@ def create_run_section(
             ),
         ],
     )
+
+
+def create_empty_state(
+    icon: str,
+    title: str,
+    message: str,
+    *,
+    large: bool = False,
+):
+    class_name = "results-placeholder"
+
+    if large:
+        class_name += " results-placeholder-large"
+
+    return html.Div(
+        className=class_name,
+        children=[
+            html.Div(
+                icon,
+                className="results-placeholder-icon",
+            ),
+            html.H3(title),
+            html.P(message),
+        ],
+    )

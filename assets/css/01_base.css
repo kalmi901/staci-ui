@@ -104,11 +104,17 @@ a {
 
 .page-header h1 {
   margin: 0;
-  font-size: 31px;
-  font-weight: 760;
+  color: var(--ink-3);
+  font-size: 1.9rem;
+  font-weight: 800;
+  line-height: 1.15;
 }
 
-.page-header p,
+.page-header p {
+  margin: 6px 0 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
 .small-status {
   color: var(--muted);
 }
@@ -130,9 +136,13 @@ a {
 }
 
 .app-card .card-header {
+  padding: 0.85rem 1rem;
   background: var(--card-bg);
   border-bottom: 1px solid var(--border);
-  font-weight: 700;
+  color: var(--ink-3);
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.25;
 }
 
 .small-status {
@@ -153,6 +163,7 @@ a {
   color: var(--ink-3);
   font-size: 17px;
   font-weight: 800;
+  line-height: 1.3;
 }
 
 .setup-section p {
@@ -270,6 +281,42 @@ a {
   color: var(--ink-3);
   font-size: 18px;
   font-weight: 850;
+}
+
+/* Shared empty result state */
+
+.results-placeholder {
+  display: grid;
+  min-height: 260px;
+  place-content: center;
+  padding: 28px;
+  border: 1px dashed var(--panel-border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--panel-bg);
+  color: var(--text-soft);
+  text-align: center;
+}
+
+.results-placeholder-large {
+  min-height: 520px;
+}
+
+.results-placeholder-icon {
+  font-size: 42px;
+  line-height: 1;
+}
+
+.results-placeholder h3 {
+  margin: 10px 0 6px;
+  color: var(--ink-3);
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.results-placeholder p {
+  max-width: 480px;
+  margin: 0;
+  line-height: 1.5;
 }
 
 /* Shared plot and inspector controls */

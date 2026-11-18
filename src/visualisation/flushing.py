@@ -133,18 +133,21 @@ def make_flushing_scenario_figure(
 
     if not network_view_state:
         return make_empty_network_figure(
-            "Upload a model to inspect flushing scenarios."
+            "Upload a model to inspect flushing scenarios.",
+            tone="warning"
         )
 
     if not scenario_state:
         return make_empty_network_figure(
-            "Select a flushing scenario to view its "
-            "network result."
+            "Select a flushing scenario to view its network result.",
+            icon="🚿",
+            title="No flushing scenario selected",
         )
 
     if map_mode not in {"coverage", "velocity"}:
         return make_empty_network_figure(
-            "Unknown flushing map mode."
+            "Unknown flushing map mode.",
+            tone="danger"
         )
 
     nodes = network_view_state.get("nodes", {})
@@ -153,7 +156,8 @@ def make_flushing_scenario_figure(
 
     if not positions:
         return make_empty_network_figure(
-            "The loaded model has no valid node coordinates."
+            "The loaded model has no valid node coordinates.",
+            tone="danger"
         )
 
     pipe_results = {

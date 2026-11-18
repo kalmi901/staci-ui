@@ -403,12 +403,14 @@ def _make_attribute_network_figure(
 
     if not nodes.get("x", []) or not nodes.get("y", []):
         return make_empty_network_figure(
-            "The loaded model has no node coordinates."
+            "The loaded model has no node coordinates.",
+            tone="danger"
         )
 
     if not positions:
         return make_empty_network_figure(
-            "The loaded model has no valid node coordinates."
+            "The loaded model has no valid node coordinates.",
+            tone="danger"
         )
 
     if not hide_nodes:
@@ -422,7 +424,8 @@ def _make_attribute_network_figure(
         except ValueError:
             return make_empty_network_figure(
                 "Node color minimum must not be greater "
-                "than maximum."
+                "than maximum.",
+                tone="danger"
             )
 
     try:
@@ -435,7 +438,8 @@ def _make_attribute_network_figure(
     except ValueError:
         return make_empty_network_figure(
             "Link color minimum must not be greater "
-            "than maximum."
+            "than maximum.",
+            tone="danger"
         )
 
     link_bin_edges = _make_link_bin_edges(
@@ -499,7 +503,11 @@ def make_node_preview_figure(
     hide_nodes: bool = False,
 ) -> go.Figure:
     if not network_view_state:
-        return make_empty_network_figure()
+        return make_empty_network_figure(
+            "Upload an EPANET INP file to preview the network.",
+            icon="📂",
+            title="No network model loaded"
+        )
 
     nodes = network_view_state.get("nodes", {})
     links = network_view_state.get("links", {})
@@ -564,12 +572,15 @@ def make_hydraulic_timestep_figure(
     
     if not run_state:
         return make_empty_network_figure(
-            "Run a hydraulic simulation to view animated network results."
+            "Run a hydraulic simulation to view time-dependent network results.",
+            icon="💧",
+            title="No hydraulic results yet",
         )
         
     if not network_view_state:
         return make_empty_network_figure(
-            "Build the network preview before plotting hydraulic results."
+            "Build the network preview before plotting hydraulic results.",
+            tone="warning"
         )
     
     if not model_ids_are_compatible(
@@ -577,24 +588,28 @@ def make_hydraulic_timestep_figure(
         network_view_state,
     ):
         return make_empty_network_figure(
-            "Hydraulic results belong to a different network model."
+            "Hydraulic results belong to a different network model.",
+            tone="danger"
         )
     
     results = open_eps_hydraulic_results(run_state)
     
     if results.n_steps == 0:
         return make_empty_network_figure(
-            "The hydraulic run has no time steps."
+            "The hydraulic run has no time steps.",
+            tone="danger"
         )
         
     if node_result not in results.node_attributes:
         return make_empty_network_figure(
-            f"Node result '{node_result}' is not available for this run."
+            f"Node result '{node_result}' is not available for this run.",
+            tone="danger"
         )
         
     if link_result not in results.link_attributes:
         return make_empty_network_figure(
-            f"Link result '{link_result}' is not available for this run."
+            f"Link result '{link_result}' is not available for this run.",
+            tone="danger"
         )
     
       
@@ -700,13 +715,16 @@ def make_partitioned_network_figure(
 
     if not partition_state:
         return make_empty_network_figure(
-            "Run optimization to view network partitions."
+            "Run partitioning to view the resulting network communities.",
+            icon="🧩",
+            title="No partitioning result yet",
         )
 
     if not network_view_state:
         return make_empty_network_figure(
             "Build the network preview before plotting "
-            "partitioning results."
+            "partitioning results.",
+            tone="warning"
         )
 
     if not model_ids_are_compatible(
@@ -715,7 +733,8 @@ def make_partitioned_network_figure(
     ):
         return make_empty_network_figure(
             "Partitioning results belong to a different "
-            "network model."
+            "network model.",
+            tone="danger"
         )
 
     node_community = partition_state.get(
@@ -724,7 +743,8 @@ def make_partitioned_network_figure(
 
     if not node_community:
         return make_empty_network_figure(
-            "Partitioning result has no communities."
+            "Partitioning result has no communities.",
+            tone="danger"
         )
 
     nodes = network_view_state.get("nodes", {})
@@ -781,7 +801,8 @@ def make_partitioned_network_figure(
 
     if not visible_node_ids:
         return make_empty_network_figure(
-            "No nodes belong to the selected communities."
+            "No nodes belong to the selected communities.",
+            tone="warning"
         )
 
     visible_nodes = set(visible_node_ids)

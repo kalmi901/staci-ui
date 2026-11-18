@@ -243,7 +243,11 @@ def create_layout():
                                         id=ids.NETWORK_GRAPH,
                                         className="network-graph",
                                         config={"displaylogo": False},
-                                        figure=make_empty_network_figure()
+                                        figure=make_empty_network_figure(
+                                            "Upload an EPANET INP file to preview the network.",
+                                            icon="📂",
+                                            title="No network model loaded",
+                                        )
                                     )
                                 ]
                             )

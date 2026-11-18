@@ -243,7 +243,9 @@ def register_flushing_callbacks(app):
     ):
         if not run_state or not scenario_id:
             return make_empty_network_figure(
-                "Run STACI Flush and select a scenario."
+                "Run STACI Flush and select a scenario.",
+                icon="🚿",
+                title="No flushing scenario selected",
             )
 
         try:
@@ -261,7 +263,8 @@ def register_flushing_callbacks(app):
             )
 
             return make_empty_network_figure(
-                f"Could not load flushing scenario: {exc}"
+                f"Could not load flushing scenario: {exc}",
+                tone="danger",
             )
 
         candidate_ids = (

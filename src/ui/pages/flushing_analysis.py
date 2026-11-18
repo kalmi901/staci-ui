@@ -9,6 +9,7 @@ from dash.development.base_component import Component
 from src.ui import ids
 from src.ui.pages.components import (
     create_active_model_section,
+    create_empty_state,
     create_metric_item,
     create_network_display_controls,
     create_number_field,
@@ -75,19 +76,14 @@ def make_flushing_scenario_options(
 
 
 def _empty_results():
-    return html.Div(
-        className="flush-results-placeholder",
-        children=[
-            html.Div(
-                "🚿",
-                className="flush-placeholder-icon",
-            ),
-            html.H3("No flushing plan yet"),
-            html.P(
-                "Select an active model, enter the hydrant "
-                "junction IDs and run STACI Flush."
-            ),
-        ],
+    return create_empty_state(
+        "🚿",
+        "No flushing plan yet",
+        (
+            "Select an active model, enter the hydrant "
+            "junction IDs, and run STACI Flush."
+        ),
+        large=True,
     )
 
 

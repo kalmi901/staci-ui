@@ -281,7 +281,9 @@ def _create_network_results_card():
                             className="network-graph",
                             config={"displaylogo": False},
                             figure=make_empty_network_figure(
-                                "Run a hydraulic simulation to view animated network results."
+                                "Run a hydraulic simulation to view time-dependent network results.",
+                                icon="💧",
+                                title="No hydraulic results yet"
                             ),
                     ),
                     _create_time_controls()

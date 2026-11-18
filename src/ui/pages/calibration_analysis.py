@@ -9,6 +9,7 @@ from typing import Any
 
 from src.ui import ids
 from src.ui.pages.components import (
+    create_empty_state,
     create_metric_item,
     create_number_field,
     create_page_header,
@@ -194,19 +195,13 @@ def _create_optimizer_section():
 
 
 def _empty_results():
-    return html.Div(
-        className="calibration-results-placeholder",
-        children=[
-            html.Div(
-                "🎯",
-                className="calibration-placeholder-icon",
-            ),
-            html.H3("No calibration result yet"),
-            html.P(
-                "Upload the network snapshots and measurement data, "
-                "configure the optimizer, and run the calibration."
-            ),
-        ],
+    return create_empty_state(
+        "🎯",
+        "No calibration result yet",
+        (
+            "Upload the network snapshots and measurement data, "
+            "configure the optimizer, and run the calibration."
+        ),
     )
 
 

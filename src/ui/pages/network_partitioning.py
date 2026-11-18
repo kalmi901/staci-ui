@@ -297,7 +297,12 @@ def _create_network_partition_card():
                             persistence_type="memory"
                         )
                     ]
-                )
+                ),
+                create_network_display_controls(
+                    ids.PART_LINE_WIDTH,
+                    ids.PART_MARKER_SIZE,
+                    ids.PART_HIDE_NODES,
+                ),
             ]
         )
 
@@ -308,17 +313,14 @@ def _create_network_partition_card():
             dbc.CardBody(
                 children=[
                     _create_plot_toolbar(),
-                    create_network_display_controls(
-                        ids.PART_LINE_WIDTH,
-                        ids.PART_MARKER_SIZE,
-                        ids.PART_HIDE_NODES,
-                    ),
                     dcc.Graph(
                         id=ids.PART_NETWORK_GRAPH,
                         className="network-graph",
                         config={"displaylogo": False},
                         figure=make_empty_network_figure(
-                            "Run partitioning to view the resulting communities."
+                            "Run partitioning to view the resulting communities.",
+                            icon="🧩",
+                            title="No partitioning result yet"
                         )
                     )
                 ]
