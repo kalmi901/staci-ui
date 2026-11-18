@@ -13,7 +13,12 @@ import wntr
 
 from src.config import RUN_ROOT, STACI_EXECUTABLE
 from src.run_logging import log_prepared_input
-from src.services.inp_model_reader import read_model_options, set_model_options
+from src.services.hydraulic_workload import enforce_hydraulic_workload_limits
+from src.services.inp_model_reader import (
+    read_hydraulic_workload_inputs,
+    read_model_options,
+    set_model_options,
+)
 from src.staci.eps import run_staci_eps
 from src.staci.error_messages import format_staci_failure
 
@@ -223,6 +228,28 @@ def call_hydraulic_simulator(
     inp_path = Path(inp_path)
     if not inp_path.exists():
         raise FileNotFoundError(f"INP file does not exist: {inp_path}")
+
+    workload_inputs = read_hydraulic_workload_inputs(inp_path)
+    duration_seconds = float(workload_inputs["duration_seconds"])
+    hydraulic_timestep_seconds = float(workload_inputs["hydraulic_timestep_seconds"])
+    report_timestep_seconds = float(workload_inputs["report_timestep_seconds"])
+
+    if option_overrides:
+        duration_seconds = float(option_overrides.get("duration", duration_seconds))
+        hydraulic_timestep_seconds = float(
+            option_overrides.get("hydraulic_timestep", hydraulic_timestep_seconds)
+        )
+        report_timestep_seconds = float(
+            option_overrides.get("report_timestep", report_timestep_seconds)
+        )
+
+    enforce_hydraulic_workload_limits(
+        node_count=int(workload_inputs["node_count"]),
+        link_count=int(workload_inputs["link_count"]),
+        duration_seconds=duration_seconds,
+        hydraulic_timestep_seconds=(hydraulic_timestep_seconds),
+        report_timestep_seconds=(report_timestep_seconds),
+    )
 
     run_id = uuid.uuid4().hex[:12]
     run_dir = Path(RUN_ROOT) / "hydraulic" / run_id

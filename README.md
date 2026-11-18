@@ -188,6 +188,9 @@ The application is configured through environment variables.
 | `STACI_UI_URL_PREFIX` | Dash URL prefix | `/staci-app/` |
 | `STACI_UI_DATA_DIR` | Runtime data directory | Local `data/`; Docker uses `/data` |
 | `STACI_TIMEOUT_SECONDS` | Native solver timeout | `300` seconds |
+| `STACI_UI_MAX_HYDRAULIC_STEPS` | Maximum hydraulic solver steps per run | `10000` |
+| `STACI_UI_MAX_HYDRAULIC_REPORT_FRAMES` | Maximum stored hydraulic result frames | `2000` |
+| `STACI_UI_MAX_HYDRAULIC_WORK_UNITS` | Maximum `(nodes + links) × hydraulic steps` | `25000000` |
 | `STACI_UI_MAX_INP_UPLOAD_MIB` | Maximum size of one INP file | `20` MiB |
 | `STACI_UI_MAX_UPLOAD_REQUEST_MIB` | Maximum complete upload request | `128` MiB |
 | `CELERY_BROKER_URL` | Celery task broker | `redis://localhost:6379/0` |

@@ -153,6 +153,17 @@ class RunCallbackTests(unittest.TestCase):
                 ),
                 patch.object(
                     hydraulic_runner,
+                    "read_hydraulic_workload_inputs",
+                    return_value={
+                        "node_count": 10,
+                        "link_count": 15,
+                        "duration_seconds": 3600,
+                        "hydraulic_timestep_seconds": 300,
+                        "report_timestep_seconds": 1800,
+                    },
+                ),
+                patch.object(
+                    hydraulic_runner,
                     "read_model_options",
                     return_value={"duration": 7200},
                 ),

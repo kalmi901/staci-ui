@@ -38,6 +38,44 @@ if MAX_INP_UPLOAD_MIB <= 0:
 if MAX_UPLOAD_REQUEST_MIB <= 0:
     raise ValueError("STACI_UI_MAX_UPLOAD_REQUEST_MIB must be positive.")
 
+MAX_HYDRAULIC_STEPS = int(
+    os.getenv(
+        "STACI_UI_MAX_HYDRAULIC_STEPS",
+        "10000",
+    )
+)
+
+MAX_HYDRAULIC_REPORT_FRAMES = int(
+    os.getenv(
+        "STACI_UI_MAX_HYDRAULIC_REPORT_FRAMES",
+        "2000",
+    )
+)
+
+MAX_HYDRAULIC_WORK_UNITS = int(
+    os.getenv(
+        "STACI_UI_MAX_HYDRAULIC_WORK_UNITS",
+        "25000000",
+    )
+)
+
+for variable_name, value in (
+    (
+        "STACI_UI_MAX_HYDRAULIC_STEPS",
+        MAX_HYDRAULIC_STEPS,
+    ),
+    (
+        "STACI_UI_MAX_HYDRAULIC_REPORT_FRAMES",
+        MAX_HYDRAULIC_REPORT_FRAMES,
+    ),
+    (
+        "STACI_UI_MAX_HYDRAULIC_WORK_UNITS",
+        MAX_HYDRAULIC_WORK_UNITS,
+    ),
+):
+    if value <= 0:
+        raise ValueError(f"{variable_name} must be positive.")
+
 MAX_INP_UPLOAD_BYTES = MAX_INP_UPLOAD_MIB * 1024 * 1024
 
 MAX_UPLOAD_REQUEST_BYTES = MAX_UPLOAD_REQUEST_MIB * 1024 * 1024
