@@ -129,5 +129,4 @@ CAL_RUN_BUTTON = "cal-run-button"
 CAL_RUN_STATUS = "cal-run-status"
 
 CAL_HISTORY_GRAPH = "cal-history-graph"
-CAL_COMPARISON_GRAPH = "cal-comparison-graph"
 CAL_RESIDUAL_GRAPH = "cal-residual-graph"
