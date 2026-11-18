@@ -6,12 +6,11 @@ import dash_bootstrap_components as dbc
 from src.ui import ids
 from src.ui.pages.components import render_active_model_summary
 from src.ui.pages.hydraulic_analysis import render_success_alert
-from src.ui.pages.components import round_color_range_value
 from src.services.hydraulic_runner import call_hydraulic_simulator
 from src.services.model_storage import resolve_uploaded_model
 from src.services.inp_model_reader import read_model_options
 from src.visualisation.network_preview import make_hydraulic_timestep_figure
-
+from src.ui.callbacks.helpers import resolve_color_range_outputs
 from src.run_logging import logged_run
 
 import logging
@@ -312,24 +311,15 @@ def register_hydraulic_callbacks(app):
             )
     
         ranges = run_state.get("ranges", {})
-        
-        def _get_range(attribute):
-            info = ranges.get(attribute, {})
-            vmin = round_color_range_value(attribute, info.get("min"))
-            vmax = round_color_range_value(attribute, info.get("max"))
-            disabled = vmin is None or vmax is None
+        node_values = resolve_color_range_outputs(ranges, node_result)
+        link_values = resolve_color_range_outputs(ranges, link_result)
 
-            return vmin, vmax, disabled, disabled
-        
-        node_values = _get_range(node_result)
-        link_values = _get_range(link_result)
-        
         if ctx.triggered_id == ids.HYD_NODE_RESULT:
             return *node_values, no_update, no_update, no_update, no_update
-        
+
         if ctx.triggered_id == ids.HYD_LINK_RESULT:
             return no_update, no_update, no_update, no_update, *link_values
-        
+
         return *node_values, *link_values
 
     

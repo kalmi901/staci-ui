@@ -1,5 +1,4 @@
 from __future__ import annotations
-import base64
 from datetime import datetime, timezone
 
 from dash import Input, Output, State, no_update, ctx
@@ -11,20 +10,14 @@ from src.ui.paths import local_path
 from src.services.model_storage import resolve_uploaded_model, store_uploaded_model
 from src.services.inp_model_reader import read_model_summary, read_water_network_model
 from src.ui.pages.network_load import render_model_summary
-from src.ui.pages.components import round_color_range_value
 from src.visualisation.network_preview import make_node_preview_figure
-
+from src.ui.callbacks.helpers import (
+    decode_upload_contents,
+    resolve_color_range_outputs,
+)
 
 import logging
 logger = logging.getLogger(__name__)
-
-
-def _decode_upload(contents: str) -> bytes:
-    if not contents:
-        raise ValueError("Missing upload contents.")
-
-    _header, encoded = contents.split(",", 1)
-    return base64.b64decode(encoded)
 
     
 def register_network_callbacks(app):
@@ -62,7 +55,7 @@ def register_network_callbacks(app):
                 None, None, None
                 )
         try:
-            file_bytes = _decode_upload(contents)
+            file_bytes = decode_upload_contents(contents)
             saved = store_uploaded_model(filename, file_bytes)
         except Exception as exc:
             logger.exception(
@@ -198,26 +191,18 @@ def register_network_callbacks(app):
             )
 
         ranges = network_view_state.get("ranges", {})
-        def _get_range(attribute):
-            info = ranges.get(attribute, {})
-            vmin = round_color_range_value(attribute, info.get("min"))
-            vmax = round_color_range_value(attribute, info.get("max"))
-            disabled = vmin is None or vmax is None
+        node_values = resolve_color_range_outputs(ranges, node_color_by)
+        link_values = resolve_color_range_outputs(ranges, link_color_by)
 
-            return vmin, vmax, disabled, disabled
-        
-        node_values = _get_range(node_color_by)
-        link_values = _get_range(link_color_by)
-        
         if ctx.triggered_id == ids.NODE_COLOR_BY:
             return *node_values, no_update, no_update, no_update, no_update
-        
+
         if ctx.triggered_id == ids.LINK_COLOR_BY:
             return no_update, no_update, no_update, no_update, *link_values
-        
+
         return *node_values, *link_values
-    
-    
+
+
     @app.callback(
         Output(ids.NETWORK_GRAPH, "figure"),
         Input(ids.NETWORK_VIEW_STORE, "data"),
@@ -242,7 +227,7 @@ def register_network_callbacks(app):
         line_width_scale,
         marker_size,
         hide_nodes):
-        
+
         return make_node_preview_figure(
             network_view_state, 
             node_color_by, 

@@ -1,8 +1,5 @@
 from __future__ import annotations
-
-import base64
 import logging
-import math
 import re
 from typing import Any
 
@@ -24,22 +21,13 @@ from src.services.calibration_storage import (
 )
 from src.ui import ids
 from src.ui.pages.calibration_analysis import render_calibration_results
-
+from src.ui.callbacks.helpers import (
+    decode_upload_contents,
+    finite_number,
+    positive_number,
+)
 
 logger = logging.getLogger(__name__)
-
-
-def _decode_upload(contents: str) -> bytes:
-    if not contents:
-        raise ValueError("Missing upload contents.")
-
-    try:
-        _header, encoded = contents.split(",", 1)
-        return base64.b64decode(encoded, validate=True)
-    except (ValueError, TypeError) as exc:
-        raise ValueError(
-            "Invalid uploaded file encoding."
-        ) from exc
 
 
 def _measurement_columns(
@@ -118,42 +106,6 @@ def _measurement_rows(
     return result
 
 
-def _finite_number(
-    value: Any,
-    label: str,
-) -> float:
-    if isinstance(value, bool):
-        raise ValueError(f"{label} must be a number.")
-
-    try:
-        number = float(value)
-    except (TypeError, ValueError) as exc:
-        raise ValueError(
-            f"{label} must be a number."
-        ) from exc
-
-    if not math.isfinite(number):
-        raise ValueError(
-            f"{label} must be a finite number."
-        )
-
-    return number
-
-
-def _positive_number(
-    value: Any,
-    label: str,
-) -> float:
-    number = _finite_number(value, label)
-
-    if number <= 0:
-        raise ValueError(
-            f"{label} must be greater than zero."
-        )
-
-    return number
-
-
 def _optional_positive_number(
     value: Any,
     label: str,
@@ -161,14 +113,14 @@ def _optional_positive_number(
     if value in (None, ""):
         return None
 
-    return _positive_number(value, label)
+    return positive_number(value, label)
 
 
 def _positive_integer(
     value: Any,
     label: str,
 ) -> int:
-    number = _positive_number(value, label)
+    number = positive_number(value, label)
 
     if not number.is_integer():
         raise ValueError(
@@ -182,7 +134,7 @@ def _nonnegative_integer(
     value: Any,
     label: str,
 ) -> int:
-    number = _finite_number(value, label)
+    number = finite_number(value, label)
 
     if number < 0 or not number.is_integer():
         raise ValueError(
@@ -196,7 +148,7 @@ def _probability(
     value: Any,
     label: str,
 ) -> float:
-    number = _finite_number(value, label)
+    number = finite_number(value, label)
 
     if number < 0 or number > 1:
         raise ValueError(
@@ -320,7 +272,7 @@ def _prepare_calibration_inputs(
             field = f"value_{period_index}"
 
             values.append(
-                _finite_number(
+                finite_number(
                     row.get(field),
                     (
                         f"Measurement {measurement_id!r}, "
@@ -382,7 +334,7 @@ def _build_optimizer_settings(
             pressure_weight,
             "Pressure-error weight",
         ),
-        "dt": _positive_number(
+        "dt": positive_number(
             period_hours,
             "Period length",
         ),
@@ -416,7 +368,7 @@ def _build_optimizer_settings(
         )
 
     elif pipe_selection == "Dmin":
-        settings["Dmin"] = _positive_number(
+        settings["Dmin"] = positive_number(
             dmin,
             "Diameter cutoff",
         )
@@ -516,7 +468,7 @@ def register_calibration_callbacks(app):
             files = [
                 (
                     filename,
-                    _decode_upload(file_contents),
+                    decode_upload_contents(file_contents),
                 )
                 for filename, file_contents in zip(
                     filenames,
@@ -607,7 +559,7 @@ def register_calibration_callbacks(app):
                 store_calibration_measurements(
                     snapshot_state["upload_id"],
                     filename or "measurements.json",
-                    _decode_upload(contents),
+                    decode_upload_contents(contents),
                 )
             )
         except Exception as exc:

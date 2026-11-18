@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import math
 import re
 
 import dash_bootstrap_components as dbc
@@ -16,7 +15,7 @@ from src.ui.pages.components import render_active_model_summary
 from src.ui.pages.flushing_analysis import render_flushing_results
 from src.visualisation.flushing import make_flushing_scenario_figure
 from src.visualisation.common import make_empty_network_figure
-
+from src.ui.callbacks.helpers import nonnegative_number, positive_number
 
 logger = logging.getLogger(__name__)
 
@@ -38,30 +37,6 @@ def parse_hydrant_ids(value: str | None) -> list[str]:
         raise ValueError("Hydrant junction IDs must be unique.")
 
     return node_ids
-
-
-def _positive_number(value, label: str) -> float:
-    try:
-        number = float(value)
-    except (TypeError, ValueError) as exc:
-        raise ValueError(f"{label} must be a number.") from exc
-
-    if not math.isfinite(number) or number <= 0:
-        raise ValueError(f"{label} must be greater than zero.")
-
-    return number
-
-
-def _nonnegative_number(value, label: str) -> float:
-    try:
-        number = float(value)
-    except (TypeError, ValueError) as exc:
-        raise ValueError(f"{label} must be a number.") from exc
-
-    if not math.isfinite(number) or number < 0:
-        raise ValueError(f"{label} must be zero or greater.")
-
-    return number
 
 
 def register_flushing_callbacks(app):
@@ -126,22 +101,10 @@ def register_flushing_callbacks(app):
             if mode not in {"single", "multi"}:
                 raise ValueError("Select a valid flushing mode.")
 
-            area = _positive_number(
-                hydrant_area,
-                "Outlet area",
-            )
-            coefficient = _positive_number(
-                loss_coefficient,
-                "Total loss coefficient",
-            )
-            threshold = _nonnegative_number(
-                velocity_threshold,
-                "Velocity threshold",
-            )
-            pressure = _nonnegative_number(
-                min_pressure_head,
-                "Minimum pressure head",
-            )
+            area = positive_number(hydrant_area, "Outlet area")
+            coefficient = positive_number(loss_coefficient, "Total loss coefficient")
+            threshold = nonnegative_number(velocity_threshold, "Velocity threshold")
+            pressure = nonnegative_number(min_pressure_head,"Minimum pressure head")
 
             inp_path = resolve_uploaded_model(
                 network_state["model_id"],

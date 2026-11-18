@@ -8,41 +8,6 @@ from dash import dcc, html
 import dash_bootstrap_components as dbc
 
 
-_COLOR_RANGE_DIGITS = {
-    "elevation": 2,
-    "length": 2,
-    "roughness": 2,
-    "head": 2,
-    "pressure": 2,
-    "diameter": 4,
-    "velocity": 4,
-    "headloss": 4,
-    "demand": 6,
-    "flowrate": 6,
-}
-
-
-def round_color_range_value(
-    attribute: str | None,
-    value: Any,
-) -> float | None:
-    if value is None:
-        return None
-
-    try:
-        number = float(value)
-    except (TypeError, ValueError):
-        return None
-
-    digits = _COLOR_RANGE_DIGITS.get(
-        str(attribute),
-        4,
-    )
-
-    return round(number, digits)
-
-
-
 def create_page_header(
     title: str,
     subtitle: str,
