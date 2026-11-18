@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from src.staci import flush
+from src.staci import flush, runtime
 
 
 @pytest.fixture
@@ -104,7 +104,7 @@ def test_run_staci_flush_builds_command_and_collects_outputs(
             stderr="flush stderr\n",
         )
 
-    monkeypatch.setattr(flush.subprocess, "run", fake_run)
+    monkeypatch.setattr(runtime.subprocess, "run", fake_run)
 
     result = flush.run_staci_flush(inp_path, config_path)
 
@@ -169,7 +169,7 @@ def test_run_staci_flush_recognizes_partial_results(
             stderr="invalid scenario\n",
         )
 
-    monkeypatch.setattr(flush.subprocess, "run", fake_run)
+    monkeypatch.setattr(runtime.subprocess, "run", fake_run)
 
     result = flush.run_staci_flush(inp_path, config_path)
 
@@ -231,7 +231,7 @@ def test_run_staci_flush_writes_partial_logs_on_timeout(
             stderr=b"partial flush \xffstderr",
         )
 
-    monkeypatch.setattr(flush.subprocess, "run", fake_run)
+    monkeypatch.setattr(runtime.subprocess, "run", fake_run)
 
     with pytest.raises(TimeoutError, match="29 s timeout"):
         flush.run_staci_flush(inp_path, config_path)
@@ -258,7 +258,7 @@ def test_run_staci_flush_wraps_process_start_failure(
     ) -> subprocess.CompletedProcess[str]:
         raise OSError("process could not start")
 
-    monkeypatch.setattr(flush.subprocess, "run", fake_run)
+    monkeypatch.setattr(runtime.subprocess, "run", fake_run)
 
     with pytest.raises(
         RuntimeError,

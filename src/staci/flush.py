@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal, Sequence
@@ -10,7 +9,7 @@ from src.config import (
     STACI_FLUSH_EXECUTABLE,
     STACI_TIMEOUT_SECONDS,
 )
-from src.staci.runtime import _stream_to_text
+from src.staci.runtime import run_staci_process
 
 
 @dataclass(frozen=True)
@@ -128,34 +127,14 @@ def run_staci_flush(
         str(config_path),
     ]
 
-    try:
-        result = subprocess.run(
-            command,
-            cwd=run_dir,
-            capture_output=True,
-            text=True,
-            errors="replace",
-            check=False,
-            timeout=STACI_TIMEOUT_SECONDS,
-        )
-    except subprocess.TimeoutExpired as exc:
-        stdout_path.write_text(
-            _stream_to_text(exc.stdout),
-            encoding="utf-8",
-        )
-        stderr_path.write_text(
-            _stream_to_text(exc.stderr),
-            encoding="utf-8",
-        )
-        raise TimeoutError(
-            f"STACI Flush exceeded the "
-            f"{STACI_TIMEOUT_SECONDS} s timeout."
-        ) from exc
-    except OSError as exc:
-        raise RuntimeError(
-            f"STACI Flush execution failed: "
-            f"{type(exc).__name__}: {exc}"
-        ) from exc
+    result = run_staci_process(
+        command,
+        cwd=run_dir,
+        stdout_path=stdout_path,
+        stderr_path=stderr_path,
+        timeout_seconds=STACI_TIMEOUT_SECONDS,
+        operation="STACI Flush",
+    )
 
     stdout_path.write_text(result.stdout or "", encoding="utf-8")
     stderr_path.write_text(result.stderr or "", encoding="utf-8")

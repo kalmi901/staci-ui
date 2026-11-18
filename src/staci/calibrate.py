@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import math
 import os
-import subprocess
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
@@ -13,7 +12,7 @@ from src.config import (
     STACI_CALIBRATE_EXECUTABLE,
     STACI_TIMEOUT_SECONDS,
 )
-from src.staci.runtime import _stream_to_text
+from src.staci.runtime import run_staci_process
 
 
 _DEFAULT_SETTINGS: dict[str, Any] = {
@@ -329,42 +328,13 @@ def run_staci_calibrate(
         str(diagnostics_path),
     ]
 
-    try:
-        result = subprocess.run(
-            command,
-            cwd=run_dir,
-            capture_output=True,
-            text=True,
-            errors="replace",
-            check=False,
-            timeout=STACI_TIMEOUT_SECONDS,
-        )
-    except subprocess.TimeoutExpired as exc:
-        stdout_path.write_text(
-            _stream_to_text(exc.stdout),
-            encoding="utf-8",
-        )
-        stderr_path.write_text(
-            _stream_to_text(exc.stderr),
-            encoding="utf-8",
-        )
-        raise TimeoutError(
-            "STACI Calibrate exceeded the "
-            f"{STACI_TIMEOUT_SECONDS} s timeout."
-        ) from exc
-    except OSError as exc:
-        raise RuntimeError(
-            "STACI Calibrate execution failed: "
-            f"{type(exc).__name__}: {exc}"
-        ) from exc
-
-    stdout_path.write_text(
-        result.stdout or "",
-        encoding="utf-8",
-    )
-    stderr_path.write_text(
-        result.stderr or "",
-        encoding="utf-8",
+    result = run_staci_process(
+        command,
+        cwd=run_dir,
+        stdout_path=stdout_path,
+        stderr_path=stderr_path,
+        timeout_seconds=STACI_TIMEOUT_SECONDS,
+        operation="STACI Calibrate",
     )
 
     return StaciCalibrateResults(

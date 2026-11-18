@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from src.staci import calibrate
+from src.staci import calibrate, runtime
 
 
 @pytest.fixture
@@ -202,7 +202,7 @@ def test_run_staci_calibrate_builds_command_and_collects_outputs(
         )
 
     monkeypatch.setattr(
-        calibrate.subprocess,
+        runtime.subprocess,
         "run",
         fake_run,
     )
@@ -250,7 +250,7 @@ def test_run_staci_calibrate_is_not_successful_without_results(
     _run_dir, settings_path = _create_settings(tmp_path)
 
     monkeypatch.setattr(
-        calibrate.subprocess,
+        runtime.subprocess,
         "run",
         lambda command, **kwargs: subprocess.CompletedProcess(
             command,
@@ -304,7 +304,7 @@ def test_run_staci_calibrate_writes_partial_logs_on_timeout(
         )
 
     monkeypatch.setattr(
-        calibrate.subprocess,
+        runtime.subprocess,
         "run",
         fake_run,
     )
@@ -342,7 +342,7 @@ def test_run_staci_calibrate_wraps_process_start_failure(
         raise OSError("process could not start")
 
     monkeypatch.setattr(
-        calibrate.subprocess,
+        runtime.subprocess,
         "run",
         fake_run,
     )

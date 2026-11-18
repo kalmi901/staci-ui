@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from src.staci import eps
+from src.staci import eps, runtime
 
 
 @pytest.fixture
@@ -55,7 +55,7 @@ def test_run_staci_eps_builds_command_and_collects_outputs(
             stderr="STACI stderr\n",
         )
 
-    monkeypatch.setattr(eps.subprocess, "run", fake_run)
+    monkeypatch.setattr(runtime.subprocess, "run", fake_run)
 
     result = eps.run_staci_eps(inp_path, output_prefix)
 
@@ -117,7 +117,7 @@ def test_run_staci_eps_writes_partial_logs_on_timeout(
             stderr=b"partial \xffstderr",
         )
 
-    monkeypatch.setattr(eps.subprocess, "run", fake_run)
+    monkeypatch.setattr(runtime.subprocess, "run", fake_run)
 
     with pytest.raises(TimeoutError, match="17 s timeout"):
         eps.run_staci_eps(inp_path, output_prefix)
