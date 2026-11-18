@@ -89,7 +89,7 @@ RUN test -x /opt/staci/staci \
     && test -x /opt/staci/staci_calibrate \
     && test -x /opt/staci/staci_flush
 
-# Fail the Docker build immedieately if a shared library is missing
+# Fail the Docker build immediately if a shared library is missing
 RUN set -eu; \
     for executable in \
         staci \
@@ -104,7 +104,7 @@ RUN set -eu; \
         fi; \
     done
 
-# Python application dependecies
+# Python application dependencies
 WORKDIR /app
 
 COPY requirements.txt requirements-deploy.txt ./
