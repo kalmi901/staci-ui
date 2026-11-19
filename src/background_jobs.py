@@ -3,19 +3,32 @@ from __future__ import annotations
 from celery import Celery
 from celery.signals import setup_logging
 from dash import CeleryManager
+from redis import Redis
 
 from src.config import (
     CELERY_BROKER_URL,
     CELERY_RESULT_BACKEND,
     CELERY_RESULT_EXPIRES_SECONDS,
+    CELERY_WORKER_CONCURRENCY,
     DASH_DEBUG,
 )
+from src.services.solver_jobs import SolverJobRegistry
 
 celery_app = Celery(
     "staci_ui",
     broker=CELERY_BROKER_URL,
     backend=CELERY_RESULT_BACKEND,
 )
+
+
+redis_client = Redis.from_url(CELERY_BROKER_URL, decode_responses=True)
+
+solver_job_registry = SolverJobRegistry(
+    redis_client,
+    ttl_seconds=CELERY_RESULT_EXPIRES_SECONDS,
+    capacity=CELERY_WORKER_CONCURRENCY,
+)
+
 
 celery_app.conf.update(
     broker_connection_retry_on_startup=True,

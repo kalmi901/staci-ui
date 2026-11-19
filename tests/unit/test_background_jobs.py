@@ -3,11 +3,13 @@ from dash import CeleryManager
 from src.background_jobs import (
     background_callback_manager,
     celery_app,
+    solver_job_registry,
 )
 from src.config import (
     CELERY_BROKER_URL,
     CELERY_RESULT_BACKEND,
     CELERY_RESULT_EXPIRES_SECONDS,
+    CELERY_WORKER_CONCURRENCY,
 )
 
 
@@ -24,3 +26,4 @@ def test_background_manager_uses_configured_celery_app() -> None:
     assert celery_app.conf.task_track_started is True
     assert celery_app.conf.worker_prefetch_multiplier == 1
     assert celery_app.conf.broker_connection_retry_on_startup is True
+    assert solver_job_registry.capacity == CELERY_WORKER_CONCURRENCY
