@@ -11,6 +11,8 @@ x-staci-environment: &staci-environment
   CELERY_RESULT_BACKEND: redis://redis:6379/1
   CELERY_RESULT_EXPIRES_SECONDS: "3600"
   CELERY_WORKER_CONCURRENCY: "2"
+  STACI_UI_DEV_USER_ID: "1"
+  STACI_UI_DEV_USER_LOGIN: local-dev
   PYTHONDONTWRITEBYTECODE: "1"
 
 x-staci-build: &staci-build

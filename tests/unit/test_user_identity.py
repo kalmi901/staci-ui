@@ -113,3 +113,49 @@ def test_current_user_identity_uses_dash_context() -> None:
 
 def test_current_user_identity_is_none_outside_context() -> None:
     assert current_user_identity() is None
+
+
+def test_current_user_identity_uses_explicit_development_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(
+        "STACI_UI_DEV_USER_ID",
+        "99",
+    )
+    monkeypatch.setenv(
+        "STACI_UI_DEV_USER_LOGIN",
+        "local-developer",
+    )
+
+    assert current_user_identity() == UserIdentity(
+        user_id="99",
+        login="local-developer",
+    )
+
+
+def test_verified_identity_takes_precedence_over_development_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(
+        "STACI_UI_DEV_USER_ID",
+        "99",
+    )
+    monkeypatch.setenv(
+        "STACI_UI_DEV_USER_LOGIN",
+        "local-developer",
+    )
+
+    app = Flask(__name__)
+
+    with app.test_request_context(
+        headers={
+            "X-Staci-User-Id": "41",
+            "X-Staci-User-Login": "verified-user",
+        }
+    ):
+        identity = current_user_identity()
+
+    assert identity == UserIdentity(
+        user_id="41",
+        login="verified-user",
+    )

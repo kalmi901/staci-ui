@@ -10,6 +10,7 @@ background callback is executed by Celery.
 
 from __future__ import annotations
 
+import os
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -56,18 +57,39 @@ def identity_from_headers(
     )
 
 
+def development_user_identity() -> UserIdentity | None:
+    """Return the explicitly configured local-development identity."""
+
+    user_id = os.getenv("STACI_UI_DEV_USER_ID", "")
+    login = os.getenv("STACI_UI_DEV_USER_LOGIN", "")
+
+    if not _USER_ID_PATTERN.fullmatch(user_id) or not login:
+        return None
+
+    return UserIdentity(
+        user_id=user_id,
+        login=login[:128],
+    )
+
+
 def current_user_identity() -> UserIdentity | None:
+    identity = None
+
     if has_request_context():
-        return identity_from_headers(
+        identity = identity_from_headers(
             request.headers  # pyright: ignore[reportArgumentType]
         )
 
-    try:
-        headers = ctx.headers
-    except (
-        MissingCallbackContextException,
-        LookupError,
-    ):
-        return None
+    else:
+        try:
+            identity = identity_from_headers(ctx.headers)
+        except (
+            MissingCallbackContextException,
+            LookupError,
+        ):
+            pass
 
-    return identity_from_headers(headers)
+    if identity is not None:
+        return identity
+
+    return development_user_identity()
