@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 from src.logging_setup import RequestUserFilter
 from src.run_logging import execution_id, log_prepared_input, logged_run
+from src.services.solver_jobs import SolverJobCancelledError
 
 
 class RunLoggingTests(unittest.TestCase):
@@ -18,7 +19,7 @@ class RunLoggingTests(unittest.TestCase):
         self.logger.setLevel(logging.INFO)
 
         class Capture(logging.Handler):
-            def emit(inner, record):
+            def emit(inner, record):  # pyright: ignore[reportSelfClsParameterName]
                 RequestUserFilter().filter(record)
                 self.records.append(record)
 
@@ -129,6 +130,45 @@ class RunLoggingTests(unittest.TestCase):
                     if e["event"] == "allocated"
                 )
             )
+
+    def test_cancelled_run_is_logged_without_error_traceback(self):
+        @logged_run("hydraulic")
+        def callback(
+            n_clicks,
+            network_state,
+            backend,
+        ):
+            raise SolverJobCancelledError("STACI EPS was cancelled.")
+
+        with self.assertRaisesRegex(
+            SolverJobCancelledError,
+            "was cancelled",
+        ):
+            callback(
+                1,
+                {
+                    "model_id": "abc",
+                    "filename": "network.inp",
+                },
+                "staci",
+            )
+
+        finished = [event for event in self.events() if event["event"] == "finished"]
+
+        self.assertEqual(len(finished), 1)
+        self.assertEqual(
+            finished[0]["status"],
+            "cancelled",
+        )
+        self.assertEqual(
+            finished[0]["error"],
+            "STACI EPS was cancelled.",
+        )
+
+        self.assertFalse(
+            any(record.levelno >= logging.ERROR for record in self.records)
+        )
+        self.assertFalse(any(record.exc_info for record in self.records))
 
 
 if __name__ == "__main__":

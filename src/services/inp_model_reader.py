@@ -35,7 +35,7 @@ def read_model_summary(
 
 
 def read_model_options(
-    inp_or_wn: Path | wntr.network.WaterNetworkModel,
+    inp_or_wn: Path | str | wntr.network.WaterNetworkModel,
 ) -> Dict[str, Any]:
     wn = _as_wn(inp_or_wn)
 
@@ -45,6 +45,21 @@ def read_model_options(
         results[key] = getattr(group, option_name)
 
     return results
+
+
+def read_hydraulic_workload_inputs(
+    inp_or_wn: Path | str | wntr.network.WaterNetworkModel,
+) -> Dict[str, float | int]:
+    wn = _as_wn(inp_or_wn)
+    options = read_model_options(wn)
+
+    return {
+        "node_count": len(wn.node_name_list),
+        "link_count": len(wn.link_name_list),
+        "duration_seconds": float(options["duration"]),
+        "hydraulic_timestep_seconds": float(options["hydraulic_timestep"]),
+        "report_timestep_seconds": float(options["report_timestep"]),
+    }
 
 
 def set_model_options(

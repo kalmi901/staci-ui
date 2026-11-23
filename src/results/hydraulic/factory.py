@@ -8,7 +8,7 @@ from src.results.hydraulic.wntr_csv import WntrCsvResults
 
 
 def open_eps_hydraulic_results(
-    run_state: Dict[str, Any],
+    run_state: Dict[str, Any], *, user_id: str
 ) -> EPSHydraulicResults:
 
     backend = run_state.get("backend")
@@ -17,9 +17,9 @@ def open_eps_hydraulic_results(
         raise ValueError("Cannot open results from an unsuccessful hydraulic run.")
 
     if backend == "wntr":
-        return WntrCsvResults(run_state)
+        return WntrCsvResults(run_state, user_id=user_id)
 
     elif backend == "staci":
-        return StaciHDF5Results(run_state)
+        return StaciHDF5Results(run_state, user_id=user_id)
 
     raise ValueError(f"Unsupported hydraulic result backend: {backend!r}")

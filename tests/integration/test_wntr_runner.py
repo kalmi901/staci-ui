@@ -28,6 +28,7 @@ def test_call_hydraulic_simulator_runs_wntr_and_writes_results(
         FIXTURE_PATH,
         model_id=MODEL_ID,
         backend="wntr",
+        user_id="41",
     )
 
     run_dir = run_root / "hydraulic" / RUN_ID

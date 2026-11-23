@@ -14,6 +14,7 @@ from src.ui.callbacks.helpers import (
     decode_upload_contents,
     resolve_color_range_outputs,
 )
+from src.ui.callbacks.solver_job_helpers import require_user_identity
 from src.ui.pages.network_load import render_model_summary
 from src.ui.paths import local_path
 from src.visualisation.network_preview import make_node_preview_figure
@@ -54,8 +55,9 @@ def register_network_callbacks(app):
                 None,
             )
         try:
+            identity = require_user_identity()
             file_bytes = decode_upload_contents(contents)
-            saved = store_uploaded_model(filename, file_bytes)
+            saved = store_uploaded_model(filename, file_bytes, user_id=identity.user_id)
         except Exception as exc:
             logger.exception("Model upload failed: filename=%s", filename)
             return (
@@ -139,8 +141,11 @@ def register_network_callbacks(app):
             return None, None
 
         try:
+            identity = require_user_identity()
             inp_path = resolve_uploaded_model(
-                network_state["model_id"], network_state["filename"]
+                network_state["model_id"],
+                network_state["filename"],
+                user_id=identity.user_id,
             )
             model_data = read_water_network_model(inp_path)
             model_data["model_id"] = network_state["model_id"]

@@ -23,6 +23,8 @@ responsive while simulations are running.
 - Preview network topology and static node/link properties
 - Configure node size, link width, visibility, properties, and color ranges
 - Keep uploaded models and solver runs separated by generated identifiers
+- Associate uploaded models and solver runs with the proxy-verified user identity
+- Reject access when ownership metadata is missing, invalid, or belongs to another user
 
 ### Hydraulic simulation
 
@@ -87,10 +89,28 @@ background callbacks backed by Celery and Redis.
 
 - Solver work runs outside the Gunicorn process
 - Web requests remain responsive while jobs execute
-- Redis carries queued tasks and background-callback results
-- Celery worker concurrency is configurable
-- Duplicate submissions are prevented while a workflow is running
-- Solver files and results remain on shared server-side storage
+- Redis carries queued tasks, queue state, and background-callback results
+- Celery worker concurrency defines the global solver-job capacity
+- Each verified user may have at most one queued or running solver job across all workflows
+- The sidebar displays current solver capacity and the user's job status
+- Users can cancel their queued or running solver job
+- Native STACI subprocesses are terminated cooperatively after cancellation
+- Uploaded models and solver runs remain on shared server-side storage with per-user ownership metadata
+
+### Multi-user safeguards
+
+The application trusts user identity only when it is supplied by the authenticated
+WordPress/Caddy proxy path. Client-side Dash stores contain generated identifiers
+and lightweight metadata, but those identifiers do not grant access to server-side
+files.
+
+Each uploaded model, calibration input set, and solver run directory contains a
+server-side `.owner.json` file. File resolution fails closed when this metadata is
+missing, malformed, or does not match the current verified user.
+
+Hydraulic workloads are limited by solver steps, report frames, and estimated
+network work units. Solver submissions are also constrained by the configured
+Celery worker capacity and the one-active-job-per-user rule.
 
 ## Architecture
 
@@ -107,6 +127,9 @@ flowchart TD
 
 Browser-side stores contain generated identifiers and lightweight metadata.
 Uploaded models, native solver output, and result arrays remain on the server.
+Within the Dash/Celery application, generated identifiers are not treated as
+authorization: every server-side resource lookup is checked against the
+proxy-verified user identity.
 
 The native tools included in the Docker image are:
 
@@ -188,12 +211,15 @@ The application is configured through environment variables.
 | `STACI_UI_URL_PREFIX` | Dash URL prefix | `/staci-app/` |
 | `STACI_UI_DATA_DIR` | Runtime data directory | Local `data/`; Docker uses `/data` |
 | `STACI_TIMEOUT_SECONDS` | Native solver timeout | `300` seconds |
+| `STACI_UI_MAX_HYDRAULIC_STEPS` | Maximum hydraulic solver steps per run | `10000` |
+| `STACI_UI_MAX_HYDRAULIC_REPORT_FRAMES` | Maximum stored hydraulic result frames | `2000` |
+| `STACI_UI_MAX_HYDRAULIC_WORK_UNITS` | Maximum `(nodes + links) × hydraulic steps` | `25000000` |
 | `STACI_UI_MAX_INP_UPLOAD_MIB` | Maximum size of one INP file | `20` MiB |
 | `STACI_UI_MAX_UPLOAD_REQUEST_MIB` | Maximum complete upload request | `128` MiB |
 | `CELERY_BROKER_URL` | Celery task broker | `redis://localhost:6379/0` |
 | `CELERY_RESULT_BACKEND` | Background-result backend | `redis://localhost:6379/1` |
 | `CELERY_RESULT_EXPIRES_SECONDS` | Background-result retention | `3600` seconds |
-| `CELERY_WORKER_CONCURRENCY` | Worker processes in Compose | `2` |
+| `CELERY_WORKER_CONCURRENCY` | Worker processes and global concurrent solver-job capacity | `2` |
 | `PORT` | Gunicorn listening port | `8050` |
 | `DASH_DEBUG` | Enable Dash debug mode | `0` |
 | `STACI_EXECUTABLE` | Path to `staci` | Automatically resolved |
@@ -203,8 +229,10 @@ The application is configured through environment variables.
 
 An example production environment file is provided as `.env.example`.
 
-Authentication is handled by WordPress and Caddy. Never expose the application
-port publicly: access must pass through the supplied Caddy configuration.
+Authentication is handled by WordPress and Caddy. Caddy removes externally
+supplied identity headers and forwards only the identity verified through the
+WordPress session. Never expose the application port publicly: access must pass
+through the supplied Caddy configuration.
 
 ## Docker deployment
 
@@ -247,8 +275,10 @@ Follow [the VPS deployment guide](deploy/README.md) to configure `.env`, initial
 WordPress, activate STACI Tool and Force Login, and create the tool page.
 
 Uploaded models and solver run directories remain under `/data/uploads` and
-`/data/runs` in the `staci-data` volume. Storage is shared between authenticated
-users, without per-user ownership or a history browser.
+`/data/runs` in the shared `staci-data` volume. The Python application associates
+each resource with its proxy-verified user through server-side ownership metadata.
+There is currently no user-facing run-history browser. Any additional service that
+exposes files from this volume must apply equivalent authorization.
 
 ### Logs
 
@@ -316,6 +346,7 @@ GitHub Actions performs:
 - Python tests without native STACI
 - Full Docker-based native STACI tests
 - Redis, Celery, and Dash background-callback verification
+- Resource-ownership and cross-user isolation tests
 - WordPress/PHP runtime and security checks
 
 The `benchmarks/` directory contains ad hoc responsiveness experiments created
@@ -330,16 +361,25 @@ Runtime data is stored under the configured data directory:
 ```text
 data/
 ├── uploads/
+│   ├── <model-id>/
+│   │   └── .owner.json
+│   └── calibration/
+│       └── <upload-id>/
+│           └── .owner.json
 └── runs/
-    ├── hydraulic/
-    ├── partition/
-    ├── flushing/
-    └── calibration/
+    ├── hydraulic/<run-id>/.owner.json
+    ├── partition/<run-id>/.owner.json
+    ├── flushing/<run-id>/.owner.json
+    └── calibration/<run-id>/.owner.json
 ```
 
-Uploaded source files and solver runs are stored separately. The application does
-not currently perform automatic retention or pruning. Persistent deployments
-should manage cleanup according to their storage and audit requirements.
+Uploaded source files and solver runs are stored separately and are bound to the
+verified user who created them. Resources created by older application versions
+without ownership metadata are intentionally rejected and must be recreated.
+
+The application does not currently perform automatic retention or pruning.
+Persistent deployments should manage cleanup according to their storage and audit
+requirements.
 
 ## STACI
 

@@ -9,43 +9,36 @@ from __future__ import annotations
 import json
 import logging
 import os
-import re
 import stat
 import time
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from urllib.parse import unquote
-
-from dash import ctx
-from dash.exceptions import MissingCallbackContextException
-from flask import has_request_context, request
 
 from src.run_logging import execution_id
+from src.user_identity import current_user_identity
 
 
 class RequestUserFilter(logging.Filter):
-    def filter(self, record: logging.LogRecord) -> bool:
+    def filter(
+        self,
+        record: logging.LogRecord,
+    ) -> bool:
         record.staci_execution_id = execution_id.get()
         record.staci_user_id = "-"
         record.staci_user_login = "-"
-        headers = {}
-        if has_request_context():
-            headers = request.headers
-        else:
-            try:
-                # Dash transfers server-side request headers into its Celery context.
-                headers = ctx.headers
-            except (MissingCallbackContextException, LookupError):
-                pass
-        if headers:
-            user_id = headers.get("X-Staci-User-Id", "")
-            login = headers.get("X-Staci-User-Login", "")
-            if re.fullmatch(r"[1-9][0-9]{0,19}", user_id) and login:
-                record.staci_user_id = user_id
-                # JSON quoting keeps control characters from forging log lines.
-                record.staci_user_login = json.dumps(
-                    unquote(login[:512])[:128], ensure_ascii=True
-                )
+
+        identity = current_user_identity()
+
+        if identity is not None:
+            record.staci_user_id = identity.user_id
+
+            # JSON quoting prevents control
+            # characters from forging log lines.
+            record.staci_user_login = json.dumps(
+                identity.login,
+                ensure_ascii=True,
+            )
+
         return True
 
 
@@ -58,7 +51,7 @@ class PrivateRotatingFileHandler(RotatingFileHandler):
             # A fresh descriptor gives each process its own flock after Celery forks.
             lock_path = Path(self.baseFilename).parent / ".application.lock"
             descriptor = os.open(lock_path, os.O_WRONLY | os.O_CREAT, 0o640)
-            fcntl.flock(descriptor, fcntl.LOCK_EX)
+            fcntl.flock(descriptor, fcntl.LOCK_EX)  # pyright: ignore[reportAttributeAccessIssue]
             # Reopen because another process may have rotated the current file.
             if self.stream is not None:
                 self.stream.close()
@@ -89,7 +82,7 @@ def configure_logging(*, debug: bool = False) -> None:
         if reader_gid:
             # Setgid makes new/rotated files readable by WordPress's www-data group.
             if log_dir.stat().st_gid != int(reader_gid):
-                os.chown(log_dir, -1, int(reader_gid))
+                os.chown(log_dir, -1, int(reader_gid))  # pyright: ignore[reportAttributeAccessIssue]
             if stat.S_IMODE(log_dir.stat().st_mode) != 0o2750:
                 os.chmod(log_dir, 0o2750)
         handlers.append(

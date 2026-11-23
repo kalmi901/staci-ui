@@ -542,6 +542,7 @@ def make_hydraulic_timestep_figure(
     *,
     network_view_state: Dict[str, Any],
     run_state: Dict[str, Any],
+    user_id: str,
     time_index: int | None,
     node_result: str = "pressure",
     link_result: str = "flowrate",
@@ -575,7 +576,7 @@ def make_hydraulic_timestep_figure(
             "Hydraulic results belong to a different network model.", tone="danger"
         )
 
-    results = open_eps_hydraulic_results(run_state)
+    results = open_eps_hydraulic_results(run_state, user_id=user_id)
 
     if results.n_steps == 0:
         return make_empty_network_figure(

@@ -75,9 +75,17 @@ def test_dash_layout_contains_application_shell(client) -> None:
         ids.URL,
         ids.PAGE_CONTENT,
         ids.NETWORK_STORE,
+        ids.HYD_JOB_REQUEST_STORE,
         ids.HYD_RUN_STORE,
+        ids.PART_JOB_REQUEST_STORE,
         ids.PART_RUN_STORE,
+        ids.FLUSH_JOB_REQUEST_STORE,
         ids.FLUSH_RUN_STORE,
+        ids.CAL_JOB_REQUEST_STORE,
+        ids.CAL_RUN_STORE,
+        ids.SOLVER_STATUS_INTERVAL,
+        ids.SOLVER_STATUS,
+        ids.SOLVER_CANCEL_BUTTON,
     }.issubset(component_ids)
 
 
@@ -95,6 +103,10 @@ def test_dash_dependencies_include_main_callbacks(client) -> None:
     assert any(ids.PART_RUN_STORE in output for output in outputs)
     assert any(ids.FLUSH_RUN_STORE in output for output in outputs)
     assert f"{ids.FLUSH_NETWORK_GRAPH}.figure" in outputs
+    assert any(
+        ids.SOLVER_STATUS in output and ids.SOLVER_CANCEL_BUTTON in output
+        for output in outputs
+    )
 
 
 @pytest.mark.parametrize(
@@ -114,6 +126,11 @@ def test_dash_dependencies_include_main_callbacks(client) -> None:
             ids.FLUSH_RUN_STORE,
             ids.FLUSH_RUN_STATUS,
             ids.FLUSH_RUN_BUTTON,
+        ),
+        (
+            ids.CAL_RUN_STORE,
+            ids.CAL_RUN_STATUS,
+            ids.CAL_RUN_BUTTON,
         ),
     ],
 )

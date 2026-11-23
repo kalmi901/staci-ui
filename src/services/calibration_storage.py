@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Sequence, TypedDict
 
 from src.config import MAX_INP_UPLOAD_BYTES, MAX_INP_UPLOAD_MIB, UPLOAD_ROOT
+from src.services.resource_ownership import require_resource_owner, write_resource_owner
 
 _UPLOAD_ID_PATTERN = re.compile(r"^[a-f0-9]{12}$")
 _SNAPSHOT_NAME_PATTERN = re.compile(r"^snapshot_[0-9]{3}\.inp$")
@@ -38,6 +39,19 @@ def _safe_filename(filename: str) -> str:
     return name or "input.json"
 
 
+def _natural_filename_key(
+    filename: str,
+) -> tuple[tuple[int, int | str], ...]:
+    return tuple(
+        ((1, int(part)) if part.isdigit() else (0, part.casefold()))
+        for part in re.split(
+            r"([0-9]+)",
+            filename,
+        )
+        if part
+    )
+
+
 def _upload_dir(upload_id: str) -> Path:
     if not _UPLOAD_ID_PATTERN.fullmatch(upload_id):
         raise ValueError(f"Invalid calibration upload id: {upload_id!r}")
@@ -52,7 +66,7 @@ def _upload_dir(upload_id: str) -> Path:
 
 
 def store_calibration_snapshots(
-    files: Sequence[tuple[str, bytes]],
+    files: Sequence[tuple[str, bytes]], *, user_id: str
 ) -> CalibrationSnapshotUpload:
     if not files:
         raise ValueError("At least one calibration INP snapshot is required.")
@@ -79,10 +93,11 @@ def store_calibration_snapshots(
 
         prepared.append((safe_name, file_bytes))
 
+    prepared.sort(key=lambda item: _natural_filename_key(item[0]))
     upload_id = uuid.uuid4().hex[:12]
     upload_dir = _upload_dir(upload_id)
     upload_dir.mkdir(parents=True, exist_ok=False)
-
+    write_resource_owner(upload_dir, user_id)
     snapshots: list[StoredCalibrationSnapshot] = []
 
     for period_index, (filename, file_bytes) in enumerate(prepared):
@@ -106,10 +121,10 @@ def store_calibration_snapshots(
 
 
 def resolve_calibration_snapshots(
-    upload_id: str,
-    stored_filenames: Sequence[str],
+    upload_id: str, stored_filenames: Sequence[str], *, user_id: str
 ) -> list[Path]:
     upload_dir = _upload_dir(upload_id)
+    require_resource_owner(upload_dir, user_id)
     resolved: list[Path] = []
 
     for stored_filename in stored_filenames:
@@ -132,14 +147,10 @@ def resolve_calibration_snapshots(
 
 
 def store_calibration_measurements(
-    upload_id: str,
-    filename: str,
-    file_bytes: bytes,
+    upload_id: str, filename: str, file_bytes: bytes, *, user_id: str
 ) -> CalibrationMeasurementUpload:
     upload_dir = _upload_dir(upload_id)
-
-    if not upload_dir.is_dir():
-        raise FileNotFoundError(f"Calibration upload does not exist: {upload_dir}")
+    require_resource_owner(upload_dir, user_id)
 
     safe_name = _safe_filename(filename)
 

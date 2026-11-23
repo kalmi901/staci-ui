@@ -62,3 +62,82 @@
   font-size: 12px;
   text-align: center;
 }
+
+.solver-status-panel {
+  margin-top: auto;
+  padding: 12px;
+  border: 1px solid #374151;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.solver-status-content {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.solver-status-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.solver-status-title {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.solver-status-badge {
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.solver-status-badge-available {
+  background: rgba(34, 197, 94, 0.18);
+  color: #86efac;
+}
+
+.solver-status-badge-busy {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fcd34d;
+}
+
+.solver-status-summary,
+.solver-status-message {
+  color: var(--sidebar-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.sidebar-footer {
+  margin-top: 0;
+}
+
+.solver-cancel-button {
+  width: 100%;
+  margin-top: 10px;
+  padding: 7px 10px;
+  border: 1px solid #f87171;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: #fca5a5;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.solver-cancel-button:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.18);
+}
+
+.solver-cancel-button:disabled {
+  border-color: #4b5563;
+  color: #6b7280;
+  cursor: not-allowed;
+  opacity: 0.7;
+}

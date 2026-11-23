@@ -7,7 +7,14 @@ from pathlib import Path
 from unittest.mock import patch
 
 from src.run_logging import execution_id
-from src.ui.callbacks import hydraulic_callbacks, partitioning_callbacks
+from src.ui import ids
+from src.ui.callbacks import (
+    calibration_callbacks,
+    flushing_callbacks,
+    hydraulic_callbacks,
+    partitioning_callbacks,
+)
+from src.user_identity import UserIdentity
 
 
 class CallbackRegistry:
@@ -34,7 +41,16 @@ class RunCallbackTests(unittest.TestCase):
             "backend": "wntr",
             "summary": {},
         }
+        identity = UserIdentity(
+            user_id="41",
+            login="Batman",
+        )
         with (
+            patch.object(
+                hydraulic_callbacks,
+                "require_user_identity",
+                return_value=identity,
+            ),
             patch.object(
                 hydraulic_callbacks,
                 "resolve_uploaded_model",
@@ -49,7 +65,7 @@ class RunCallbackTests(unittest.TestCase):
                 return_value="original-success",
             ),
         ):
-            result = registry.functions["run_hydraulic_simulation"](
+            result = hydraulic_callbacks._execute_hydraulic_simulation(
                 1, model, "wntr", True, 2, 5, 30, 5, 1.2
             )
             self.assertEqual(result, (state, "original-success"))
@@ -63,13 +79,22 @@ class RunCallbackTests(unittest.TestCase):
                     "demand_multiplier": 1.2,
                 },
             )
+            self.assertEqual(
+                runner.call_args.kwargs["user_id"],
+                "41",
+            )
             with self.assertLogs("src.run_logging", level="INFO") as logs:
-                failed = registry.functions["run_hydraulic_simulation"](
+                failed = hydraulic_callbacks._execute_hydraulic_simulation(
                     1, model, "wntr", True, None, 5, 30, 5, 1.0
                 )
             self.assertIsNone(failed[0])
             self.assertTrue(any('"status":"failed"' in line for line in logs.output))
         with (
+            patch.object(
+                partitioning_callbacks,
+                "require_user_identity",
+                return_value=identity,
+            ),
             patch.object(
                 partitioning_callbacks,
                 "resolve_uploaded_model",
@@ -84,7 +109,7 @@ class RunCallbackTests(unittest.TestCase):
                 return_value="original-success",
             ),
         ):
-            result = registry.functions["run_partitioning"](
+            result = partitioning_callbacks._execute_partitioning(
                 1, model, 3, "modularity", "topology", "diameter", 20, 50, 0.25, 0.8, 42
             )
             self.assertEqual(result, (state, "original-success"))
@@ -92,9 +117,13 @@ class RunCallbackTests(unittest.TestCase):
             self.assertEqual(
                 runner.call_args.kwargs["optimizer_settings"]["popsize"], 20
             )
+            self.assertEqual(
+                runner.call_args.kwargs["user_id"],
+                "41",
+            )
         self.assertEqual(execution_id.get(), "-")
 
-    def test_dash_http_callback_still_accepts_original_payload(self):
+    def test_dash_http_background_callback_accepts_reserved_job(self):
         from app import app
         from src.background_jobs import background_callback_manager
 
@@ -103,19 +132,38 @@ class RunCallbackTests(unittest.TestCase):
             for key, value in app.callback_map.items()
             if "hyd-run-store.data" in key and "hyd-run-status.children" in key
         )
-        values = [None, "wntr", False, 1, 5, 60, 5, 1.0]
+        request_state = {
+            "token": "fixture-token",
+            "workflow": "hydraulic",
+            "payload": {
+                "network_state": None,
+                "backend": "wntr",
+                "override_enabled": False,
+                "duration": 1,
+                "hydraulic_timestep": 5,
+                "report_timestep": 60,
+                "rule_timestep": 5,
+                "demand_multiplier": 1.0,
+            },
+        }
+
         body = {
             "output": key,
             "outputs": [
-                {"id": item.component_id, "property": item.component_property}
+                {
+                    "id": item.component_id,
+                    "property": item.component_property,
+                }
                 for item in callback["output"]
             ],
-            "inputs": [dict(item, value=1) for item in callback["inputs"]],
-            "state": [
-                dict(item, value=value)
-                for item, value in zip(callback["state"], values)
+            "inputs": [
+                dict(
+                    callback["inputs"][0],
+                    value=request_state,
+                )
             ],
-            "changedPropIds": ["hyd-run-button.n_clicks"],
+            "state": [],
+            "changedPropIds": [f"{ids.HYD_JOB_REQUEST_STORE}.data"],
         }
         with (
             patch.object(
@@ -132,7 +180,10 @@ class RunCallbackTests(unittest.TestCase):
             )
         self.assertEqual(response.status_code, 200)
         self.assertIn("job", response.get_json())
-        self.assertEqual(submit.call_args.args[2], [1, *values])
+        self.assertEqual(
+            submit.call_args.args[2],
+            [request_state],
+        )
         self.assertEqual(submit.call_args.args[3]["headers"]["X-Staci-User-Id"], "7")
 
     def test_hydraulic_runner_records_effective_copied_input_before_solver(self):
@@ -153,6 +204,17 @@ class RunCallbackTests(unittest.TestCase):
                 ),
                 patch.object(
                     hydraulic_runner,
+                    "read_hydraulic_workload_inputs",
+                    return_value={
+                        "node_count": 10,
+                        "link_count": 15,
+                        "duration_seconds": 3600,
+                        "hydraulic_timestep_seconds": 300,
+                        "report_timestep_seconds": 1800,
+                    },
+                ),
+                patch.object(
+                    hydraulic_runner,
                     "read_model_options",
                     return_value={"duration": 7200},
                 ),
@@ -168,6 +230,7 @@ class RunCallbackTests(unittest.TestCase):
                             model_id="abcdef123456",
                             backend="wntr",
                             option_overrides={"duration": 7200},
+                            user_id="41",
                         )
                 finally:
                     execution_id.reset(token)
@@ -182,6 +245,263 @@ class RunCallbackTests(unittest.TestCase):
             prepared = next(e for e in events if e["event"] == "prepared")
             self.assertEqual(prepared["effective_options"]["duration"], 7200)
             self.assertEqual(prepared["run_id"], solver.call_args.args[2])
+
+    def test_hydraulic_submission_reserves_job_before_background_execution(self):
+        registry = CallbackRegistry()
+        hydraulic_callbacks.register_hydraulic_callbacks(registry)
+
+        model = {
+            "model_id": "abcdef123456",
+            "filename": "network.inp",
+        }
+        request_state = {
+            "token": "fixture-token",
+            "workflow": "hydraulic",
+            "payload": {},
+        }
+
+        with patch.object(
+            hydraulic_callbacks,
+            "reserve_solver_job",
+            return_value=request_state,
+        ) as reserve:
+            result = registry.functions["submit_hydraulic_simulation"](
+                1,
+                model,
+                "wntr",
+                True,
+                2,
+                5,
+                30,
+                5,
+                1.2,
+            )
+
+        self.assertEqual(
+            result[0],
+            request_state,
+        )
+        self.assertEqual(
+            reserve.call_args.kwargs["workflow"],
+            "hydraulic",
+        )
+        self.assertEqual(
+            reserve.call_args.kwargs["payload"],
+            {
+                "network_state": model,
+                "backend": "wntr",
+                "override_enabled": True,
+                "duration": 2,
+                "hydraulic_timestep": 5,
+                "report_timestep": 30,
+                "rule_timestep": 5,
+                "demand_multiplier": 1.2,
+            },
+        )
+
+    def test_partition_submission_reserves_job_before_background_execution(self):
+        registry = CallbackRegistry()
+        partitioning_callbacks.register_partitioning_callbacks(registry)
+
+        model = {
+            "model_id": "abcdef123456",
+            "filename": "network.inp",
+        }
+        request_state = {
+            "token": "fixture-token",
+            "workflow": "partition",
+            "payload": {},
+        }
+
+        with patch.object(
+            partitioning_callbacks,
+            "reserve_solver_job",
+            return_value=request_state,
+        ) as reserve:
+            result = registry.functions["submit_partitioning"](
+                1,
+                model,
+                3,
+                "modularity",
+                "topology",
+                "diameter",
+                20,
+                50,
+                0.25,
+                0.8,
+                42,
+            )
+
+        self.assertEqual(
+            result[0],
+            request_state,
+        )
+        self.assertEqual(
+            reserve.call_args.kwargs["workflow"],
+            "partition",
+        )
+        self.assertEqual(
+            reserve.call_args.kwargs["payload"],
+            {
+                "network_state": model,
+                "n_comm": 3,
+                "obj_type": "modularity",
+                "weight_type": "topology",
+                "weight_type_mod": "diameter",
+                "popsize": 20,
+                "ngen": 50,
+                "pmut": 0.25,
+                "pcross": 0.8,
+                "seed": 42,
+            },
+        )
+
+    def test_flushing_submission_reserves_job_before_background_execution(self):
+        registry = CallbackRegistry()
+        flushing_callbacks.register_flushing_callbacks(registry)
+
+        model = {
+            "model_id": "abcdef123456",
+            "filename": "network.inp",
+        }
+        request_state = {
+            "token": "fixture-token",
+            "workflow": "flushing",
+            "payload": {},
+        }
+
+        with patch.object(
+            flushing_callbacks,
+            "reserve_solver_job",
+            return_value=request_state,
+        ) as reserve:
+            result = registry.functions["submit_flushing"](
+                1,
+                model,
+                "J1, J2",
+                "single",
+                0.002,
+                2.0,
+                0.5,
+                0.0,
+                False,
+            )
+
+        self.assertEqual(
+            result[0],
+            request_state,
+        )
+        self.assertEqual(
+            reserve.call_args.kwargs["workflow"],
+            "flushing",
+        )
+        self.assertEqual(
+            reserve.call_args.kwargs["payload"],
+            {
+                "network_state": model,
+                "hydrant_text": "J1, J2",
+                "mode": "single",
+                "hydrant_area": 0.002,
+                "loss_coefficient": 2.0,
+                "velocity_threshold": 0.5,
+                "min_pressure_head": 0.0,
+                "write_networks": False,
+            },
+        )
+
+    def test_calibration_submission_reserves_job_before_background_execution(self):
+        registry = CallbackRegistry()
+        calibration_callbacks.register_calibration_callbacks(registry)
+
+        snapshot_state = {
+            "upload_id": "abcdef123456",
+            "snapshots": [
+                {
+                    "period_index": 0,
+                    "filename": "network_0.inp",
+                    "stored_filename": ("snapshot_000.inp"),
+                    "size_bytes": 100,
+                },
+                {
+                    "period_index": 1,
+                    "filename": "network_1.inp",
+                    "stored_filename": ("snapshot_001.inp"),
+                    "size_bytes": 100,
+                },
+            ],
+        }
+        selected_snapshots = [
+            "snapshot_000.inp",
+            "snapshot_001.inp",
+        ]
+        measurement_rows = [
+            {
+                "id": "J1",
+                "type": "node",
+                "value_0": 30.0,
+                "value_1": 31.0,
+            }
+        ]
+        request_state = {
+            "token": "fixture-token",
+            "workflow": "calibration",
+            "payload": {},
+        }
+
+        with patch.object(
+            calibration_callbacks,
+            "reserve_solver_job",
+            return_value=request_state,
+        ) as reserve:
+            result = registry.functions["submit_calibration"](
+                1,
+                snapshot_state,
+                selected_snapshots,
+                measurement_rows,
+                "largest_diameter",
+                2,
+                "",
+                0.1,
+                0.05,
+                1.0,
+                1.0,
+                1.0,
+                8,
+                10,
+                0.2,
+                0.8,
+                12345,
+            )
+
+        self.assertEqual(
+            result[0],
+            request_state,
+        )
+        self.assertEqual(
+            reserve.call_args.kwargs["workflow"],
+            "calibration",
+        )
+        self.assertEqual(
+            reserve.call_args.kwargs["payload"],
+            {
+                "snapshot_state": snapshot_state,
+                "selected_snapshots": (selected_snapshots),
+                "measurement_rows": measurement_rows,
+                "pipe_selection": "largest_diameter",
+                "active_pipe_count": 2,
+                "pipe_ids": "",
+                "dmin": 0.1,
+                "min_diameter": 0.05,
+                "max_diameter": 1.0,
+                "pressure_weight": 1.0,
+                "period_hours": 1.0,
+                "popsize": 8,
+                "ngen": 10,
+                "pmut": 0.2,
+                "pcross": 0.8,
+                "seed": 12345,
+            },
+        )
 
 
 if __name__ == "__main__":

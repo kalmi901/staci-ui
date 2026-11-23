@@ -9,6 +9,7 @@ from typing import Any, Dict
 
 from src.config import RUN_ROOT, STACI_SPLIT_EXECUTABLE
 from src.run_logging import log_prepared_input
+from src.services.resource_ownership import write_resource_owner
 from src.staci.error_messages import format_staci_failure
 from src.staci.split import run_staci_split, write_split_settings
 
@@ -89,6 +90,7 @@ def call_staci_split_service(
     inp_path: Path | str,
     *,
     model_id: str,
+    user_id: str,
     optimizer_settings: Dict[str, Any] | None = None,
     seed: int = 12345,
 ) -> Dict[str, Any]:
@@ -100,7 +102,7 @@ def call_staci_split_service(
     run_id = uuid.uuid4().hex[:12]
     run_dir = Path(RUN_ROOT) / "partition" / run_id
     run_dir.mkdir(parents=True, exist_ok=False)
-
+    write_resource_owner(run_dir, user_id)
     # Keep the uploaded/original model untouched.
     run_inp = run_dir / "model.inp"
     shutil.copy2(inp_path, run_inp)

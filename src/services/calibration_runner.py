@@ -21,6 +21,7 @@ from src.run_logging import log_prepared_input
 from src.services.inp_model_reader import (
     read_water_network_model,
 )
+from src.services.resource_ownership import write_resource_owner
 from src.services.run_storage import resolve_run_dir
 from src.staci.calibrate import (
     run_staci_calibrate,
@@ -197,6 +198,7 @@ def _relative_path(path: Path, run_dir: Path) -> str:
 def call_staci_calibrate_service(
     snapshot_paths: Sequence[Path | str],
     *,
+    user_id: str,
     measurements: dict[str, Any],
     optimizer_settings: dict[str, Any] | None = None,
     seed: int = 12345,
@@ -235,7 +237,7 @@ def call_staci_calibrate_service(
     run_id = uuid.uuid4().hex[:12]
     run_dir = Path(RUN_ROOT) / "calibration" / run_id
     run_dir.mkdir(parents=True, exist_ok=False)
-
+    write_resource_owner(run_dir, user_id)
     stored_snapshots: list[Path] = []
     snapshot_state: list[dict[str, Any]] = []
 
@@ -355,11 +357,8 @@ def call_staci_calibrate_service(
     return run_state
 
 
-def load_calibration_run(run_id: str) -> dict[str, Any]:
-    run_dir = resolve_run_dir(
-        run_id,
-        "calibration",
-    )
+def load_calibration_run(run_id: str, *, user_id: str) -> dict[str, Any]:
+    run_dir = resolve_run_dir(run_id, "calibration", user_id=user_id)
     manifest_path = run_dir / "run.json"
 
     if not manifest_path.is_file():

@@ -161,6 +161,7 @@ def test_hydraulic_figure_uses_shared_renderer() -> None:
         figure = make_hydraulic_timestep_figure(
             network_view_state=NETWORK_VIEW_STATE,
             run_state=run_state,
+            user_id="41",
             time_index=1,
             node_result="pressure",
             link_result="flowrate",

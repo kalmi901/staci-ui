@@ -7,6 +7,8 @@ import pytest
 from src.services import calibration_storage
 
 UPLOAD_ID = "123456abcdef"
+OWNER_USER_ID = "41"
+OTHER_USER_ID = "42"
 
 
 @pytest.fixture
@@ -37,7 +39,8 @@ def test_store_calibration_snapshots_persists_ordered_inputs(
         [
             ("first network.inp", b"period-zero"),
             ("second.inp", b"period-one"),
-        ]
+        ],
+        user_id=OWNER_USER_ID,
     )
 
     assert state["upload_id"] == UPLOAD_ID
@@ -50,23 +53,39 @@ def test_store_calibration_snapshots_persists_ordered_inputs(
     paths = calibration_storage.resolve_calibration_snapshots(
         UPLOAD_ID,
         [item["stored_filename"] for item in state["snapshots"]],
+        user_id=OWNER_USER_ID,
     )
 
     assert paths[0].read_bytes() == b"period-zero"
     assert paths[1].read_bytes() == b"period-one"
+
+    owner_metadata = json.loads(
+        (upload_root / "calibration" / UPLOAD_ID / ".owner.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    assert owner_metadata == {
+        "schema": 1,
+        "user_id": OWNER_USER_ID,
+    }
 
 
 def test_store_calibration_snapshots_rejects_non_inp(
     upload_root: Path,
 ) -> None:
     with pytest.raises(ValueError, match=".inp"):
-        calibration_storage.store_calibration_snapshots([("network.txt", b"invalid")])
+        calibration_storage.store_calibration_snapshots(
+            [("network.txt", b"invalid")], user_id=OWNER_USER_ID
+        )
 
 
 def test_store_calibration_measurements_persists_json(
     upload_root: Path,
 ) -> None:
-    calibration_storage.store_calibration_snapshots([("network.inp", b"network")])
+    calibration_storage.store_calibration_snapshots(
+        [("network.inp", b"network")], user_id=OWNER_USER_ID
+    )
 
     data = {
         "measurements": [
@@ -82,6 +101,7 @@ def test_store_calibration_measurements_persists_json(
         UPLOAD_ID,
         "measurements.json",
         json.dumps(data).encode("utf-8"),
+        user_id=OWNER_USER_ID,
     )
 
     assert state["data"] == data
@@ -93,15 +113,16 @@ def test_store_calibration_measurements_persists_json(
 def test_resolve_calibration_snapshots_rejects_unsafe_name(
     upload_root: Path,
 ) -> None:
-    calibration_storage.store_calibration_snapshots([("network.inp", b"network")])
+    calibration_storage.store_calibration_snapshots(
+        [("network.inp", b"network")], user_id=OWNER_USER_ID
+    )
 
     with pytest.raises(
         ValueError,
         match="snapshot filename",
     ):
         calibration_storage.resolve_calibration_snapshots(
-            UPLOAD_ID,
-            ["../../escape.inp"],
+            UPLOAD_ID, ["../../escape.inp"], user_id=OWNER_USER_ID
         )
 
 
@@ -124,6 +145,91 @@ def test_store_calibration_snapshots_rejects_oversized_file(
         ValueError,
         match="20 MiB upload limit",
     ):
-        calibration_storage.store_calibration_snapshots([("large.inp", b"1234")])
+        calibration_storage.store_calibration_snapshots(
+            [("large.inp", b"1234")], user_id=OWNER_USER_ID
+        )
 
     assert not (upload_root / "calibration").exists()
+
+
+def test_store_calibration_snapshots_uses_natural_filename_order(
+    upload_root: Path,
+) -> None:
+    state = calibration_storage.store_calibration_snapshots(
+        [
+            (
+                "network_2.inp",
+                b"period-two",
+            ),
+            (
+                "network_0.inp",
+                b"period-zero",
+            ),
+            (
+                "network_1.inp",
+                b"period-one",
+            ),
+        ],
+        user_id=OWNER_USER_ID,
+    )
+
+    assert [item["filename"] for item in state["snapshots"]] == [
+        "network_0.inp",
+        "network_1.inp",
+        "network_2.inp",
+    ]
+
+    assert [item["period_index"] for item in state["snapshots"]] == [
+        0,
+        1,
+        2,
+    ]
+
+    paths = calibration_storage.resolve_calibration_snapshots(
+        UPLOAD_ID,
+        [item["stored_filename"] for item in state["snapshots"]],
+        user_id=OWNER_USER_ID,
+    )
+
+    assert [path.read_bytes() for path in paths] == [
+        b"period-zero",
+        b"period-one",
+        b"period-two",
+    ]
+
+
+def test_calibration_upload_rejects_other_user(
+    upload_root: Path,
+) -> None:
+    state = calibration_storage.store_calibration_snapshots(
+        [
+            (
+                "network.inp",
+                b"network",
+            )
+        ],
+        user_id=OWNER_USER_ID,
+    )
+
+    stored_filenames = [item["stored_filename"] for item in state["snapshots"]]
+
+    with pytest.raises(
+        PermissionError,
+        match="not available for the current user",
+    ):
+        calibration_storage.resolve_calibration_snapshots(
+            UPLOAD_ID,
+            stored_filenames,
+            user_id=OTHER_USER_ID,
+        )
+
+    with pytest.raises(
+        PermissionError,
+        match="not available for the current user",
+    ):
+        calibration_storage.store_calibration_measurements(
+            UPLOAD_ID,
+            "measurements.json",
+            b'{"measurements":[]}',
+            user_id=OTHER_USER_ID,
+        )

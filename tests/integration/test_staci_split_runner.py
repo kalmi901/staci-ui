@@ -43,6 +43,7 @@ def test_call_staci_split_service_runs_real_executable(
             "ngen": 10,
         },
         seed=12345,
+        user_id="41",
     )
 
     run_dir = run_root / "partition" / RUN_ID

@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 from src.services import calibration_runner, run_storage
+from src.services.resource_ownership import write_resource_owner
 from src.staci.calibrate import StaciCalibrateResults
 
 RUN_ID = "123456abcdef"
@@ -173,6 +174,7 @@ def test_call_staci_calibrate_service_persists_inputs_and_results(
             "ngen": 10,
         },
         seed=12345,
+        user_id="41",
     )
 
     assert (run_dir / "network_0.inp").read_bytes() == snapshots[0].read_bytes()
@@ -232,6 +234,7 @@ def test_call_staci_calibrate_service_rejects_topology_mismatch(
                     }
                 ]
             },
+            user_id="41",
         )
 
     assert not (run_root / "calibration" / RUN_ID).exists()
@@ -256,6 +259,7 @@ def test_call_staci_calibrate_service_rejects_measurement_count(
                     }
                 ]
             },
+            user_id="41",
         )
 
 
@@ -300,6 +304,7 @@ def test_call_staci_calibrate_service_rejects_failed_run(
                     }
                 ]
             },
+            user_id="41",
         )
 
 
@@ -319,4 +324,12 @@ def test_load_calibration_run_returns_manifest(
         encoding="utf-8",
     )
 
-    assert calibration_runner.load_calibration_run(RUN_ID) == expected
+    write_resource_owner(run_dir, "41")
+
+    assert (
+        calibration_runner.load_calibration_run(
+            RUN_ID,
+            user_id="41",
+        )
+        == expected
+    )

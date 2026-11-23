@@ -9,6 +9,7 @@ from typing import Any, Literal, Sequence
 
 from src.config import RUN_ROOT, STACI_FLUSH_EXECUTABLE
 from src.run_logging import log_prepared_input
+from src.services.resource_ownership import write_resource_owner
 from src.services.run_storage import resolve_run_dir
 from src.staci.error_messages import format_staci_failure
 from src.staci.flush import run_staci_flush, write_flush_config
@@ -59,16 +60,12 @@ def _flag(
 
 
 def load_flushing_scenario(
-    run_id: str,
-    scenario_id: str,
+    run_id: str, scenario_id: str, *, user_id: str
 ) -> dict[str, Any]:
     if not scenario_id:
         raise ValueError("Flushing scenario id is required.")
 
-    run_dir = resolve_run_dir(
-        run_id,
-        "flushing",
-    )
+    run_dir = resolve_run_dir(run_id, "flushing", user_id=user_id)
     results_dir = run_dir / "results"
 
     pipe_path = results_dir / "scenario_pipes.csv"
@@ -166,6 +163,7 @@ def call_staci_flush_service(
     inp_path: Path | str,
     *,
     model_id: str,
+    user_id: str,
     hydrant_node_ids: Sequence[str],
     hydrant_area_m2: float,
     total_loss_coefficient: float,
@@ -189,7 +187,7 @@ def call_staci_flush_service(
     run_id = uuid.uuid4().hex[:12]
     run_dir = Path(RUN_ROOT) / "flushing" / run_id
     run_dir.mkdir(parents=True, exist_ok=False)
-
+    write_resource_owner(run_dir, user_id)
     run_inp = run_dir / "model.inp"
     shutil.copy2(inp_path, run_inp)
 

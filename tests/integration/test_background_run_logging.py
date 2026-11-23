@@ -3,7 +3,9 @@
 import json
 import logging
 import os
+from contextlib import contextmanager
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
@@ -15,7 +17,22 @@ from src.background_jobs import background_callback_manager, setup_worker_loggin
 from src.logging_setup import configure_logging
 from src.run_logging import execution_id
 from src.ui.callbacks import flushing_callbacks, hydraulic_callbacks
-from tests.test_run_callbacks import CallbackRegistry
+from src.user_identity import UserIdentity
+
+
+@contextmanager
+def _fake_running_solver_job(
+    request_state,
+    *,
+    workflow,
+):
+    assert workflow == "hydraulic"
+
+    execution = SimpleNamespace(
+        complete=lambda: None,
+    )
+
+    yield execution, request_state["payload"]
 
 
 @pytest.mark.skipif(
@@ -36,21 +53,40 @@ def test_background_task_preserves_verified_user_and_run_context(tmp_path, monke
             if "hyd-run-store.data" in key and "hyd-run-status.children" in key
         )
         model = {"model_id": "abcdef123456", "filename": "same.inp"}
-        values = [1, model, "wntr", False, 1, 5, 60, 5, 1.0]
-        contexts = []
+        payload = {
+            "network_state": model,
+            "backend": "wntr",
+            "override_enabled": False,
+            "duration": 1,
+            "hydraulic_timestep": 5,
+            "report_timestep": 60,
+            "rule_timestep": 5,
+            "demand_multiplier": 1.0,
+        }
+        requests_and_contexts = []
         for user_id in ("7", "8"):
+            request_state = {
+                "token": f"token-{user_id}",
+                "workflow": "hydraulic",
+                "payload": payload,
+            }
             body = {
                 "output": key,
                 "outputs": [
-                    {"id": item.component_id, "property": item.component_property}
+                    {
+                        "id": item.component_id,
+                        "property": item.component_property,
+                    }
                     for item in callback["output"]
                 ],
-                "inputs": [dict(item, value=values[0]) for item in callback["inputs"]],
-                "state": [
-                    dict(item, value=value)
-                    for item, value in zip(callback["state"], values[1:])
+                "inputs": [
+                    dict(
+                        callback["inputs"][0],
+                        value=request_state,
+                    )
                 ],
-                "changedPropIds": ["hyd-run-button.n_clicks"],
+                "state": [],
+                "changedPropIds": ["hyd-job-request-store.data"],
             }
             with (
                 patch.object(
@@ -72,7 +108,12 @@ def test_background_task_preserves_verified_user_and_run_context(tmp_path, monke
                 )
             assert response.status_code == 200
             # JSON serialization models the real broker boundary.
-            contexts.append(json.loads(json.dumps(submit.call_args.args[3])))
+            requests_and_contexts.append(
+                (
+                    request_state,
+                    json.loads(json.dumps(submit.call_args.args[3])),
+                )
+            )
         celery = Celery(
             "logging-fixture", broker="memory://", backend="cache+memory://"
         )
@@ -81,14 +122,26 @@ def test_background_task_preserves_verified_user_and_run_context(tmp_path, monke
             callback["callback"].__wrapped__, progress=False, key="logging-fixture"
         )
         state = {"run_id": "123456abcdef", "model_id": model["model_id"], "summary": {}}
+        input_path = tmp_path / "input.inp"
+        input_path.write_text(
+            "[END]\n",
+            encoding="utf-8",
+        )
         with (
             patch.object(
                 hydraulic_callbacks,
-                "resolve_uploaded_model",
-                return_value=Path("/test/input.inp"),
+                "running_solver_job",
+                new=_fake_running_solver_job,
             ),
             patch.object(
-                hydraulic_callbacks, "call_hydraulic_simulator", return_value=state
+                hydraulic_callbacks,
+                "resolve_uploaded_model",
+                return_value=input_path,
+            ),
+            patch.object(
+                hydraulic_callbacks,
+                "call_hydraulic_simulator",
+                return_value=state,
             ),
             patch.object(
                 hydraulic_callbacks,
@@ -96,9 +149,12 @@ def test_background_task_preserves_verified_user_and_run_context(tmp_path, monke
                 return_value="original-alert",
             ),
         ):
-            for index, context in enumerate(contexts):
+            for index, (request_state, context) in enumerate(requests_and_contexts):
                 task.run(
-                    "result" + str(index), "progress" + str(index), values, context
+                    "result" + str(index),
+                    "progress" + str(index),
+                    [request_state],
+                    context,
                 )
                 assert json.loads(celery.backend.get("result" + str(index))) == [
                     state,
@@ -139,8 +195,6 @@ def test_worker_logging_setup_installs_application_handlers():
 
 
 def test_partial_flushing_result_is_logged_as_warning_without_changing_result():
-    registry = CallbackRegistry()
-    flushing_callbacks.register_flushing_callbacks(registry)
     model = {"model_id": "abcdef123456", "filename": "flush.inp"}
     state = {
         "run_id": "123456abcdef",
@@ -150,7 +204,16 @@ def test_partial_flushing_result_is_logged_as_warning_without_changing_result():
         "scenario_count": 1,
         "plan_count": 1,
     }
+    identity = UserIdentity(
+        user_id="41",
+        login="Batman",
+    )
     with (
+        patch.object(
+            flushing_callbacks,
+            "require_user_identity",
+            return_value=identity,
+        ),
         patch.object(
             flushing_callbacks,
             "resolve_uploaded_model",
@@ -161,11 +224,12 @@ def test_partial_flushing_result_is_logged_as_warning_without_changing_result():
         ) as runner,
         patch("src.run_logging.event") as event,
     ):
-        result = registry.functions["run_flushing"](
+        result = flushing_callbacks._execute_flushing(
             1, model, "A", "single", 0.002, 2, 0.5, 0, False
         )
     assert result[0] is state
     assert runner.call_args.kwargs["hydrant_node_ids"] == ["A"]
+    assert runner.call_args.kwargs["user_id"] == "41"
     finished = next(
         call.kwargs for call in event.call_args_list if call.args[0] == "finished"
     )
