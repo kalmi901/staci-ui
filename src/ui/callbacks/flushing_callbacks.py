@@ -279,10 +279,10 @@ def register_flushing_callbacks(app):
                 return result
 
         except SolverJobCancelledError:
-            logger.info("Hydraulic simulation was cancelled.")
+            logger.info("Flushing analysis was cancelled.")
 
             return None, dbc.Alert(
-                "Hydraulic simulation was cancelled.",
+                "Flushing analysis was cancelled.",
                 color="secondary",
                 className="upload-alert",
             )

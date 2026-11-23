@@ -208,7 +208,7 @@ def logged_run(run_type):
                     else []
                 )
                 if status == "completed" and (
-                    summary.get("failed_frames", 0) or warnings or state.get("partial") # pyright: ignore[reportOptionalMemberAccess]
+                    summary.get("failed_frames", 0) or warnings or state.get("partial")  # pyright: ignore[reportOptionalMemberAccess]
                 ):
                     status = "completed_with_warnings"
                 event(
