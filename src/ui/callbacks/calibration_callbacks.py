@@ -22,7 +22,11 @@ from src.ui.callbacks.helpers import (
     finite_number,
     positive_number,
 )
-from src.ui.callbacks.solver_job_helpers import reserve_solver_job, running_solver_job
+from src.ui.callbacks.solver_job_helpers import (
+    require_user_identity,
+    reserve_solver_job,
+    running_solver_job,
+)
 from src.ui.pages.calibration_analysis import render_calibration_results
 
 logger = logging.getLogger(__name__)
@@ -362,6 +366,7 @@ def _execute_calibration(
         raise PreventUpdate
 
     try:
+        identity = require_user_identity()
         (
             stored_filenames,
             measurements,
@@ -392,8 +397,7 @@ def _execute_calibration(
         )
 
         snapshot_paths = resolve_calibration_snapshots(
-            snapshot_state["upload_id"],
-            stored_filenames,
+            snapshot_state["upload_id"], stored_filenames, user_id=identity.user_id
         )
 
         logger.info(
@@ -408,6 +412,7 @@ def _execute_calibration(
 
         run_state = call_staci_calibrate_service(
             snapshot_paths,
+            user_id=identity.user_id,
             measurements=measurements,
             optimizer_settings=optimizer_settings,
             seed=seed_value,
@@ -518,6 +523,8 @@ def register_calibration_callbacks(app):
             )
 
         try:
+            identity = require_user_identity()
+
             files = [
                 (
                     filename,
@@ -529,7 +536,9 @@ def register_calibration_callbacks(app):
                     strict=True,
                 )
             ]
-            snapshot_state = store_calibration_snapshots(files)
+            snapshot_state = store_calibration_snapshots(
+                files, user_id=identity.user_id
+            )
         except Exception as exc:
             logger.exception("Calibration snapshot upload failed.")
             return (
@@ -600,10 +609,12 @@ def register_calibration_callbacks(app):
             )
 
         try:
+            identity = require_user_identity()
             measurement_state = store_calibration_measurements(
                 snapshot_state["upload_id"],
                 filename or "measurements.json",
                 decode_upload_contents(contents),
+                user_id=identity.user_id,
             )
         except Exception as exc:
             logger.exception("Calibration measurement upload failed.")

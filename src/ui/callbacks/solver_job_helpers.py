@@ -38,7 +38,7 @@ def require_user_identity() -> UserIdentity:
     identity = current_user_identity()
 
     if identity is None:
-        raise PermissionError("Authentication is required to start a solver job.")
+        raise PermissionError("Authentication is required.")
 
     return identity
 

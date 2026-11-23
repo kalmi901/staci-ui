@@ -11,7 +11,11 @@ from src.services.model_storage import resolve_uploaded_model
 from src.services.partition_runner import call_staci_split_service
 from src.services.solver_jobs import ActiveSolverJobError, SolverJobCancelledError
 from src.ui import ids
-from src.ui.callbacks.solver_job_helpers import reserve_solver_job, running_solver_job
+from src.ui.callbacks.solver_job_helpers import (
+    require_user_identity,
+    reserve_solver_job,
+    running_solver_job,
+)
 from src.ui.pages.components import render_active_model_summary
 from src.ui.pages.network_partitioning import render_success_alert
 from src.visualisation.network_preview import make_partitioned_network_figure
@@ -44,8 +48,12 @@ def _execute_partitioning(
         )  # pyright: ignore[reportCallIssue]
 
     try:
+        identity = require_user_identity()
+
         inp_path = resolve_uploaded_model(
-            network_state["model_id"], network_state["filename"]
+            network_state["model_id"],
+            network_state["filename"],
+            user_id=identity.user_id,
         )
 
         optimizer_settings = {
@@ -69,7 +77,8 @@ def _execute_partitioning(
 
         partition_state = call_staci_split_service(
             inp_path,
-            model_id=network_state.get("model_id"),
+            model_id=network_state.get("model_id", ""),
+            user_id=identity.user_id,
             optimizer_settings=optimizer_settings,
             seed=seed,
         )

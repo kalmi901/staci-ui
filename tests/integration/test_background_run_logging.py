@@ -17,6 +17,7 @@ from src.background_jobs import background_callback_manager, setup_worker_loggin
 from src.logging_setup import configure_logging
 from src.run_logging import execution_id
 from src.ui.callbacks import flushing_callbacks, hydraulic_callbacks
+from src.user_identity import UserIdentity
 
 
 @contextmanager
@@ -203,7 +204,16 @@ def test_partial_flushing_result_is_logged_as_warning_without_changing_result():
         "scenario_count": 1,
         "plan_count": 1,
     }
+    identity = UserIdentity(
+        user_id="41",
+        login="Batman",
+    )
     with (
+        patch.object(
+            flushing_callbacks,
+            "require_user_identity",
+            return_value=identity,
+        ),
         patch.object(
             flushing_callbacks,
             "resolve_uploaded_model",
@@ -219,6 +229,7 @@ def test_partial_flushing_result_is_logged_as_warning_without_changing_result():
         )
     assert result[0] is state
     assert runner.call_args.kwargs["hydrant_node_ids"] == ["A"]
+    assert runner.call_args.kwargs["user_id"] == "41"
     finished = next(
         call.kwargs for call in event.call_args_list if call.args[0] == "finished"
     )

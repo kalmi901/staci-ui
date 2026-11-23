@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 from src.services import flushing_runner, run_storage
+from src.services.resource_ownership import write_resource_owner
 from src.staci.flush import StaciFlushResults
 
 RUN_ID = "123456abcdef"
@@ -111,6 +112,7 @@ def test_call_staci_flush_service_creates_run_and_returns_results(
         total_loss_coefficient=2.0,
         velocity_threshold_mps=0.5,
         min_pressure_head_m=1.0,
+        user_id="41",
     )
 
     assert (run_dir / "model.inp").read_bytes() == input_path.read_bytes()
@@ -172,6 +174,7 @@ def test_call_staci_flush_service_returns_partial_results(
         hydrant_area_m2=0.002,
         total_loss_coefficient=2.0,
         velocity_threshold_mps=0.5,
+        user_id="41",
     )
 
     assert result["success"] is False
@@ -203,6 +206,7 @@ def test_call_staci_flush_service_rejects_failed_run(
             hydrant_area_m2=0.002,
             total_loss_coefficient=2.0,
             velocity_threshold_mps=0.5,
+            user_id="41",
         )
 
 
@@ -218,6 +222,7 @@ def test_call_staci_flush_service_rejects_invalid_hydrant_ids(
             hydrant_area_m2=0.002,
             total_loss_coefficient=2.0,
             velocity_threshold_mps=0.5,
+            user_id="41",
         )
 
     with pytest.raises(ValueError, match="must be unique"):
@@ -228,6 +233,7 @@ def test_call_staci_flush_service_rejects_invalid_hydrant_ids(
             hydrant_area_m2=0.002,
             total_loss_coefficient=2.0,
             velocity_threshold_mps=0.5,
+            user_id="41",
         )
 
 
@@ -258,10 +264,13 @@ def test_load_flushing_scenario_returns_selected_typed_rows(
         ),
         encoding="utf-8",
     )
+    run_dir = run_root / "flushing" / RUN_ID
+    write_resource_owner(run_dir, "41")
 
     scenario = flushing_runner.load_flushing_scenario(
         RUN_ID,
         "J1",
+        user_id="41",
     )
 
     assert scenario["run_id"] == RUN_ID

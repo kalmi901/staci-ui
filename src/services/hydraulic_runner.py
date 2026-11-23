@@ -19,6 +19,7 @@ from src.services.inp_model_reader import (
     read_model_options,
     set_model_options,
 )
+from src.services.resource_ownership import write_resource_owner
 from src.staci.eps import run_staci_eps
 from src.staci.error_messages import format_staci_failure
 
@@ -222,6 +223,7 @@ def call_hydraulic_simulator(
     inp_path: Path | str,
     *,
     model_id: str,
+    user_id: str,
     backend: Literal["wntr", "staci"],
     option_overrides: Dict[str, float] | None = None,
 ):
@@ -253,8 +255,8 @@ def call_hydraulic_simulator(
 
     run_id = uuid.uuid4().hex[:12]
     run_dir = Path(RUN_ROOT) / "hydraulic" / run_id
-    run_dir.mkdir(parents=True, exist_ok=True)
-
+    run_dir.mkdir(parents=True, exist_ok=False)
+    write_resource_owner(run_dir, user_id)
     if option_overrides:
         run_inp_path = run_dir / "input.inp"
         set_model_options(inp_path, option_overrides, run_inp_path)

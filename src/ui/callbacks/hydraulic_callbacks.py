@@ -13,7 +13,11 @@ from src.services.model_storage import resolve_uploaded_model
 from src.services.solver_jobs import ActiveSolverJobError, SolverJobCancelledError
 from src.ui import ids
 from src.ui.callbacks.helpers import resolve_color_range_outputs
-from src.ui.callbacks.solver_job_helpers import reserve_solver_job, running_solver_job
+from src.ui.callbacks.solver_job_helpers import (
+    require_user_identity,
+    reserve_solver_job,
+    running_solver_job,
+)
 from src.ui.pages.components import render_active_model_summary
 from src.ui.pages.hydraulic_analysis import render_success_alert
 from src.visualisation.network_preview import make_hydraulic_timestep_figure
@@ -47,8 +51,12 @@ def _execute_hydraulic_simulation(
         )  # pyright: ignore[reportCallIssue]
 
     try:
+        identity = require_user_identity()
+
         inp_path = resolve_uploaded_model(
-            network_state["model_id"], network_state["filename"]
+            network_state["model_id"],
+            network_state["filename"],
+            user_id=identity.user_id,
         )
 
         option_overrides = None
@@ -98,6 +106,7 @@ def _execute_hydraulic_simulation(
         run_state = call_hydraulic_simulator(
             inp_path,
             model_id=network_state.get("model_id", ""),
+            user_id=identity.user_id,
             backend=backend,
             option_overrides=option_overrides,
         )
@@ -164,8 +173,11 @@ def register_hydraulic_callbacks(app):
             return None, None, None, None, None
 
         try:
+            identity = require_user_identity()
             inp_path = resolve_uploaded_model(
-                network_state["model_id"], network_state["filename"]
+                network_state["model_id"],
+                network_state["filename"],
+                user_id=identity.user_id,
             )
             options = read_model_options(inp_path)
 
@@ -471,9 +483,12 @@ def register_hydraulic_callbacks(app):
         marker_size,
         hide_nodes,
     ):
+        identity = require_user_identity()
+
         return make_hydraulic_timestep_figure(
             network_view_state=network_view_state,
             run_state=run_state,
+            user_id=identity.user_id,
             time_index=time_index,
             node_result=node_result,
             link_result=link_result,

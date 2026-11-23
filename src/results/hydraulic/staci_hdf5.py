@@ -56,10 +56,10 @@ def _get_dataset(h5: h5py.File, path: str) -> h5py.Dataset:
 
 
 class StaciHDF5Results(EPSHydraulicResults):
-    def __init__(self, run_state: Dict[str, Any]):
+    def __init__(self, run_state: Dict[str, Any], *, user_id: str):
         self.run_state = run_state
         self.run_id = run_state["run_id"]
-        self.run_dir = resolve_run_dir(self.run_id, "hydraulic")
+        self.run_dir = resolve_run_dir(self.run_id, "hydraulic", user_id=user_id)
         manifest_path = self.run_dir / "run.json"
 
         self.manifest = json.loads(manifest_path.read_text(encoding="utf-8"))

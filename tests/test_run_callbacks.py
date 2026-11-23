@@ -14,6 +14,7 @@ from src.ui.callbacks import (
     hydraulic_callbacks,
     partitioning_callbacks,
 )
+from src.user_identity import UserIdentity
 
 
 class CallbackRegistry:
@@ -40,7 +41,16 @@ class RunCallbackTests(unittest.TestCase):
             "backend": "wntr",
             "summary": {},
         }
+        identity = UserIdentity(
+            user_id="41",
+            login="Batman",
+        )
         with (
+            patch.object(
+                hydraulic_callbacks,
+                "require_user_identity",
+                return_value=identity,
+            ),
             patch.object(
                 hydraulic_callbacks,
                 "resolve_uploaded_model",
@@ -69,6 +79,10 @@ class RunCallbackTests(unittest.TestCase):
                     "demand_multiplier": 1.2,
                 },
             )
+            self.assertEqual(
+                runner.call_args.kwargs["user_id"],
+                "41",
+            )
             with self.assertLogs("src.run_logging", level="INFO") as logs:
                 failed = hydraulic_callbacks._execute_hydraulic_simulation(
                     1, model, "wntr", True, None, 5, 30, 5, 1.0
@@ -76,6 +90,11 @@ class RunCallbackTests(unittest.TestCase):
             self.assertIsNone(failed[0])
             self.assertTrue(any('"status":"failed"' in line for line in logs.output))
         with (
+            patch.object(
+                partitioning_callbacks,
+                "require_user_identity",
+                return_value=identity,
+            ),
             patch.object(
                 partitioning_callbacks,
                 "resolve_uploaded_model",
@@ -97,6 +116,10 @@ class RunCallbackTests(unittest.TestCase):
             self.assertEqual(runner.call_args.kwargs["seed"], 42)
             self.assertEqual(
                 runner.call_args.kwargs["optimizer_settings"]["popsize"], 20
+            )
+            self.assertEqual(
+                runner.call_args.kwargs["user_id"],
+                "41",
             )
         self.assertEqual(execution_id.get(), "-")
 
@@ -207,6 +230,7 @@ class RunCallbackTests(unittest.TestCase):
                             model_id="abcdef123456",
                             backend="wntr",
                             option_overrides={"duration": 7200},
+                            user_id="41",
                         )
                 finally:
                     execution_id.reset(token)

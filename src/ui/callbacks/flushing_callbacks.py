@@ -16,7 +16,11 @@ from src.services.model_storage import resolve_uploaded_model
 from src.services.solver_jobs import ActiveSolverJobError, SolverJobCancelledError
 from src.ui import ids
 from src.ui.callbacks.helpers import nonnegative_number, positive_number
-from src.ui.callbacks.solver_job_helpers import reserve_solver_job, running_solver_job
+from src.ui.callbacks.solver_job_helpers import (
+    require_user_identity,
+    reserve_solver_job,
+    running_solver_job,
+)
 from src.ui.pages.components import render_active_model_summary
 from src.ui.pages.flushing_analysis import render_flushing_results
 from src.visualisation.common import make_empty_network_figure
@@ -48,6 +52,7 @@ def _execute_flushing(
         )
 
     try:
+        identity = require_user_identity()
         hydrant_ids = parse_hydrant_ids(hydrant_text)
 
         if mode not in {"single", "multi"}:
@@ -61,6 +66,7 @@ def _execute_flushing(
         inp_path = resolve_uploaded_model(
             network_state["model_id"],
             network_state["filename"],
+            user_id=identity.user_id,
         )
 
         logger.info(
@@ -73,6 +79,7 @@ def _execute_flushing(
         run_state = call_staci_flush_service(
             inp_path,
             model_id=network_state["model_id"],
+            user_id=identity.user_id,
             hydrant_node_ids=hydrant_ids,
             hydrant_area_m2=area,
             total_loss_coefficient=coefficient,
@@ -330,9 +337,9 @@ def register_flushing_callbacks(app):
             )
 
         try:
+            identity = require_user_identity()
             scenario_state = load_flushing_scenario(
-                run_state["run_id"],
-                scenario_id,
+                run_state["run_id"], scenario_id, user_id=identity.user_id
             )
 
         except Exception as exc:
