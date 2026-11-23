@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import logging
 
-from dash import Input, Output, html
+from dash import Input, Output, ctx, html
 
 from src.background_jobs import solver_job_registry
 from src.services.solver_jobs import SolverQueueStatus
 from src.ui import ids
+from src.ui.callbacks.solver_job_helpers import cancel_current_user_solver_job
 from src.user_identity import current_user_identity
 
 logger = logging.getLogger(__name__)
@@ -83,9 +84,12 @@ def load_solver_status():
     identity = current_user_identity()
 
     if identity is None:
-        return html.Div(
-            "Solver status is unavailable.",
-            className="solver-status-message",
+        return (
+            html.Div(
+                "Solver status is unavailable.",
+                className="solver-status-message",
+            ),
+            True,
         )
 
     try:
@@ -96,18 +100,45 @@ def load_solver_status():
             "Could not read solver queue status.",
             exc_info=True,
         )
-        return html.Div(
-            "Solver status is temporarily unavailable.",
-            className="solver-status-message",
+        return (
+            html.Div(
+                "Solver status is temporarily unavailable.",
+                className="solver-status-message",
+            ),
+            True,
         )
 
-    return render_solver_status(status)
+    return (render_solver_status(status), status.user_job is None)
 
 
 def register_solver_status_callbacks(app):
     @app.callback(
         Output(ids.SOLVER_STATUS, "children"),
+        Output(ids.SOLVER_CANCEL_BUTTON, "disabled"),
         Input(ids.SOLVER_STATUS_INTERVAL, "n_intervals"),
+        Input(ids.SOLVER_CANCEL_BUTTON, "n_clicks"),
     )
-    def update_solver_status(_n_intervals):
+    def update_solver_status(_n_intervals, cancel_clicks):
+        if ctx.triggered_id == ids.SOLVER_CANCEL_BUTTON and cancel_clicks:
+            try:
+                job = cancel_current_user_solver_job()
+            except Exception:
+                logger.exception("Solver job cancellation failed.")
+                return (
+                    html.Div(
+                        "The solver job could not be cancelled.",
+                        className="solver-status-message",
+                    ),
+                    False,
+                )
+
+            if job is not None:
+                return (
+                    html.Div(
+                        ("Cancellation requested. The solver process is stopping."),
+                        className="solver-status-message",
+                    ),
+                    True,
+                )
+
         return load_solver_status()

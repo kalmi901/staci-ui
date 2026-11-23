@@ -12,6 +12,8 @@ from functools import lru_cache, wraps
 from importlib.metadata import version
 from pathlib import Path
 
+from src.services.solver_jobs import SolverJobCancelledError
+
 execution_id = ContextVar("staci_execution_id", default="-")
 logger = logging.getLogger(__name__)
 
@@ -169,12 +171,29 @@ def logged_run(run_type):
                     logger.warning("Run version metadata incomplete", exc_info=True)
                 try:
                     result = function(*args, **kwargs)
+
+                except SolverJobCancelledError as error:
+                    event(
+                        "finished",
+                        status="cancelled",
+                        error=str(error),
+                        elapsed_seconds=round(
+                            time.monotonic() - started,
+                            3,
+                        ),
+                    )
+                    logger.info("Run callback was cancelled.")
+                    raise
+
                 except Exception as error:
                     event(
                         "finished",
                         status="failed",
                         error=str(error),
-                        elapsed_seconds=round(time.monotonic() - started, 3),
+                        elapsed_seconds=round(
+                            time.monotonic() - started,
+                            3,
+                        ),
                     )
                     logger.exception("Run callback raised an exception")
                     raise
@@ -189,7 +208,7 @@ def logged_run(run_type):
                     else []
                 )
                 if status == "completed" and (
-                    summary.get("failed_frames", 0) or warnings or state.get("partial")
+                    summary.get("failed_frames", 0) or warnings or state.get("partial") # pyright: ignore[reportOptionalMemberAccess]
                 ):
                     status = "completed_with_warnings"
                 event(

@@ -86,11 +86,23 @@ def create_sidebar():
             *navigation_section("Analysis", ANALYSIS_LINKS, spaced=True),
             html.Hr(className="sidebar-separator"),
             html.Div(
-                id=ids.SOLVER_STATUS,
                 className="solver-status-panel",
-                children=html.Div(
-                    "Checking solver status…", className="solver-status-message"
-                ),
+                children=[
+                    html.Div(
+                        id=ids.SOLVER_STATUS,
+                        children=html.Div(
+                            "Checking solver status…",
+                            className="solver-status-message",
+                        ),
+                    ),
+                    html.Button(
+                        "Cancel job",
+                        id=ids.SOLVER_CANCEL_BUTTON,
+                        n_clicks=0,
+                        disabled=True,
+                        className="solver-cancel-button",
+                    ),
+                ],
             ),
             html.Div(
                 className="sidebar-footer",

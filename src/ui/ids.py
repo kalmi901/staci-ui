@@ -15,6 +15,7 @@ CAL_JOB_REQUEST_STORE = "cal-job-request-store"
 CAL_RUN_STORE = "cal-run-store"
 SOLVER_STATUS_INTERVAL = "solver-status-interval"
 SOLVER_STATUS = "solver-status"
+SOLVER_CANCEL_BUTTON = "solver-cancel-button"
 
 # --- Load Model Page ---
 UPLOAD_INP = "upload-inp"

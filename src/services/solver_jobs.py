@@ -3,7 +3,9 @@ from __future__ import annotations
 import json
 import time
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import asdict, dataclass, replace
 from typing import Any, Literal, cast
 
@@ -27,6 +29,37 @@ TerminalJobState = Literal[
     "failed",
     "cancelled",
 ]
+
+
+class SolverJobCancelledError(RuntimeError):
+    pass
+
+
+_CANCELLATION_CHECK: ContextVar[Callable[[], bool] | None] = ContextVar(
+    "solver_cancellation_check",
+    default=None,
+)
+
+
+@contextmanager
+def solver_cancellation_scope(
+    check: Callable[[], bool],
+) -> Iterator[None]:
+    token = _CANCELLATION_CHECK.set(check)
+
+    try:
+        yield
+    finally:
+        _CANCELLATION_CHECK.reset(token)
+
+
+def solver_cancellation_enabled() -> bool:
+    return _CANCELLATION_CHECK.get() is not None
+
+
+def solver_cancellation_requested() -> bool:
+    check = _CANCELLATION_CHECK.get()
+    return bool(check and check())
 
 
 @dataclass(frozen=True)
@@ -287,6 +320,9 @@ class SolverJobRegistry:
         if job is None:
             raise RuntimeError("Solver job is no longer available.")
 
+        if job.state == "cancelled":
+            raise SolverJobCancelledError("Solver job was cancelled before execution.")
+
         if job.user_id != user_id:
             raise PermissionError("Solver job belongs to another user.")
 
@@ -346,6 +382,10 @@ class SolverJobRegistry:
         if job.user_id != user_id:
             raise PermissionError("Solver job belongs to another user.")
 
+        if job.state in {"completed", "failed", "cancelled"}:
+            self._release_user_lock(user_id, token)
+            return job
+
         finished_job = replace(
             job,
             state=state,
@@ -370,6 +410,37 @@ class SolverJobRegistry:
         self._release_user_lock(user_id, token)
 
         return finished_job
+
+    def cancellation_requested(
+        self,
+        *,
+        token: str,
+        user_id: str,
+    ) -> bool:
+        job = self.get_job(token)
+
+        if job is None:
+            return True
+
+        if job.user_id != user_id:
+            return True
+
+        return job.state == "cancelled"
+
+    def cancel_user_job(
+        self,
+        user_id: str,
+    ) -> SolverJob | None:
+        job = self.get_user_job(user_id)
+
+        if job is None:
+            return None
+
+        return self.finish(
+            token=job.token,
+            user_id=user_id,
+            state="cancelled",
+        )
 
     def status_for_user(
         self,

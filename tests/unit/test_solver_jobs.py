@@ -7,6 +7,7 @@ import pytest
 
 from src.services.solver_jobs import (
     ActiveSolverJobError,
+    SolverJobCancelledError,
     SolverJobRegistry,
 )
 
@@ -187,4 +188,54 @@ def test_job_cannot_be_changed_by_another_user(
             token=job.token,
             user_id="42",
             state="failed",
+        )
+
+
+def test_cancel_running_job_preserves_cancelled_state(
+    registry: SolverJobRegistry,
+) -> None:
+    job = registry.submit(
+        user_id="41",
+        workflow="hydraulic",
+    )
+    registry.mark_running(
+        token=job.token,
+        user_id="41",
+        celery_task_id="celery-123",
+    )
+
+    cancelled = registry.cancel_user_job("41")
+
+    assert cancelled is not None
+    assert cancelled.state == "cancelled"
+    assert registry.status_for_user("41").user_job is None
+
+    finished = registry.finish(
+        token=job.token,
+        user_id="41",
+        state="failed",
+    )
+
+    assert finished is not None
+    assert finished.state == "cancelled"
+
+
+def test_cancel_queued_job_prevents_execution(
+    registry: SolverJobRegistry,
+) -> None:
+    job = registry.submit(
+        user_id="41",
+        workflow="partition",
+    )
+
+    registry.cancel_user_job("41")
+
+    with pytest.raises(
+        SolverJobCancelledError,
+        match="cancelled before execution",
+    ):
+        registry.mark_running(
+            token=job.token,
+            user_id="41",
+            celery_task_id="celery-123",
         )

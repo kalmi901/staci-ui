@@ -15,7 +15,7 @@ from src.services.calibration_storage import (
     store_calibration_measurements,
     store_calibration_snapshots,
 )
-from src.services.solver_jobs import ActiveSolverJobError
+from src.services.solver_jobs import ActiveSolverJobError, SolverJobCancelledError
 from src.ui import ids
 from src.ui.callbacks.helpers import (
     decode_upload_contents,
@@ -420,6 +420,9 @@ def _execute_calibration(
             run_state.get("summary", {}).get("measurement_count", ""),
             run_state.get("summary", {}).get("calibrated_pipe_count", ""),
         )
+
+    except SolverJobCancelledError:
+        raise
 
     except Exception as exc:
         logger.exception(
@@ -867,6 +870,15 @@ def register_calibration_callbacks(app):
                     execution.complete()
 
                 return result
+
+        except SolverJobCancelledError:
+            logger.info("Calibration was cancelled.")
+
+            return None, dbc.Alert(
+                "Calibration was cancelled.",
+                color="secondary",
+                className="upload-alert",
+            )
 
         except Exception as exc:
             logger.exception("Calibration background job failed.")

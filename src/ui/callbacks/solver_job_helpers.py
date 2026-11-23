@@ -9,8 +9,11 @@ from celery import current_task
 
 from src.background_jobs import solver_job_registry
 from src.services.solver_jobs import (
+    SolverJob,
+    SolverJobCancelledError,
     SolverWorkflow,
     TerminalJobState,
+    solver_cancellation_scope,
 )
 from src.user_identity import (
     UserIdentity,
@@ -59,6 +62,12 @@ def reserve_solver_job(
         "workflow": job.workflow,
         "payload": dict(payload),
     }
+
+
+def cancel_current_user_solver_job() -> SolverJob | None:
+    identity = require_user_identity()
+
+    return solver_job_registry.cancel_user_job(identity.user_id)
 
 
 def _parse_job_request(
@@ -134,11 +143,27 @@ def running_solver_job(
         user_id=identity.user_id,
     )
 
-    try:
-        yield execution, payload
-    finally:
-        solver_job_registry.finish(
+    def cancellation_requested() -> bool:
+        return solver_job_registry.cancellation_requested(
             token=execution.token,
             user_id=execution.user_id,
-            state=execution.state,
         )
+
+    with solver_cancellation_scope(cancellation_requested):
+        try:
+            yield execution, payload
+
+            if cancellation_requested():
+                execution.cancel()
+                raise SolverJobCancelledError("Solver job was cancelled.")
+
+        except SolverJobCancelledError:
+            execution.cancel()
+            raise
+
+        finally:
+            solver_job_registry.finish(
+                token=execution.token,
+                user_id=execution.user_id,
+                state=execution.state,
+            )

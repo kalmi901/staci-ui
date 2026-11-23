@@ -9,7 +9,7 @@ from dash.exceptions import PreventUpdate
 from src.run_logging import logged_run
 from src.services.model_storage import resolve_uploaded_model
 from src.services.partition_runner import call_staci_split_service
-from src.services.solver_jobs import ActiveSolverJobError
+from src.services.solver_jobs import ActiveSolverJobError, SolverJobCancelledError
 from src.ui import ids
 from src.ui.callbacks.solver_job_helpers import reserve_solver_job, running_solver_job
 from src.ui.pages.components import render_active_model_summary
@@ -82,6 +82,9 @@ def _execute_partitioning(
             obj_type,
             seed,
         )
+
+    except SolverJobCancelledError:
+        raise
 
     except Exception as exc:
         logger.exception(
@@ -247,6 +250,15 @@ def register_partitioning_callbacks(app):
                     execution.complete()
 
                 return result
+
+        except SolverJobCancelledError:
+            logger.info("Network partitioning was cancelled.")
+
+            return None, dbc.Alert(
+                "Network partitioning was cancelled.",
+                color="secondary",
+                className="upload-alert",
+            )
 
         except Exception as exc:
             logger.exception("Partitioning background job failed.")

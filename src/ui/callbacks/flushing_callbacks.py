@@ -13,7 +13,7 @@ from src.services.flushing_runner import (
     load_flushing_scenario,
 )
 from src.services.model_storage import resolve_uploaded_model
-from src.services.solver_jobs import ActiveSolverJobError
+from src.services.solver_jobs import ActiveSolverJobError, SolverJobCancelledError
 from src.ui import ids
 from src.ui.callbacks.helpers import nonnegative_number, positive_number
 from src.ui.callbacks.solver_job_helpers import reserve_solver_job, running_solver_job
@@ -89,6 +89,9 @@ def _execute_flushing(
             run_state.get("status", ""),
             run_state.get("scenario_count", ""),
         )
+
+    except SolverJobCancelledError:
+        raise
 
     except Exception as exc:
         logger.exception(
@@ -274,6 +277,15 @@ def register_flushing_callbacks(app):
                     execution.complete()
 
                 return result
+
+        except SolverJobCancelledError:
+            logger.info("Hydraulic simulation was cancelled.")
+
+            return None, dbc.Alert(
+                "Hydraulic simulation was cancelled.",
+                color="secondary",
+                className="upload-alert",
+            )
 
         except Exception as exc:
             logger.exception("Flushing background job failed.")
