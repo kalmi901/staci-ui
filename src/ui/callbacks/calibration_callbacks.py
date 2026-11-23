@@ -5,7 +5,7 @@ import re
 from typing import Any
 
 import dash_bootstrap_components as dbc
-from dash import Input, Output, State, html
+from dash import Input, Output, State, html, no_update
 from dash.exceptions import PreventUpdate
 
 from src.run_logging import logged_run
@@ -15,12 +15,14 @@ from src.services.calibration_storage import (
     store_calibration_measurements,
     store_calibration_snapshots,
 )
+from src.services.solver_jobs import ActiveSolverJobError
 from src.ui import ids
 from src.ui.callbacks.helpers import (
     decode_upload_contents,
     finite_number,
     positive_number,
 )
+from src.ui.callbacks.solver_job_helpers import reserve_solver_job, running_solver_job
 from src.ui.pages.calibration_analysis import render_calibration_results
 
 logger = logging.getLogger(__name__)
@@ -336,6 +338,124 @@ def _build_optimizer_settings(
     return settings
 
 
+@logged_run("calibration")
+def _execute_calibration(
+    n_clicks,
+    snapshot_state,
+    selected_snapshots,
+    measurement_rows,
+    pipe_selection,
+    active_pipe_count,
+    pipe_ids,
+    dmin,
+    min_diameter,
+    max_diameter,
+    pressure_weight,
+    period_hours,
+    popsize,
+    ngen,
+    pmut,
+    pcross,
+    seed,
+):
+    if not n_clicks:
+        raise PreventUpdate
+
+    try:
+        (
+            stored_filenames,
+            measurements,
+        ) = _prepare_calibration_inputs(
+            snapshot_state,
+            selected_snapshots,
+            measurement_rows,
+        )
+
+        optimizer_settings = _build_optimizer_settings(
+            pipe_selection=pipe_selection,
+            active_pipe_count=active_pipe_count,
+            pipe_ids=pipe_ids,
+            dmin=dmin,
+            min_diameter=min_diameter,
+            max_diameter=max_diameter,
+            pressure_weight=pressure_weight,
+            period_hours=period_hours,
+            popsize=popsize,
+            ngen=ngen,
+            pmut=pmut,
+            pcross=pcross,
+        )
+
+        seed_value = _nonnegative_integer(
+            seed,
+            "Random seed",
+        )
+
+        snapshot_paths = resolve_calibration_snapshots(
+            snapshot_state["upload_id"],
+            stored_filenames,
+        )
+
+        logger.info(
+            "Calibration started: "
+            "upload_id=%s snapshots=%d "
+            "measurements=%d selection=%s",
+            snapshot_state.get("upload_id", ""),
+            len(snapshot_paths),
+            len(measurements["measurements"]),
+            pipe_selection,
+        )
+
+        run_state = call_staci_calibrate_service(
+            snapshot_paths,
+            measurements=measurements,
+            optimizer_settings=optimizer_settings,
+            seed=seed_value,
+        )
+
+        logger.info(
+            "Calibration finished: run_id=%s snapshots=%s measurements=%s pipes=%s",
+            run_state.get("run_id", ""),
+            run_state.get("summary", {}).get("snapshot_count", ""),
+            run_state.get("summary", {}).get("measurement_count", ""),
+            run_state.get("summary", {}).get("calibrated_pipe_count", ""),
+        )
+
+    except Exception as exc:
+        logger.exception(
+            "Calibration failed: upload_id=%s",
+            (snapshot_state.get("upload_id", "") if snapshot_state else ""),
+        )
+
+        return None, dbc.Alert(
+            f"Calibration failed: {exc}",
+            color="danger",
+            className="upload-alert",
+        )
+
+    summary = run_state.get("summary", {})
+
+    return run_state, dbc.Alert(
+        children=[
+            html.Div(
+                "Calibration completed successfully.",
+                style={"fontWeight": 800},
+            ),
+            html.Div(
+                f"Run ID: {run_state['run_id']} · "
+                f"Snapshots: "
+                f"{summary.get('snapshot_count', 0)} · "
+                f"Measurements: "
+                f"{summary.get('measurement_count', 0)} · "
+                f"Calibrated pipes: "
+                f"{summary.get('calibrated_pipe_count', 0)}"
+            ),
+        ],
+        color="success",
+        className="upload-alert",
+    )
+
+
 def register_calibration_callbacks(app):
     @app.callback(
         Output(ids.CAL_ACTIVE_PIPE_COUNT, "disabled"),
@@ -596,8 +716,8 @@ def register_calibration_callbacks(app):
         )
 
     @app.callback(
-        Output(ids.CAL_RUN_STORE, "data"),
-        Output(ids.CAL_RUN_STATUS, "children"),
+        Output(ids.CAL_JOB_REQUEST_STORE, "data"),
+        Output(ids.CAL_RUN_STATUS, "children", allow_duplicate=True),
         Input(ids.CAL_RUN_BUTTON, "n_clicks"),
         State(ids.CAL_SNAPSHOT_STORE, "data"),
         State(ids.CAL_SNAPSHOT_SELECTION, "value"),
@@ -615,18 +735,9 @@ def register_calibration_callbacks(app):
         State(ids.CAL_PMUT, "value"),
         State(ids.CAL_PCROSS, "value"),
         State(ids.CAL_SEED, "value"),
-        background=True,
-        running=[
-            (
-                Output(ids.CAL_RUN_BUTTON, "disabled"),
-                True,
-                False,
-            ),
-        ],
         prevent_initial_call=True,
     )
-    @logged_run("calibration")
-    def run_calibration(
+    def submit_calibration(
         n_clicks,
         snapshot_state,
         selected_snapshots,
@@ -648,99 +759,123 @@ def register_calibration_callbacks(app):
         if not n_clicks:
             raise PreventUpdate
 
+        if not snapshot_state:
+            return no_update, dbc.Alert(
+                "Upload calibration snapshots first.",
+                color="warning",
+                className="upload-alert",
+            )
+
         try:
-            (
-                stored_filenames,
-                measurements,
-            ) = _prepare_calibration_inputs(
-                snapshot_state,
-                selected_snapshots,
-                measurement_rows,
+            request_state = reserve_solver_job(
+                workflow="calibration",
+                payload={
+                    "snapshot_state": snapshot_state,
+                    "selected_snapshots": selected_snapshots,
+                    "measurement_rows": measurement_rows,
+                    "pipe_selection": pipe_selection,
+                    "active_pipe_count": active_pipe_count,
+                    "pipe_ids": pipe_ids,
+                    "dmin": dmin,
+                    "min_diameter": min_diameter,
+                    "max_diameter": max_diameter,
+                    "pressure_weight": pressure_weight,
+                    "period_hours": period_hours,
+                    "popsize": popsize,
+                    "ngen": ngen,
+                    "pmut": pmut,
+                    "pcross": pcross,
+                    "seed": seed,
+                },
             )
 
-            optimizer_settings = _build_optimizer_settings(
-                pipe_selection=pipe_selection,
-                active_pipe_count=active_pipe_count,
-                pipe_ids=pipe_ids,
-                dmin=dmin,
-                min_diameter=min_diameter,
-                max_diameter=max_diameter,
-                pressure_weight=pressure_weight,
-                period_hours=period_hours,
-                popsize=popsize,
-                ngen=ngen,
-                pmut=pmut,
-                pcross=pcross,
-            )
-
-            seed_value = _nonnegative_integer(
-                seed,
-                "Random seed",
-            )
-
-            snapshot_paths = resolve_calibration_snapshots(
-                snapshot_state["upload_id"],
-                stored_filenames,
-            )
-
+        except ActiveSolverJobError as exc:
             logger.info(
-                "Calibration started: "
-                "upload_id=%s snapshots=%d "
-                "measurements=%d selection=%s",
-                snapshot_state.get("upload_id", ""),
-                len(snapshot_paths),
-                len(measurements["measurements"]),
-                pipe_selection,
+                "Calibration submission rejected: %s",
+                exc,
             )
 
-            run_state = call_staci_calibrate_service(
-                snapshot_paths,
-                measurements=measurements,
-                optimizer_settings=optimizer_settings,
-                seed=seed_value,
-            )
-
-            logger.info(
-                "Calibration finished: run_id=%s snapshots=%s measurements=%s pipes=%s",
-                run_state.get("run_id", ""),
-                run_state.get("summary", {}).get("snapshot_count", ""),
-                run_state.get("summary", {}).get("measurement_count", ""),
-                run_state.get("summary", {}).get("calibrated_pipe_count", ""),
+            return no_update, dbc.Alert(
+                str(exc),
+                color="warning",
+                className="upload-alert",
             )
 
         except Exception as exc:
-            logger.exception(
-                "Calibration failed: upload_id=%s",
-                (snapshot_state.get("upload_id", "") if snapshot_state else ""),
+            logger.exception("Calibration submission failed.")
+
+            return no_update, dbc.Alert(
+                f"Calibration submission failed: {exc}",
+                color="danger",
+                className="upload-alert",
             )
+
+        return request_state, dbc.Alert(
+            "Calibration was added to the solver queue.",
+            color="info",
+            className="upload-alert",
+        )
+
+    @app.callback(
+        Output(ids.CAL_RUN_STORE, "data"),
+        Output(ids.CAL_RUN_STATUS, "children"),
+        Input(ids.CAL_JOB_REQUEST_STORE, "data"),
+        background=True,
+        running=[
+            (
+                Output(ids.CAL_RUN_BUTTON, "disabled"),
+                True,
+                False,
+            ),
+        ],
+        prevent_initial_call=True,
+    )
+    def run_calibration(request_state):
+        if not request_state:
+            raise PreventUpdate
+
+        try:
+            with running_solver_job(
+                request_state,
+                workflow="calibration",
+            ) as (execution, payload):
+                result = _execute_calibration(
+                    1,
+                    payload.get("snapshot_state"),
+                    payload.get("selected_snapshots"),
+                    payload.get("measurement_rows"),
+                    payload.get("pipe_selection"),
+                    payload.get("active_pipe_count"),
+                    payload.get("pipe_ids"),
+                    payload.get("dmin"),
+                    payload.get("min_diameter"),
+                    payload.get("max_diameter"),
+                    payload.get("pressure_weight"),
+                    payload.get("period_hours"),
+                    payload.get("popsize"),
+                    payload.get("ngen"),
+                    payload.get("pmut"),
+                    payload.get("pcross"),
+                    payload.get("seed"),
+                )
+
+                run_state = (
+                    result[0] if isinstance(result, (tuple, list)) and result else None
+                )
+
+                if isinstance(run_state, dict):
+                    execution.complete()
+
+                return result
+
+        except Exception as exc:
+            logger.exception("Calibration background job failed.")
 
             return None, dbc.Alert(
                 f"Calibration failed: {exc}",
                 color="danger",
                 className="upload-alert",
             )
-
-        summary = run_state.get("summary", {})
-
-        return run_state, dbc.Alert(
-            children=[
-                html.Div(
-                    "Calibration completed successfully.",
-                    style={"fontWeight": 800},
-                ),
-                html.Div(
-                    f"Run ID: {run_state['run_id']} · "
-                    f"Snapshots: "
-                    f"{summary.get('snapshot_count', 0)} · "
-                    f"Measurements: "
-                    f"{summary.get('measurement_count', 0)} · "
-                    f"Calibrated pipes: "
-                    f"{summary.get('calibrated_pipe_count', 0)}"
-                ),
-            ],
-            color="success",
-            className="upload-alert",
-        )
 
     @app.callback(
         Output(ids.CAL_RESULTS, "children"),

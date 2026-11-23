@@ -81,6 +81,8 @@ def test_dash_layout_contains_application_shell(client) -> None:
         ids.PART_RUN_STORE,
         ids.FLUSH_JOB_REQUEST_STORE,
         ids.FLUSH_RUN_STORE,
+        ids.CAL_JOB_REQUEST_STORE,
+        ids.CAL_RUN_STORE,
     }.issubset(component_ids)
 
 
@@ -117,6 +119,11 @@ def test_dash_dependencies_include_main_callbacks(client) -> None:
             ids.FLUSH_RUN_STORE,
             ids.FLUSH_RUN_STATUS,
             ids.FLUSH_RUN_BUTTON,
+        ),
+        (
+            ids.CAL_RUN_STORE,
+            ids.CAL_RUN_STATUS,
+            ids.CAL_RUN_BUTTON,
         ),
     ],
 )

@@ -9,6 +9,7 @@ from unittest.mock import patch
 from src.run_logging import execution_id
 from src.ui import ids
 from src.ui.callbacks import (
+    calibration_callbacks,
     flushing_callbacks,
     hydraulic_callbacks,
     partitioning_callbacks,
@@ -381,6 +382,100 @@ class RunCallbackTests(unittest.TestCase):
                 "velocity_threshold": 0.5,
                 "min_pressure_head": 0.0,
                 "write_networks": False,
+            },
+        )
+
+    def test_calibration_submission_reserves_job_before_background_execution(self):
+        registry = CallbackRegistry()
+        calibration_callbacks.register_calibration_callbacks(registry)
+
+        snapshot_state = {
+            "upload_id": "abcdef123456",
+            "snapshots": [
+                {
+                    "period_index": 0,
+                    "filename": "network_0.inp",
+                    "stored_filename": ("snapshot_000.inp"),
+                    "size_bytes": 100,
+                },
+                {
+                    "period_index": 1,
+                    "filename": "network_1.inp",
+                    "stored_filename": ("snapshot_001.inp"),
+                    "size_bytes": 100,
+                },
+            ],
+        }
+        selected_snapshots = [
+            "snapshot_000.inp",
+            "snapshot_001.inp",
+        ]
+        measurement_rows = [
+            {
+                "id": "J1",
+                "type": "node",
+                "value_0": 30.0,
+                "value_1": 31.0,
+            }
+        ]
+        request_state = {
+            "token": "fixture-token",
+            "workflow": "calibration",
+            "payload": {},
+        }
+
+        with patch.object(
+            calibration_callbacks,
+            "reserve_solver_job",
+            return_value=request_state,
+        ) as reserve:
+            result = registry.functions["submit_calibration"](
+                1,
+                snapshot_state,
+                selected_snapshots,
+                measurement_rows,
+                "largest_diameter",
+                2,
+                "",
+                0.1,
+                0.05,
+                1.0,
+                1.0,
+                1.0,
+                8,
+                10,
+                0.2,
+                0.8,
+                12345,
+            )
+
+        self.assertEqual(
+            result[0],
+            request_state,
+        )
+        self.assertEqual(
+            reserve.call_args.kwargs["workflow"],
+            "calibration",
+        )
+        self.assertEqual(
+            reserve.call_args.kwargs["payload"],
+            {
+                "snapshot_state": snapshot_state,
+                "selected_snapshots": (selected_snapshots),
+                "measurement_rows": measurement_rows,
+                "pipe_selection": "largest_diameter",
+                "active_pipe_count": 2,
+                "pipe_ids": "",
+                "dmin": 0.1,
+                "min_diameter": 0.05,
+                "max_diameter": 1.0,
+                "pressure_weight": 1.0,
+                "period_hours": 1.0,
+                "popsize": 8,
+                "ngen": 10,
+                "pmut": 0.2,
+                "pcross": 0.8,
+                "seed": 12345,
             },
         )
 

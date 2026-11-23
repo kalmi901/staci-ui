@@ -21,6 +21,7 @@ def create_app_shell():
             dcc.Store(id=ids.FLUSH_RUN_STORE, storage_type="memory"),
             dcc.Store(id=ids.CAL_SNAPSHOT_STORE, storage_type="memory"),
             dcc.Store(id=ids.CAL_MEASUREMENT_STORE, storage_type="memory"),
+            dcc.Store(id=ids.CAL_JOB_REQUEST_STORE, storage_type="memory"),
             dcc.Store(id=ids.CAL_RUN_STORE, storage_type="memory"),
             create_sidebar(),
             html.Main(id=ids.PAGE_CONTENT, className="page-content"),

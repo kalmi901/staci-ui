@@ -11,6 +11,7 @@ FLUSH_JOB_REQUEST_STORE = "flush-job-request-store"
 FLUSH_RUN_STORE = "flush-run-store"
 CAL_SNAPSHOT_STORE = "cal-snapshot-store"
 CAL_MEASUREMENT_STORE = "cal-measurement-store"
+CAL_JOB_REQUEST_STORE = "cal-job-request-store"
 CAL_RUN_STORE = "cal-run-store"
 
 # --- Load Model Page ---
