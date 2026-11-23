@@ -17,11 +17,14 @@ def require_bounded_integer(
     minimum: int,
     maximum: int,
 ) -> int:
+
+    message = f"{label} must be an integer between {minimum:,} and {maximum:,}."
+
     if isinstance(value, bool) or not isinstance(
         value,
         (int, float),
     ):
-        raise ValueError(f"{label} must be an integer between {minimum} and {maximum}.")
+        raise ValueError(message)
 
     number = float(value)
 
@@ -31,7 +34,7 @@ def require_bounded_integer(
         or number < minimum
         or number > maximum
     ):
-        raise ValueError(f"{label} must be an integer between {minimum} and {maximum}.")
+        raise ValueError(message)
 
     return int(number)
 

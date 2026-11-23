@@ -143,3 +143,27 @@ def test_random_seed_limit() -> None:
         match="Random seed",
     ):
         validate_random_seed(MAX_RANDOM_SEED + 1)
+
+
+def test_optimizer_limit_errors_include_allowed_ranges() -> None:
+    with pytest.raises(ValueError) as generation_error:
+        validate_optimizer_settings(
+            {
+                "popsize": 20,
+                "ngen": 1000,
+                "pmut": 0.2,
+                "pcross": 0.8,
+            },
+            minimum_population=1,
+        )
+
+    assert str(generation_error.value) == (
+        "Generation count must be an integer between 1 and 500."
+    )
+
+    with pytest.raises(ValueError) as seed_error:
+        validate_random_seed(-1)
+
+    assert str(seed_error.value) == (
+        "Random seed must be an integer between 0 and 4,294,967,295."
+    )
