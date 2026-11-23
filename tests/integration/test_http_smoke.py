@@ -75,6 +75,7 @@ def test_dash_layout_contains_application_shell(client) -> None:
         ids.URL,
         ids.PAGE_CONTENT,
         ids.NETWORK_STORE,
+        ids.HYD_JOB_REQUEST_STORE,
         ids.HYD_RUN_STORE,
         ids.PART_RUN_STORE,
         ids.FLUSH_RUN_STORE,

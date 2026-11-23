@@ -13,6 +13,7 @@ def create_app_shell():
             dcc.Location(id=ids.URL),
             dcc.Store(id=ids.NETWORK_STORE, storage_type="memory"),
             dcc.Store(id=ids.NETWORK_VIEW_STORE, storage_type="memory"),
+            dcc.Store(id=ids.HYD_JOB_REQUEST_STORE, storage_type="memory"),
             dcc.Store(id=ids.HYD_RUN_STORE, storage_type="memory"),
             dcc.Store(id=ids.PART_RUN_STORE, storage_type="memory"),
             dcc.Store(id=ids.FLUSH_RUN_STORE, storage_type="memory"),

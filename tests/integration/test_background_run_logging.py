@@ -3,7 +3,9 @@
 import json
 import logging
 import os
+from contextlib import contextmanager
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
@@ -16,6 +18,21 @@ from src.logging_setup import configure_logging
 from src.run_logging import execution_id
 from src.ui.callbacks import flushing_callbacks, hydraulic_callbacks
 from tests.test_run_callbacks import CallbackRegistry
+
+
+@contextmanager
+def _fake_running_solver_job(
+    request_state,
+    *,
+    workflow,
+):
+    assert workflow == "hydraulic"
+
+    execution = SimpleNamespace(
+        complete=lambda: None,
+    )
+
+    yield execution, request_state["payload"]
 
 
 @pytest.mark.skipif(
@@ -36,21 +53,40 @@ def test_background_task_preserves_verified_user_and_run_context(tmp_path, monke
             if "hyd-run-store.data" in key and "hyd-run-status.children" in key
         )
         model = {"model_id": "abcdef123456", "filename": "same.inp"}
-        values = [1, model, "wntr", False, 1, 5, 60, 5, 1.0]
-        contexts = []
+        payload = {
+            "network_state": model,
+            "backend": "wntr",
+            "override_enabled": False,
+            "duration": 1,
+            "hydraulic_timestep": 5,
+            "report_timestep": 60,
+            "rule_timestep": 5,
+            "demand_multiplier": 1.0,
+        }
+        requests_and_contexts = []
         for user_id in ("7", "8"):
+            request_state = {
+                "token": f"token-{user_id}",
+                "workflow": "hydraulic",
+                "payload": payload,
+            }
             body = {
                 "output": key,
                 "outputs": [
-                    {"id": item.component_id, "property": item.component_property}
+                    {
+                        "id": item.component_id,
+                        "property": item.component_property,
+                    }
                     for item in callback["output"]
                 ],
-                "inputs": [dict(item, value=values[0]) for item in callback["inputs"]],
-                "state": [
-                    dict(item, value=value)
-                    for item, value in zip(callback["state"], values[1:])
+                "inputs": [
+                    dict(
+                        callback["inputs"][0],
+                        value=request_state,
+                    )
                 ],
-                "changedPropIds": ["hyd-run-button.n_clicks"],
+                "state": [],
+                "changedPropIds": ["hyd-job-request-store.data"],
             }
             with (
                 patch.object(
@@ -72,7 +108,12 @@ def test_background_task_preserves_verified_user_and_run_context(tmp_path, monke
                 )
             assert response.status_code == 200
             # JSON serialization models the real broker boundary.
-            contexts.append(json.loads(json.dumps(submit.call_args.args[3])))
+            requests_and_contexts.append(
+                (
+                    request_state,
+                    json.loads(json.dumps(submit.call_args.args[3])),
+                )
+            )
         celery = Celery(
             "logging-fixture", broker="memory://", backend="cache+memory://"
         )
@@ -85,7 +126,7 @@ def test_background_task_preserves_verified_user_and_run_context(tmp_path, monke
             patch.object(
                 hydraulic_callbacks,
                 "resolve_uploaded_model",
-                return_value=Path("/test/input.inp"),
+                new=_fake_running_solver_job,
             ),
             patch.object(
                 hydraulic_callbacks, "call_hydraulic_simulator", return_value=state
@@ -96,9 +137,12 @@ def test_background_task_preserves_verified_user_and_run_context(tmp_path, monke
                 return_value="original-alert",
             ),
         ):
-            for index, context in enumerate(contexts):
+            for index, (request_state, context) in enumerate(requests_and_contexts):
                 task.run(
-                    "result" + str(index), "progress" + str(index), values, context
+                    "result" + str(index),
+                    "progress" + str(index),
+                    [request_state],
+                    context,
                 )
                 assert json.loads(celery.backend.get("result" + str(index))) == [
                     state,
