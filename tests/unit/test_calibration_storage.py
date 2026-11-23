@@ -127,3 +127,47 @@ def test_store_calibration_snapshots_rejects_oversized_file(
         calibration_storage.store_calibration_snapshots([("large.inp", b"1234")])
 
     assert not (upload_root / "calibration").exists()
+
+
+def test_store_calibration_snapshots_uses_natural_filename_order(
+    upload_root: Path,
+) -> None:
+    state = calibration_storage.store_calibration_snapshots(
+        [
+            (
+                "network_2.inp",
+                b"period-two",
+            ),
+            (
+                "network_0.inp",
+                b"period-zero",
+            ),
+            (
+                "network_1.inp",
+                b"period-one",
+            ),
+        ]
+    )
+
+    assert [item["filename"] for item in state["snapshots"]] == [
+        "network_0.inp",
+        "network_1.inp",
+        "network_2.inp",
+    ]
+
+    assert [item["period_index"] for item in state["snapshots"]] == [
+        0,
+        1,
+        2,
+    ]
+
+    paths = calibration_storage.resolve_calibration_snapshots(
+        UPLOAD_ID,
+        [item["stored_filename"] for item in state["snapshots"]],
+    )
+
+    assert [path.read_bytes() for path in paths] == [
+        b"period-zero",
+        b"period-one",
+        b"period-two",
+    ]

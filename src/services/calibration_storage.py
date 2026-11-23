@@ -38,6 +38,19 @@ def _safe_filename(filename: str) -> str:
     return name or "input.json"
 
 
+def _natural_filename_key(
+    filename: str,
+) -> tuple[tuple[int, int | str], ...]:
+    return tuple(
+        ((1, int(part)) if part.isdigit() else (0, part.casefold()))
+        for part in re.split(
+            r"([0-9]+)",
+            filename,
+        )
+        if part
+    )
+
+
 def _upload_dir(upload_id: str) -> Path:
     if not _UPLOAD_ID_PATTERN.fullmatch(upload_id):
         raise ValueError(f"Invalid calibration upload id: {upload_id!r}")
@@ -79,6 +92,7 @@ def store_calibration_snapshots(
 
         prepared.append((safe_name, file_bytes))
 
+    prepared.sort(key=lambda item: _natural_filename_key(item[0]))
     upload_id = uuid.uuid4().hex[:12]
     upload_dir = _upload_dir(upload_id)
     upload_dir.mkdir(parents=True, exist_ok=False)
