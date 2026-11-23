@@ -6,6 +6,11 @@ from pathlib import Path
 from typing import Any, Dict, Literal
 
 from src.config import STACI_SPLIT_EXECUTABLE, STACI_TIMEOUT_SECONDS
+from src.staci.optimizer_limits import (
+    validate_optimizer_settings,
+    validate_partition_community_count,
+    validate_random_seed,
+)
 from src.staci.runtime import run_staci_process
 
 
@@ -54,6 +59,15 @@ def write_split_settings(
 
     split_config = SplitConfig(**config_data)
 
+    validated_settings = validate_optimizer_settings(
+        asdict(split_config),
+        minimum_population=2,
+    )
+
+    validated_settings["n_comm"] = validate_partition_community_count(
+        split_config.n_comm,
+    )
+
     root = ET.Element("settings")
 
     for key, value in asdict(split_config).items():
@@ -73,6 +87,7 @@ def write_split_settings(
 def run_staci_split(
     inp_path: Path, staci_split_settings_xml: Path, seed: int = 1
 ) -> StaciSplitResults:
+    seed = validate_random_seed(seed)
     if not STACI_SPLIT_EXECUTABLE.exists():
         raise FileNotFoundError(
             f"STACI Split executable not found: {STACI_SPLIT_EXECUTABLE}"

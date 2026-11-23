@@ -16,6 +16,10 @@ from src.services.calibration_storage import (
     store_calibration_snapshots,
 )
 from src.services.solver_jobs import ActiveSolverJobError, SolverJobCancelledError
+from src.staci.optimizer_limits import (
+    validate_optimizer_settings,
+    validate_random_seed,
+)
 from src.ui import ids
 from src.ui.callbacks.helpers import (
     decode_upload_contents,
@@ -114,18 +118,6 @@ def _positive_integer(
 
     if not number.is_integer():
         raise ValueError(f"{label} must be an integer.")
-
-    return int(number)
-
-
-def _nonnegative_integer(
-    value: Any,
-    label: str,
-) -> int:
-    number = finite_number(value, label)
-
-    if number < 0 or not number.is_integer():
-        raise ValueError(f"{label} must be a non-negative integer.")
 
     return int(number)
 
@@ -283,23 +275,16 @@ def _build_optimizer_settings(
             period_hours,
             "Period length",
         ),
-        "popsize": _positive_integer(
-            popsize,
-            "Population size",
-        ),
-        "ngen": _positive_integer(
-            ngen,
-            "Generation count",
-        ),
-        "pmut": _probability(
-            pmut,
-            "Mutation probability",
-        ),
-        "pcross": _probability(
-            pcross,
-            "Crossover probability",
-        ),
+        "popsize": popsize,
+        "ngen": ngen,
+        "pmut": pmut,
+        "pcross": pcross,
     }
+
+    settings = validate_optimizer_settings(
+        settings,
+        minimum_population=1,
+    )
 
     if pipe_selection in {
         "largest_diameter",
@@ -391,10 +376,7 @@ def _execute_calibration(
             pcross=pcross,
         )
 
-        seed_value = _nonnegative_integer(
-            seed,
-            "Random seed",
-        )
+        seed_value = validate_random_seed(seed)
 
         snapshot_paths = resolve_calibration_snapshots(
             snapshot_state["upload_id"], stored_filenames, user_id=identity.user_id

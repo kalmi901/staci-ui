@@ -112,6 +112,11 @@ Hydraulic workloads are limited by solver steps, report frames, and estimated
 network work units. Solver submissions are also constrained by the configured
 Celery worker capacity and the one-active-job-per-user rule.
 
+Partitioning and calibration optimizer inputs are also validated server-side,
+even if the browser-side controls are bypassed. Population size is limited to
+200, generation count to 500, partitioning to 100 communities, and random seeds
+to the unsigned 32-bit range.
+
 ## Architecture
 
 ```mermaid

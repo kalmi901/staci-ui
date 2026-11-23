@@ -7,6 +7,12 @@ from typing import Any, Dict
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
+from src.staci.optimizer_limits import (
+    MAX_OPTIMIZER_GENERATIONS,
+    MAX_OPTIMIZER_POPULATION,
+    MAX_PARTITION_COMMUNITIES,
+    MAX_RANDOM_SEED,
+)
 from src.ui import ids
 from src.ui.pages.components import (
     create_active_model_section,
@@ -96,6 +102,7 @@ def _create_setup_card():
                             ids.PART_NCOMM,
                             3,
                             min_value=1,
+                            max_value=MAX_PARTITION_COMMUNITIES,
                             step=1,
                             persist=False,
                         ),
@@ -195,6 +202,7 @@ def _create_setup_card():
                             ids.PART_POPSIZE,
                             20,
                             min_value=2,
+                            max_value=MAX_OPTIMIZER_POPULATION,
                             step=1,
                             persist=False,
                         ),
@@ -203,6 +211,7 @@ def _create_setup_card():
                             ids.PART_NGEN,
                             50,
                             min_value=1,
+                            max_value=MAX_OPTIMIZER_GENERATIONS,
                             step=1,
                             persist=False,
                         ),
@@ -229,6 +238,7 @@ def _create_setup_card():
                             ids.PART_SEED,
                             12345,
                             min_value=0,
+                            max_value=MAX_RANDOM_SEED,
                             step=1,
                             persist=False,
                         ),
