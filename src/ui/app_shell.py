@@ -11,6 +11,7 @@ def create_app_shell():
         className="app-shell",
         children=[
             dcc.Location(id=ids.URL),
+            dcc.Interval(id=ids.SOLVER_STATUS_INTERVAL, interval=2_000, n_intervals=0),
             dcc.Store(id=ids.NETWORK_STORE, storage_type="memory"),
             dcc.Store(id=ids.NETWORK_VIEW_STORE, storage_type="memory"),
             dcc.Store(id=ids.HYD_JOB_REQUEST_STORE, storage_type="memory"),

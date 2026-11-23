@@ -83,6 +83,8 @@ def test_dash_layout_contains_application_shell(client) -> None:
         ids.FLUSH_RUN_STORE,
         ids.CAL_JOB_REQUEST_STORE,
         ids.CAL_RUN_STORE,
+        ids.SOLVER_STATUS_INTERVAL,
+        ids.SOLVER_STATUS,
     }.issubset(component_ids)
 
 
@@ -100,6 +102,7 @@ def test_dash_dependencies_include_main_callbacks(client) -> None:
     assert any(ids.PART_RUN_STORE in output for output in outputs)
     assert any(ids.FLUSH_RUN_STORE in output for output in outputs)
     assert f"{ids.FLUSH_NETWORK_GRAPH}.figure" in outputs
+    assert f"{ids.SOLVER_STATUS}.children" in outputs
 
 
 @pytest.mark.parametrize(

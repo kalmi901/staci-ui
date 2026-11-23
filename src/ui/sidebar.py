@@ -4,6 +4,7 @@ from collections.abc import Sequence
 
 from dash import dcc, html
 
+from src.ui import ids
 from src.ui.paths import app_path
 
 WORDPRESS_HOME_URL = "https://hydroreact.org/"
@@ -84,6 +85,13 @@ def create_sidebar():
             *navigation_section("Water Network", WATER_NETWORK_LINKS),
             *navigation_section("Analysis", ANALYSIS_LINKS, spaced=True),
             html.Hr(className="sidebar-separator"),
+            html.Div(
+                id=ids.SOLVER_STATUS,
+                className="solver-status-panel",
+                children=html.Div(
+                    "Checking solver status…", className="solver-status-message"
+                ),
+            ),
             html.Div(
                 className="sidebar-footer",
                 children=(

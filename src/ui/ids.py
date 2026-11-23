@@ -13,6 +13,8 @@ CAL_SNAPSHOT_STORE = "cal-snapshot-store"
 CAL_MEASUREMENT_STORE = "cal-measurement-store"
 CAL_JOB_REQUEST_STORE = "cal-job-request-store"
 CAL_RUN_STORE = "cal-run-store"
+SOLVER_STATUS_INTERVAL = "solver-status-interval"
+SOLVER_STATUS = "solver-status"
 
 # --- Load Model Page ---
 UPLOAD_INP = "upload-inp"
