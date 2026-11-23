@@ -429,3 +429,28 @@ def test_write_calibrate_settings_rejects_invalid_bounds(
                 "max_diameter_m": maximum,
             },
         )
+
+
+def test_write_calibrate_settings_rejects_excessive_optimizer_work(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "network_0.inp").touch()
+
+    measurements_path = tmp_path / "measurements.json"
+    measurements_path.write_text(
+        '{"measurements": []}',
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Generation count",
+    ):
+        calibrate.write_calibrate_settings(
+            tmp_path / "settings.json",
+            measurements_path=measurements_path,
+            snapshot_count=1,
+            overrides={
+                "ngen": 501,
+            },
+        )

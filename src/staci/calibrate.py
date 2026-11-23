@@ -12,6 +12,7 @@ from src.config import (
     STACI_CALIBRATE_EXECUTABLE,
     STACI_TIMEOUT_SECONDS,
 )
+from src.staci.optimizer_limits import validate_optimizer_settings, validate_random_seed
 from src.staci.runtime import run_staci_process
 
 _DEFAULT_SETTINGS: dict[str, Any] = {
@@ -194,6 +195,8 @@ def write_calibrate_settings(
         **(overrides or {}),
     }
 
+    settings = validate_optimizer_settings(settings, minimum_population=1)
+
     # Input paths and period numbering are controlled by the wrapper.
     settings["dir_name"] = str(run_dir) + os.sep
     settings["sollwert_dfile"] = measurements_path.name
@@ -279,6 +282,7 @@ def run_staci_calibrate(
     *,
     seed: int = 12345,
 ) -> StaciCalibrateResults:
+    seed = validate_random_seed(seed)
     if not STACI_CALIBRATE_EXECUTABLE.is_file():
         raise FileNotFoundError(
             f"STACI Calibrate executable not found: {STACI_CALIBRATE_EXECUTABLE}"

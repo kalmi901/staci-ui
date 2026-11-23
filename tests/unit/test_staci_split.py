@@ -244,3 +244,19 @@ def test_run_staci_split_wraps_process_start_failure(
         match="OSError: process could not start",
     ):
         split.run_staci_split(inp_path, settings_path)
+
+
+def test_write_split_settings_rejects_excessive_optimizer_work(
+    tmp_path: Path,
+) -> None:
+    with pytest.raises(
+        ValueError,
+        match="Population size",
+    ):
+        split.write_split_settings(
+            tmp_path / "staci_split_settings.xml",
+            inp_path=tmp_path / "network.inp",
+            overrides={
+                "popsize": 201,
+            },
+        )
