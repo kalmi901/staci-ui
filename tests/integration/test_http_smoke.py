@@ -79,6 +79,7 @@ def test_dash_layout_contains_application_shell(client) -> None:
         ids.HYD_RUN_STORE,
         ids.PART_JOB_REQUEST_STORE,
         ids.PART_RUN_STORE,
+        ids.FLUSH_JOB_REQUEST_STORE,
         ids.FLUSH_RUN_STORE,
     }.issubset(component_ids)
 

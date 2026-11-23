@@ -17,6 +17,7 @@ def create_app_shell():
             dcc.Store(id=ids.HYD_RUN_STORE, storage_type="memory"),
             dcc.Store(id=ids.PART_JOB_REQUEST_STORE, storage_type="memory"),
             dcc.Store(id=ids.PART_RUN_STORE, storage_type="memory"),
+            dcc.Store(id=ids.FLUSH_JOB_REQUEST_STORE, storage_type="memory"),
             dcc.Store(id=ids.FLUSH_RUN_STORE, storage_type="memory"),
             dcc.Store(id=ids.CAL_SNAPSHOT_STORE, storage_type="memory"),
             dcc.Store(id=ids.CAL_MEASUREMENT_STORE, storage_type="memory"),

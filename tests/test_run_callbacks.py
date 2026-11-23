@@ -8,7 +8,11 @@ from unittest.mock import patch
 
 from src.run_logging import execution_id
 from src.ui import ids
-from src.ui.callbacks import hydraulic_callbacks, partitioning_callbacks
+from src.ui.callbacks import (
+    flushing_callbacks,
+    hydraulic_callbacks,
+    partitioning_callbacks,
+)
 
 
 class CallbackRegistry:
@@ -324,6 +328,59 @@ class RunCallbackTests(unittest.TestCase):
                 "pmut": 0.25,
                 "pcross": 0.8,
                 "seed": 42,
+            },
+        )
+
+    def test_flushing_submission_reserves_job_before_background_execution(self):
+        registry = CallbackRegistry()
+        flushing_callbacks.register_flushing_callbacks(registry)
+
+        model = {
+            "model_id": "abcdef123456",
+            "filename": "network.inp",
+        }
+        request_state = {
+            "token": "fixture-token",
+            "workflow": "flushing",
+            "payload": {},
+        }
+
+        with patch.object(
+            flushing_callbacks,
+            "reserve_solver_job",
+            return_value=request_state,
+        ) as reserve:
+            result = registry.functions["submit_flushing"](
+                1,
+                model,
+                "J1, J2",
+                "single",
+                0.002,
+                2.0,
+                0.5,
+                0.0,
+                False,
+            )
+
+        self.assertEqual(
+            result[0],
+            request_state,
+        )
+        self.assertEqual(
+            reserve.call_args.kwargs["workflow"],
+            "flushing",
+        )
+        self.assertEqual(
+            reserve.call_args.kwargs["payload"],
+            {
+                "network_state": model,
+                "hydrant_text": "J1, J2",
+                "mode": "single",
+                "hydrant_area": 0.002,
+                "loss_coefficient": 2.0,
+                "velocity_threshold": 0.5,
+                "min_pressure_head": 0.0,
+                "write_networks": False,
             },
         )
 

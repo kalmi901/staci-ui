@@ -17,7 +17,6 @@ from src.background_jobs import background_callback_manager, setup_worker_loggin
 from src.logging_setup import configure_logging
 from src.run_logging import execution_id
 from src.ui.callbacks import flushing_callbacks, hydraulic_callbacks
-from tests.test_run_callbacks import CallbackRegistry
 
 
 @contextmanager
@@ -122,14 +121,26 @@ def test_background_task_preserves_verified_user_and_run_context(tmp_path, monke
             callback["callback"].__wrapped__, progress=False, key="logging-fixture"
         )
         state = {"run_id": "123456abcdef", "model_id": model["model_id"], "summary": {}}
+        input_path = tmp_path / "input.inp"
+        input_path.write_text(
+            "[END]\n",
+            encoding="utf-8",
+        )
         with (
             patch.object(
                 hydraulic_callbacks,
-                "resolve_uploaded_model",
+                "running_solver_job",
                 new=_fake_running_solver_job,
             ),
             patch.object(
-                hydraulic_callbacks, "call_hydraulic_simulator", return_value=state
+                hydraulic_callbacks,
+                "resolve_uploaded_model",
+                return_value=input_path,
+            ),
+            patch.object(
+                hydraulic_callbacks,
+                "call_hydraulic_simulator",
+                return_value=state,
             ),
             patch.object(
                 hydraulic_callbacks,
@@ -183,8 +194,6 @@ def test_worker_logging_setup_installs_application_handlers():
 
 
 def test_partial_flushing_result_is_logged_as_warning_without_changing_result():
-    registry = CallbackRegistry()
-    flushing_callbacks.register_flushing_callbacks(registry)
     model = {"model_id": "abcdef123456", "filename": "flush.inp"}
     state = {
         "run_id": "123456abcdef",
@@ -205,7 +214,7 @@ def test_partial_flushing_result_is_logged_as_warning_without_changing_result():
         ) as runner,
         patch("src.run_logging.event") as event,
     ):
-        result = registry.functions["run_flushing"](
+        result = flushing_callbacks._execute_flushing(
             1, model, "A", "single", 0.002, 2, 0.5, 0, False
         )
     assert result[0] is state
