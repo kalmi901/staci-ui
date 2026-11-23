@@ -85,7 +85,7 @@ class RunCallbackTests(unittest.TestCase):
                 return_value="original-success",
             ),
         ):
-            result = registry.functions["run_partitioning"](
+            result = partitioning_callbacks._execute_partitioning(
                 1, model, 3, "modularity", "topology", "diameter", 20, 50, 0.25, 0.8, 42
             )
             self.assertEqual(result, (state, "original-success"))
@@ -104,7 +104,6 @@ class RunCallbackTests(unittest.TestCase):
             for key, value in app.callback_map.items()
             if "hyd-run-store.data" in key and "hyd-run-status.children" in key
         )
-        values = [None, "wntr", False, 1, 5, 60, 5, 1.0]
         request_state = {
             "token": "fixture-token",
             "workflow": "hydraulic",
@@ -218,9 +217,7 @@ class RunCallbackTests(unittest.TestCase):
             self.assertEqual(prepared["effective_options"]["duration"], 7200)
             self.assertEqual(prepared["run_id"], solver.call_args.args[2])
 
-    def test_hydraulic_submission_reserves_job_before_background_execution(
-        self,
-    ):
+    def test_hydraulic_submission_reserves_job_before_background_execution(self):
         registry = CallbackRegistry()
         hydraulic_callbacks.register_hydraulic_callbacks(registry)
 
@@ -270,6 +267,63 @@ class RunCallbackTests(unittest.TestCase):
                 "report_timestep": 30,
                 "rule_timestep": 5,
                 "demand_multiplier": 1.2,
+            },
+        )
+
+    def test_partition_submission_reserves_job_before_background_execution(self):
+        registry = CallbackRegistry()
+        partitioning_callbacks.register_partitioning_callbacks(registry)
+
+        model = {
+            "model_id": "abcdef123456",
+            "filename": "network.inp",
+        }
+        request_state = {
+            "token": "fixture-token",
+            "workflow": "partition",
+            "payload": {},
+        }
+
+        with patch.object(
+            partitioning_callbacks,
+            "reserve_solver_job",
+            return_value=request_state,
+        ) as reserve:
+            result = registry.functions["submit_partitioning"](
+                1,
+                model,
+                3,
+                "modularity",
+                "topology",
+                "diameter",
+                20,
+                50,
+                0.25,
+                0.8,
+                42,
+            )
+
+        self.assertEqual(
+            result[0],
+            request_state,
+        )
+        self.assertEqual(
+            reserve.call_args.kwargs["workflow"],
+            "partition",
+        )
+        self.assertEqual(
+            reserve.call_args.kwargs["payload"],
+            {
+                "network_state": model,
+                "n_comm": 3,
+                "obj_type": "modularity",
+                "weight_type": "topology",
+                "weight_type_mod": "diameter",
+                "popsize": 20,
+                "ngen": 50,
+                "pmut": 0.25,
+                "pcross": 0.8,
+                "seed": 42,
             },
         )
 

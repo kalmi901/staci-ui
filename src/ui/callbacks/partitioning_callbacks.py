@@ -3,18 +3,97 @@ from __future__ import annotations
 import logging
 
 import dash_bootstrap_components as dbc
-from dash import Input, Output, State
+from dash import Input, Output, State, no_update
 from dash.exceptions import PreventUpdate
 
 from src.run_logging import logged_run
 from src.services.model_storage import resolve_uploaded_model
 from src.services.partition_runner import call_staci_split_service
+from src.services.solver_jobs import ActiveSolverJobError
 from src.ui import ids
+from src.ui.callbacks.solver_job_helpers import reserve_solver_job, running_solver_job
 from src.ui.pages.components import render_active_model_summary
 from src.ui.pages.network_partitioning import render_success_alert
 from src.visualisation.network_preview import make_partitioned_network_figure
 
 logger = logging.getLogger(__name__)
+
+
+@logged_run("partition")
+def _execute_partitioning(
+    n_clicks,
+    network_state,
+    n_comm,
+    obj_type,
+    weight_type,
+    weight_type_mod,
+    popsize,
+    ngen,
+    pmut,
+    pcross,
+    seed,
+):
+    if not n_clicks:
+        raise PreventUpdate
+
+    if not network_state:
+        return None, dbc.Alert(
+            "No active INP file. Upload a model first.",
+            color="warning",
+            className="upload-alert",
+        )  # pyright: ignore[reportCallIssue]
+
+    try:
+        inp_path = resolve_uploaded_model(
+            network_state["model_id"], network_state["filename"]
+        )
+
+        optimizer_settings = {
+            "n_comm": n_comm,
+            "obj_type": obj_type,
+            "weight_type": weight_type,
+            "weight_type_mod": weight_type_mod,
+            "popsize": popsize,
+            "ngen": ngen,
+            "pmut": pmut,
+            "pcross": pcross,
+        }
+
+        logger.info(
+            "Network partitioning started: model_id=%s n_comm=%d objs_type=%s seed=%d",
+            network_state.get("model_id", ""),
+            n_comm,
+            obj_type,
+            seed,
+        )
+
+        partition_state = call_staci_split_service(
+            inp_path,
+            model_id=network_state.get("model_id"),
+            optimizer_settings=optimizer_settings,
+            seed=seed,
+        )
+
+        logger.info(
+            "Network partitioning finished: run_id=%s model_id=%s n_comm=%d objs_type=%s seed=%d",
+            partition_state.get("run_id", ""),
+            partition_state.get("model_id", ""),
+            n_comm,
+            obj_type,
+            seed,
+        )
+
+    except Exception as exc:
+        logger.exception(
+            "Network partitioning failed: model_id=%s", network_state["model_id"]
+        )
+        return None, dbc.Alert(
+            f"Network partitioning failed: {exc}",
+            color="danger",
+            className="upload-alert",
+        )  # pyright: ignore[reportCallIssue]
+
+    return partition_state, render_success_alert(partition_state)
 
 
 def register_partitioning_callbacks(app):
@@ -37,8 +116,12 @@ def register_partitioning_callbacks(app):
         return weight_type != "sensitivity"
 
     @app.callback(
-        Output(ids.PART_RUN_STORE, "data"),
-        Output(ids.PART_RUN_STATUS, "children"),
+        Output(ids.PART_JOB_REQUEST_STORE, "data"),
+        Output(
+            ids.PART_RUN_STATUS,
+            "children",
+            allow_duplicate=True,
+        ),
         Input(ids.PART_RUN_BUTTON, "n_clicks"),
         State(ids.NETWORK_STORE, "data"),
         State(ids.PART_NCOMM, "value"),
@@ -50,18 +133,9 @@ def register_partitioning_callbacks(app):
         State(ids.PART_PMUT, "value"),
         State(ids.PART_PCROSS, "value"),
         State(ids.PART_SEED, "value"),
-        background=True,
-        running=[
-            (
-                Output(ids.PART_RUN_BUTTON, "disabled"),
-                True,
-                False,
-            ),
-        ],
         prevent_initial_call=True,
     )
-    @logged_run("partition")
-    def run_partitioning(
+    def submit_partitioning(
         n_clicks,
         network_state,
         n_comm,
@@ -78,63 +152,110 @@ def register_partitioning_callbacks(app):
             raise PreventUpdate
 
         if not network_state:
-            return None, dbc.Alert(
+            return no_update, dbc.Alert(
                 "No active INP file. Upload a model first.",
                 color="warning",
                 className="upload-alert",
-            )  # pyright: ignore[reportCallIssue]
+            )
 
         try:
-            inp_path = resolve_uploaded_model(
-                network_state["model_id"], network_state["filename"]
+            request_state = reserve_solver_job(
+                workflow="partition",
+                payload={
+                    "network_state": network_state,
+                    "n_comm": n_comm,
+                    "obj_type": obj_type,
+                    "weight_type": weight_type,
+                    "weight_type_mod": weight_type_mod,
+                    "popsize": popsize,
+                    "ngen": ngen,
+                    "pmut": pmut,
+                    "pcross": pcross,
+                    "seed": seed,
+                },
             )
 
-            optimizer_settings = {
-                "n_comm": n_comm,
-                "obj_type": obj_type,
-                "weight_type": weight_type,
-                "weight_type_mod": weight_type_mod,
-                "popsize": popsize,
-                "ngen": ngen,
-                "pmut": pmut,
-                "pcross": pcross,
-            }
-
+        except ActiveSolverJobError as exc:
             logger.info(
-                "Network partitioning started: model_id=%s n_comm=%d objs_type=%s seed=%d",
-                network_state.get("model_id", ""),
-                n_comm,
-                obj_type,
-                seed,
+                "Partitioning submission rejected: %s",
+                exc,
             )
 
-            partition_state = call_staci_split_service(
-                inp_path,
-                model_id=network_state.get("model_id"),
-                optimizer_settings=optimizer_settings,
-                seed=seed,
-            )
-
-            logger.info(
-                "Network partitioning finished: run_id=%s model_id=%s n_comm=%d objs_type=%s seed=%d",
-                partition_state.get("run_id", ""),
-                partition_state.get("model_id", ""),
-                n_comm,
-                obj_type,
-                seed,
+            return no_update, dbc.Alert(
+                str(exc),
+                color="warning",
+                className="upload-alert",
             )
 
         except Exception as exc:
-            logger.exception(
-                "Network partitioning failed: model_id=%s", network_state["model_id"]
+            logger.exception("Partitioning submission failed.")
+
+            return no_update, dbc.Alert(
+                f"Partitioning submission failed: {exc}",
+                color="danger",
+                className="upload-alert",
             )
+
+        return request_state, dbc.Alert(
+            "Network partitioning was added to the solver queue.",
+            color="info",
+            className="upload-alert",
+        )
+
+    @app.callback(
+        Output(ids.PART_RUN_STORE, "data"),
+        Output(ids.PART_RUN_STATUS, "children"),
+        Input(ids.PART_JOB_REQUEST_STORE, "data"),
+        background=True,
+        running=[
+            (
+                Output(ids.PART_RUN_BUTTON, "disabled"),
+                True,
+                False,
+            ),
+        ],
+        prevent_initial_call=True,
+    )
+    def run_partitioning(request_state):
+        if not request_state:
+            raise PreventUpdate
+
+        try:
+            with running_solver_job(
+                request_state,
+                workflow="partition",
+            ) as (execution, payload):
+                result = _execute_partitioning(
+                    1,
+                    payload.get("network_state"),
+                    payload.get("n_comm"),
+                    payload.get("obj_type"),
+                    payload.get("weight_type"),
+                    payload.get("weight_type_mod"),
+                    payload.get("popsize"),
+                    payload.get("ngen"),
+                    payload.get("pmut"),
+                    payload.get("pcross"),
+                    payload.get("seed"),
+                )
+
+                partition_state = (
+                    result[0] if isinstance(result, (tuple, list)) and result else None
+                )
+
+                if isinstance(partition_state, dict):
+                    execution.complete()
+
+                return result
+
+        except Exception as exc:
+            logger.exception("Partitioning background job failed.")
+
             return None, dbc.Alert(
                 f"Network partitioning failed: {exc}",
                 color="danger",
                 className="upload-alert",
-            )  # pyright: ignore[reportCallIssue]
-
-        return partition_state, render_success_alert(partition_state)
+            )
 
     @app.callback(
         Output(ids.PART_COMMUNITY_FILTER, "options"),
