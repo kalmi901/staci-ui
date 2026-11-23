@@ -17,7 +17,6 @@ def require_bounded_integer(
     minimum: int,
     maximum: int,
 ) -> int:
-
     message = f"{label} must be an integer between {minimum:,} and {maximum:,}."
 
     if isinstance(value, bool) or not isinstance(

@@ -122,18 +122,6 @@ def _positive_integer(
     return int(number)
 
 
-def _nonnegative_integer(
-    value: Any,
-    label: str,
-) -> int:
-    number = finite_number(value, label)
-
-    if number < 0 or not number.is_integer():
-        raise ValueError(f"{label} must be a non-negative integer.")
-
-    return int(number)
-
-
 def _probability(
     value: Any,
     label: str,
