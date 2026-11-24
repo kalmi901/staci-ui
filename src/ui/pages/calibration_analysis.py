@@ -566,7 +566,7 @@ def create_layout():
         className="page calibration-page",
         children=[
             create_page_header(
-                "Pipe diameter calibration",
+                "Calibration",
                 (
                     "Estimate selected pipe diameters from "
                     "multiple steady-state network snapshots "
