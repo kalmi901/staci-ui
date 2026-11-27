@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from src.staci import split
+from src.staci import runtime, split
 
 
 @pytest.fixture
@@ -86,7 +86,7 @@ def test_run_staci_split_builds_command_and_collects_membership(
             stderr="split stderr\n",
         )
 
-    monkeypatch.setattr(split.subprocess, "run", fake_run)
+    monkeypatch.setattr(runtime.subprocess, "run", fake_run)
 
     result = split.run_staci_split(
         inp_path,
@@ -127,7 +127,7 @@ def test_run_staci_split_is_not_successful_without_membership(
     settings_path.write_text("<settings />", encoding="utf-8")
 
     monkeypatch.setattr(
-        split.subprocess,
+        runtime.subprocess,
         "run",
         lambda command, **kwargs: subprocess.CompletedProcess(
             command,
@@ -151,7 +151,7 @@ def test_run_staci_split_rejects_missing_executable(
     missing_executable = tmp_path / "missing-staci-split.exe"
     monkeypatch.setattr(split, "STACI_SPLIT_EXECUTABLE", missing_executable)
 
-    with pytest.raises(FileNotFoundError, match="STACI_SPLIT executable not found"):
+    with pytest.raises(FileNotFoundError, match="STACI Split executable not found"):
         split.run_staci_split(
             tmp_path / "model.inp",
             tmp_path / "staci_split_settings.xml",
@@ -207,7 +207,7 @@ def test_run_staci_split_writes_partial_logs_on_timeout(
             stderr=b"partial split \xffstderr",
         )
 
-    monkeypatch.setattr(split.subprocess, "run", fake_run)
+    monkeypatch.setattr(runtime.subprocess, "run", fake_run)
 
     with pytest.raises(TimeoutError, match="23 s timeout"):
         split.run_staci_split(inp_path, settings_path)
@@ -237,10 +237,26 @@ def test_run_staci_split_wraps_process_start_failure(
     ) -> subprocess.CompletedProcess[str]:
         raise OSError("process could not start")
 
-    monkeypatch.setattr(split.subprocess, "run", fake_run)
+    monkeypatch.setattr(runtime.subprocess, "run", fake_run)
 
     with pytest.raises(
         RuntimeError,
         match="OSError: process could not start",
     ):
         split.run_staci_split(inp_path, settings_path)
+
+
+def test_write_split_settings_rejects_excessive_optimizer_work(
+    tmp_path: Path,
+) -> None:
+    with pytest.raises(
+        ValueError,
+        match="Population size",
+    ):
+        split.write_split_settings(
+            tmp_path / "staci_split_settings.xml",
+            inp_path=tmp_path / "network.inp",
+            overrides={
+                "popsize": 201,
+            },
+        )

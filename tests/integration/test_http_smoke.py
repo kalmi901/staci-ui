@@ -5,9 +5,6 @@ import pytest
 from app import app
 from src.config import APP_URL_PREFIX
 from src.ui import ids
-from src.ui.paths import app_path
-from src.ui.sidebar import WORDPRESS_HOME_URL
-
 
 pytestmark = pytest.mark.integration
 
@@ -64,10 +61,7 @@ def test_dash_index_is_served(client) -> None:
 
     assert response.status_code == 200
     assert response.content_type.startswith("text/html")
-    assert (
-        "<title>STACI Dashboard</title>"
-        in response.get_data(as_text=True)
-    )
+    assert "<title>STACI Dashboard</title>" in response.get_data(as_text=True)
 
 
 def test_dash_layout_contains_application_shell(client) -> None:
@@ -81,9 +75,17 @@ def test_dash_layout_contains_application_shell(client) -> None:
         ids.URL,
         ids.PAGE_CONTENT,
         ids.NETWORK_STORE,
+        ids.HYD_JOB_REQUEST_STORE,
         ids.HYD_RUN_STORE,
+        ids.PART_JOB_REQUEST_STORE,
         ids.PART_RUN_STORE,
+        ids.FLUSH_JOB_REQUEST_STORE,
         ids.FLUSH_RUN_STORE,
+        ids.CAL_JOB_REQUEST_STORE,
+        ids.CAL_RUN_STORE,
+        ids.SOLVER_STATUS_INTERVAL,
+        ids.SOLVER_STATUS,
+        ids.SOLVER_CANCEL_BUTTON,
     }.issubset(component_ids)
 
 
@@ -94,16 +96,17 @@ def test_dash_dependencies_include_main_callbacks(client) -> None:
     assert response.is_json
 
     dependencies = response.get_json()
-    outputs = {
-        dependency["output"]
-        for dependency in dependencies
-    }
+    outputs = {dependency["output"] for dependency in dependencies}
 
     assert f"{ids.PAGE_CONTENT}.children" in outputs
     assert any(ids.HYD_RUN_STORE in output for output in outputs)
     assert any(ids.PART_RUN_STORE in output for output in outputs)
     assert any(ids.FLUSH_RUN_STORE in output for output in outputs)
-    assert (f"{ids.FLUSH_NETWORK_GRAPH}.figure" in outputs)
+    assert f"{ids.FLUSH_NETWORK_GRAPH}.figure" in outputs
+    assert any(
+        ids.SOLVER_STATUS in output and ids.SOLVER_CANCEL_BUTTON in output
+        for output in outputs
+    )
 
 
 @pytest.mark.parametrize(
@@ -124,6 +127,11 @@ def test_dash_dependencies_include_main_callbacks(client) -> None:
             ids.FLUSH_RUN_STATUS,
             ids.FLUSH_RUN_BUTTON,
         ),
+        (
+            ids.CAL_RUN_STORE,
+            ids.CAL_RUN_STATUS,
+            ids.CAL_RUN_BUTTON,
+        ),
     ],
 )
 def test_solver_runs_use_background_callbacks(
@@ -132,9 +140,7 @@ def test_solver_runs_use_background_callbacks(
     run_status_id: str,
     run_button_id: str,
 ) -> None:
-    response = client.get(
-        _url("_dash-dependencies")
-    )
+    response = client.get(_url("_dash-dependencies"))
 
     assert response.status_code == 200
     assert response.is_json
@@ -230,6 +236,19 @@ def test_solver_runs_use_background_callbacks(
                 ids.FLUSH_RESULTS,
             ),
         ),
+        (
+            "analysis/calibration",
+            "page calibration-page",
+            (
+                ids.CAL_UPLOAD_SNAPSHOTS,
+                ids.CAL_SNAPSHOT_SELECTION,
+                ids.CAL_UPLOAD_MEASUREMENTS,
+                ids.CAL_MEASUREMENTS_TABLE,
+                ids.CAL_ADD_MEASUREMENT,
+                ids.CAL_INPUT_SUMMARY,
+                ids.CAL_RESULTS,
+            ),
+        ),
     ],
 )
 def test_dash_renders_main_routes(
@@ -259,23 +278,17 @@ def test_dash_renders_main_routes(
     )
     assert response.status_code == 200
 
-    page = response.get_json()[
-        "response"
-    ][ids.PAGE_CONTENT]["children"]
+    page = response.get_json()["response"][ids.PAGE_CONTENT]["children"]
 
     assert page["props"]["className"] == expected_class_name
 
     component_ids = set(_component_ids(page))
 
-    assert set(expected_component_ids).issubset(
-        component_ids
-    )
+    assert set(expected_component_ids).issubset(component_ids)
 
 
 def test_dash_serves_application_stylesheet(client) -> None:
-    response = client.get(
-        _url("assets/css/01_base.css")
-    )
+    response = client.get(_url("assets/css/01_base.css"))
 
     assert response.status_code == 200
     assert response.content_type.startswith("text/css")

@@ -1,16 +1,23 @@
 from __future__ import annotations
+
 import re
 from pathlib import Path
 from typing import Literal
 
 from src.config import RUN_ROOT
+from src.services.resource_ownership import require_resource_owner
+
+RunType = Literal[
+    "hydraulic",
+    "partition",
+    "flushing",
+    "calibration",
+]
 
 _RUN_ID_PATTERN = re.compile(r"^[a-f0-9]{12}$")
 
-def resolve_run_dir(
-    run_id: str, 
-    run_type: Literal["hydraulic", "partition", "flushing"]
-    ) -> Path:
+
+def resolve_run_dir(run_id: str, run_type: RunType, *, user_id: str) -> Path:
     if not _RUN_ID_PATTERN.fullmatch(run_id):
         raise ValueError(f"Invalid run id: {run_id!r}")
 
@@ -19,5 +26,7 @@ def resolve_run_dir(
 
     if not run_dir.is_relative_to(run_root):
         raise ValueError("Invalid run directory.")
+
+    require_resource_owner(run_dir, user_id)
 
     return run_dir

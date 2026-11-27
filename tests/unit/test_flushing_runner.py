@@ -5,8 +5,8 @@ from types import SimpleNamespace
 import pytest
 
 from src.services import flushing_runner, run_storage
+from src.services.resource_ownership import write_resource_owner
 from src.staci.flush import StaciFlushResults
-
 
 RUN_ID = "123456abcdef"
 MODEL_ID = "012345abcdef"
@@ -55,19 +55,11 @@ def _flush_result(
         scenarios_path=output_dir / "scenarios.csv",
         plan_csv_path=output_dir / "flushing_plan.csv",
         plan_text_path=output_dir / "flushing_plan.txt",
-        pipe_travel_times_path=(
-            output_dir / "pipe_travel_times.csv"
-        ),
-        pipes_above_threshold_path=(
-            output_dir / "pipes_above_threshold.csv"
-        ),
+        pipe_travel_times_path=(output_dir / "pipe_travel_times.csv"),
+        pipes_above_threshold_path=(output_dir / "pipes_above_threshold.csv"),
         pipe_coverage_path=output_dir / "pipe_coverage.csv",
-        scenario_hydrants_path=(
-            output_dir / "scenario_hydrants.csv"
-        ),
-        scenario_pipes_path=(
-            output_dir / "scenario_pipes.csv"
-        ),
+        scenario_hydrants_path=(output_dir / "scenario_hydrants.csv"),
+        scenario_pipes_path=(output_dir / "scenario_pipes.csv"),
     )
 
 
@@ -93,15 +85,11 @@ def test_call_staci_flush_service_creates_run_and_returns_results(
             encoding="utf-8",
         )
         (output_dir / "scenarios.csv").write_text(
-            "node_id,status\n"
-            "J1,valid\n"
-            "J2,valid\n",
+            "node_id,status\nJ1,valid\nJ2,valid\n",
             encoding="utf-8",
         )
         (output_dir / "flushing_plan.csv").write_text(
-            "rank,node_id,cumulative_volume_percent\n"
-            "1,J2,75.0\n"
-            "2,J1,100.0\n",
+            "rank,node_id,cumulative_volume_percent\n1,J2,75.0\n2,J1,100.0\n",
             encoding="utf-8",
         )
         (output_dir / "flushing_plan.txt").touch()
@@ -124,17 +112,12 @@ def test_call_staci_flush_service_creates_run_and_returns_results(
         total_loss_coefficient=2.0,
         velocity_threshold_mps=0.5,
         min_pressure_head_m=1.0,
+        user_id="41",
     )
 
-    assert (
-        run_dir / "model.inp"
-    ).read_bytes() == input_path.read_bytes()
+    assert (run_dir / "model.inp").read_bytes() == input_path.read_bytes()
 
-    config = json.loads(
-        (run_dir / "flushing_config.json").read_text(
-            encoding="utf-8"
-        )
-    )
+    config = json.loads((run_dir / "flushing_config.json").read_text(encoding="utf-8"))
 
     assert config["hydrant_node_ids"] == ["J1", "J2"]
     assert config["output_dir"] == "results"
@@ -147,14 +130,8 @@ def test_call_staci_flush_service_creates_run_and_returns_results(
     assert result["model_id"] == MODEL_ID
     assert result["scenario_count"] == 2
     assert result["plan_count"] == 2
-    assert [
-        row["node_id"]
-        for row in result["plan"]
-    ] == ["J2", "J1"]
-    assert (
-        result["files"]["plan_csv"]
-        == "results/flushing_plan.csv"
-    )
+    assert [row["node_id"] for row in result["plan"]] == ["J2", "J1"]
+    assert result["files"]["plan_csv"] == "results/flushing_plan.csv"
 
 
 def test_call_staci_flush_service_returns_partial_results(
@@ -176,9 +153,7 @@ def test_call_staci_flush_service_returns_partial_results(
             encoding="utf-8",
         )
         (output_dir / "scenarios.csv").write_text(
-            "node_id,status\n"
-            "J1,valid\n"
-            "J2,invalid\n",
+            "node_id,status\nJ1,valid\nJ2,invalid\n",
             encoding="utf-8",
         )
         (run_dir / "staci_flush.stdout.log").touch()
@@ -199,6 +174,7 @@ def test_call_staci_flush_service_returns_partial_results(
         hydrant_area_m2=0.002,
         total_loss_coefficient=2.0,
         velocity_threshold_mps=0.5,
+        user_id="41",
     )
 
     assert result["success"] is False
@@ -230,6 +206,7 @@ def test_call_staci_flush_service_rejects_failed_run(
             hydrant_area_m2=0.002,
             total_loss_coefficient=2.0,
             velocity_threshold_mps=0.5,
+            user_id="41",
         )
 
 
@@ -245,6 +222,7 @@ def test_call_staci_flush_service_rejects_invalid_hydrant_ids(
             hydrant_area_m2=0.002,
             total_loss_coefficient=2.0,
             velocity_threshold_mps=0.5,
+            user_id="41",
         )
 
     with pytest.raises(ValueError, match="must be unique"):
@@ -255,17 +233,14 @@ def test_call_staci_flush_service_rejects_invalid_hydrant_ids(
             hydrant_area_m2=0.002,
             total_loss_coefficient=2.0,
             velocity_threshold_mps=0.5,
+            user_id="41",
         )
-        
+
+
 def test_load_flushing_scenario_returns_selected_typed_rows(
     run_root: Path,
 ) -> None:
-    results_dir = (
-        run_root
-        / "flushing"
-        / RUN_ID
-        / "results"
-    )
+    results_dir = run_root / "flushing" / RUN_ID / "results"
     results_dir.mkdir(parents=True)
 
     (results_dir / "scenario_pipes.csv").write_text(
@@ -280,9 +255,7 @@ def test_load_flushing_scenario_returns_selected_typed_rows(
         encoding="utf-8",
     )
 
-    (
-        results_dir / "scenario_hydrants.csv"
-    ).write_text(
+    (results_dir / "scenario_hydrants.csv").write_text(
         (
             "scenario_id,node_id,status,flow_m3s,"
             "pressure_head_m\n"
@@ -291,12 +264,13 @@ def test_load_flushing_scenario_returns_selected_typed_rows(
         ),
         encoding="utf-8",
     )
+    run_dir = run_root / "flushing" / RUN_ID
+    write_resource_owner(run_dir, "41")
 
-    scenario = (
-        flushing_runner.load_flushing_scenario(
-            RUN_ID,
-            "J1",
-        )
+    scenario = flushing_runner.load_flushing_scenario(
+        RUN_ID,
+        "J1",
+        user_id="41",
     )
 
     assert scenario["run_id"] == RUN_ID

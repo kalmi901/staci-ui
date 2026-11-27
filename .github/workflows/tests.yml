@@ -88,6 +88,12 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements-dev.txt
 
+      - name: Lint Python
+        run: python -m ruff check app.py src tests
+
+      - name: Check Python formatting
+        run: python -m ruff format --check app.py src tests
+
       - name: Run tests without native STACI
         run: python -m pytest -m "not staci" -vv
 
@@ -253,8 +259,8 @@ jobs:
               awk '/background_callback_/ {count++} END {print count + 0}'
           )"
 
-          if [ "$task_count" -ne 3 ]; then
-            echo "Expected 3 background callback tasks, found $task_count."
+          if [ "$task_count" -ne 4 ]; then
+            echo "Expected 4 background callback tasks, found $task_count."
             exit 1
           fi
 

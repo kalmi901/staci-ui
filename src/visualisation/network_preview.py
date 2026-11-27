@@ -1,23 +1,22 @@
 from __future__ import annotations
 
-from typing import Dict, Any
+from typing import Any, Dict
 
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-from plotly.colors import sample_colorscale, qualitative
+from plotly.colors import qualitative, sample_colorscale
 
 from src.results.hydraulic import open_eps_hydraulic_results
 from src.visualisation.common import (
     append_line_segment,
     apply_network_layout,
+    make_discrete_colorscale,
     make_empty_network_figure,
     model_ids_are_compatible,
     node_positions,
-    make_discrete_colorscale,
-    normalize_display_value
+    normalize_display_value,
 )
-
 
 N_LINK_BINS = 5
 
@@ -26,7 +25,7 @@ LINK_BIN_COLORS = sample_colorscale(
     np.linspace(0.05, 0.95, N_LINK_BINS),
 )
 
-LINK_COLORSCALE = make_discrete_colorscale(LINK_BIN_COLORS) # type: ignore
+LINK_COLORSCALE = make_discrete_colorscale(LINK_BIN_COLORS)  # type: ignore
 
 _ATTRIBUTE_LABELS = {
     "elevation": "Elevation",
@@ -35,7 +34,7 @@ _ATTRIBUTE_LABELS = {
     "diameter": "Diameter",
     "roughness": "Roughness",
     "pressure": "Pressure head",
-    "head": "Hydraulic head",
+    "head": "Total head",
     "flowrate": "Flow rate",
     "velocity": "Velocity",
     "headloss": "Head loss",
@@ -63,6 +62,7 @@ def _format_time_seconds(value) -> str:
 
     return f"{hours:.2f} h"
 
+
 def _format_value(value) -> str:
     if value is None:
         return "—"
@@ -76,6 +76,7 @@ def _format_value(value) -> str:
         return f"{float(value):.3g}"
     except (TypeError, ValueError):
         return str(value)
+
 
 def _format_colorbar_title(
     attribute: str,
@@ -96,6 +97,7 @@ def _format_colorbar_title(
 
     return f"{label} [{display_unit}]"
 
+
 def _make_link_bin_edges(
     data_range: tuple[float | None, float | None],
     n_bins: int,
@@ -113,12 +115,13 @@ def _make_link_bin_edges(
 
     return np.linspace(vmin, vmax, n_bins + 1)
 
+
 def _make_link_colorbar_trace(
     *,
     link_attribute: str,
     link_unit: str | None,
     cmin: float | None,
-    cmax: float | None
+    cmax: float | None,
 ) -> go.Scatter | None:
     if cmin is None or cmax is None:
         return None
@@ -128,7 +131,7 @@ def _make_link_colorbar_trace(
 
     if cmin >= cmax:
         return None
-    
+
     return go.Scatter(
         x=[None, None],
         y=[None, None],
@@ -154,9 +157,10 @@ def _make_link_colorbar_trace(
         showlegend=False,
     )
 
+
 def _validate_normalize_color_range(
-    cmin: float | None,  cmax: float | None
-    ) -> tuple[float | None, float |None]:
+    cmin: float | None, cmax: float | None
+) -> tuple[float | None, float | None]:
     if cmin is None or cmax is None:
         return cmin, cmax
 
@@ -166,7 +170,6 @@ def _validate_normalize_color_range(
     if np.isclose(cmin, cmax):
         pad = max(abs(cmin) * 1e-6, 1e-9)
         return cmin - pad, cmax + pad
-
 
     return cmin, cmax
 
@@ -185,29 +188,26 @@ def _make_node_trace(
     node_types = nodes.get("type", [])
     node_x = nodes.get("x", [])
     node_y = nodes.get("y", [])
-    
+
     plot_x, plot_y, plot_color, hover_text = [], [], [], []
     for i, node_id in enumerate(node_ids):
         if i >= len(node_x) or i >= len(node_y):
             continue
-        
+
         x = node_x[i]
         y = node_y[i]
-        
+
         if x is None or y is None:
             continue
         value = node_values[node_id] if node_id in node_values.index else np.nan
         node_type = node_types[i] if i < len(node_types) else "node"
-        
+
         plot_x.append(x)
         plot_y.append(y)
         plot_color.append(value)
 
         if node_attribute == "none":
-            hover_text.append(
-                f"<b>{node_id}</b><br>"
-                f"Type: {node_type}<br>"
-            )
+            hover_text.append(f"<b>{node_id}</b><br>Type: {node_type}<br>")
         else:
             hover_text.append(
                 f"<b>{node_id}</b><br>"
@@ -217,32 +217,32 @@ def _make_node_trace(
 
     if node_attribute == "none":
         marker = {
-            "size" : marker_size,
-            "opacity" : 0.9,
-            "color" : "#104dc7",
-            "line": {"width" : 0.5, "color" : "white"}
+            "size": marker_size,
+            "opacity": 0.9,
+            "color": "#104dc7",
+            "line": {"width": 0.5, "color": "white"},
         }
-        
+
     else:
-        marker={
-            "size" : marker_size,
-            "opacity" : 0.9,
-            "color" : plot_color,
-            "colorscale" : "Viridis",
-            "cmin" : cmin,
-            "cmax" : cmax,
+        marker = {
+            "size": marker_size,
+            "opacity": 0.9,
+            "color": plot_color,
+            "colorscale": "Viridis",
+            "cmin": cmin,
+            "cmax": cmax,
             "showscale": True,
-            "colorbar" : {
+            "colorbar": {
                 "title": _format_colorbar_title(
                     node_attribute,
                     node_unit,
                 ),
-                "x"     : 1.02,
-                "y"     : 0.76,
-                "len"   : 0.38,
-                "thickness" : 12
+                "x": 1.02,
+                "y": 0.76,
+                "len": 0.38,
+                "thickness": 12,
             },
-            "line" : {"width": 0.5, "color": "white"}
+            "line": {"width": 0.5, "color": "white"},
         }
 
     return go.Scattergl(
@@ -253,8 +253,9 @@ def _make_node_trace(
         text=hover_text,
         hoverinfo="text",
         name="Nodes",
-        showlegend=False
+        showlegend=False,
     )
+
 
 def _make_link_traces(
     *,
@@ -264,51 +265,51 @@ def _make_link_traces(
     link_attribute: str,
     bin_edges: np.ndarray | None,
     n_bins: int,
-    line_width_scale: float
+    line_width_scale: float,
 ) -> list[go.Scatter | go.Scattergl]:
     node_x = nodes.get("x", [])
     node_y = nodes.get("y", [])
-    
+
     link_ids = links.get("id", [])
     start_indices = links.get("start_index", [])
     end_indices = links.get("end_index", [])
-    
+
     missing_x = []
     missing_y = []
-    
+
     bin_x = [[] for _ in range(n_bins)]
     bin_y = [[] for _ in range(n_bins)]
 
     for i, link_id in enumerate(link_ids):
         if i >= len(start_indices) or i >= len(end_indices):
             continue
-        
+
         start_idx = start_indices[i]
-        end_idx   = end_indices[i]
-        
+        end_idx = end_indices[i]
+
         if start_idx >= len(node_x) or end_idx >= len(node_x):
             continue
-        
+
         x0 = node_x[start_idx]
         y0 = node_y[start_idx]
         x1 = node_x[end_idx]
         y1 = node_y[end_idx]
-        
+
         if None in (x0, y0, x1, y1):
             continue
-        
+
         if link_values is None or link_id not in link_values.index:
             missing_x.extend([x0, x1, None])
             missing_y.extend([y0, y1, None])
             continue
-        
+
         value = link_values[link_id]
-    
+
         if pd.isna(value):
             missing_x.extend([x0, x1, None])
             missing_y.extend([y0, y1, None])
             continue
-        
+
         if bin_edges is None:
             bin_id = 0
         else:
@@ -324,25 +325,22 @@ def _make_link_traces(
 
         bin_x[bin_id].extend([x0, x1, None])
         bin_y[bin_id].extend([y0, y1, None])
-        
+
     traces = []
-        
+
     for i in range(n_bins):
         traces.append(
             go.Scatter(
                 x=bin_x[i],
                 y=bin_y[i],
                 mode="lines",
-                line={
-                    "width": 1.4 * line_width_scale,
-                    "color": LINK_BIN_COLORS[i]
-                },
+                line={"width": 1.4 * line_width_scale, "color": LINK_BIN_COLORS[i]},
                 hoverinfo="skip",
                 name=f"{link_attribute} bin {i + 1}",
                 showlegend=False,
             )
         )
-        
+
     if missing_x:
         traces.insert(
             0,
@@ -350,16 +348,13 @@ def _make_link_traces(
                 x=missing_x,
                 y=missing_y,
                 mode="lines",
-                line={
-                    "width": 1.0 * line_width_scale,
-                    "color" : "#343841"
-                },
+                line={"width": 1.0 * line_width_scale, "color": "#343841"},
                 hoverinfo="skip",
-                showlegend=False
-            )
+                showlegend=False,
+            ),
         )
 
-    return traces        
+    return traces
 
 
 def _make_attribute_network_figure(
@@ -403,39 +398,33 @@ def _make_attribute_network_figure(
 
     if not nodes.get("x", []) or not nodes.get("y", []):
         return make_empty_network_figure(
-            "The loaded model has no node coordinates."
+            "The loaded model has no node coordinates.", tone="danger"
         )
 
     if not positions:
         return make_empty_network_figure(
-            "The loaded model has no valid node coordinates."
+            "The loaded model has no valid node coordinates.", tone="danger"
         )
 
     if not hide_nodes:
         try:
-            node_cmin, node_cmax = (
-                _validate_normalize_color_range(
-                    node_cmin,
-                    node_cmax,
-                )
+            node_cmin, node_cmax = _validate_normalize_color_range(
+                node_cmin,
+                node_cmax,
             )
         except ValueError:
             return make_empty_network_figure(
-                "Node color minimum must not be greater "
-                "than maximum."
+                "Node color minimum must not be greater than maximum.", tone="danger"
             )
 
     try:
-        link_cmin, link_cmax = (
-            _validate_normalize_color_range(
-                link_cmin,
-                link_cmax,
-            )
+        link_cmin, link_cmax = _validate_normalize_color_range(
+            link_cmin,
+            link_cmax,
         )
     except ValueError:
         return make_empty_network_figure(
-            "Link color minimum must not be greater "
-            "than maximum."
+            "Link color minimum must not be greater than maximum.", tone="danger"
         )
 
     link_bin_edges = _make_link_bin_edges(
@@ -450,7 +439,7 @@ def _make_attribute_network_figure(
         link_attribute=link_attribute,
         bin_edges=link_bin_edges,
         n_bins=N_LINK_BINS,
-        line_width_scale=line_width_scale
+        line_width_scale=line_width_scale,
     )
 
     link_colorbar_trace = _make_link_colorbar_trace(
@@ -463,17 +452,16 @@ def _make_attribute_network_figure(
     traces: list[go.Scatter | go.Scattergl] = [*link_traces]
     if not hide_nodes:
         node_trace = _make_node_trace(
-                nodes=nodes,
-                node_values=node_values,
-                node_attribute=node_attribute,
-                node_unit=node_unit,
-                cmin=node_cmin,
-                cmax=node_cmax,
-                marker_size=marker_size
-            )
+            nodes=nodes,
+            node_values=node_values,
+            node_attribute=node_attribute,
+            node_unit=node_unit,
+            cmin=node_cmin,
+            cmax=node_cmax,
+            marker_size=marker_size,
+        )
 
         traces.append(node_trace)
-
 
     if link_colorbar_trace is not None:
         traces.append(link_colorbar_trace)
@@ -484,7 +472,8 @@ def _make_attribute_network_figure(
         figure,
         uirevision=uirevision,
         title=title,
-        )
+    )
+
 
 def make_node_preview_figure(
     network_view_state: dict[str, Any],
@@ -499,7 +488,11 @@ def make_node_preview_figure(
     hide_nodes: bool = False,
 ) -> go.Figure:
     if not network_view_state:
-        return make_empty_network_figure()
+        return make_empty_network_figure(
+            "Upload an EPANET INP file to preview the network.",
+            icon="📂",
+            title="No network model loaded",
+        )
 
     nodes = network_view_state.get("nodes", {})
     links = network_view_state.get("links", {})
@@ -533,9 +526,9 @@ def make_node_preview_figure(
         node_cmax=node_cmax,
         link_cmin=link_cmin,
         link_cmax=link_cmax,
-        line_width_scale = line_width_scale,
-        marker_size = marker_size,
-        hide_nodes = hide_nodes,
+        line_width_scale=line_width_scale,
+        marker_size=marker_size,
+        hide_nodes=hide_nodes,
         uirevision=str(
             network_view_state.get(
                 "model_id",
@@ -545,11 +538,11 @@ def make_node_preview_figure(
     )
 
 
-
 def make_hydraulic_timestep_figure(
     *,
     network_view_state: Dict[str, Any],
     run_state: Dict[str, Any],
+    user_id: str,
     time_index: int | None,
     node_result: str = "pressure",
     link_result: str = "flowrate",
@@ -561,43 +554,45 @@ def make_hydraulic_timestep_figure(
     marker_size: float = 5.0,
     hide_nodes: bool = False,
 ) -> go.Figure:
-    
+
     if not run_state:
         return make_empty_network_figure(
-            "Run a hydraulic simulation to view animated network results."
+            "Run a hydraulic simulation to view time-dependent network results.",
+            icon="💧",
+            title="No hydraulic results yet",
         )
-        
+
     if not network_view_state:
         return make_empty_network_figure(
-            "Build the network preview before plotting hydraulic results."
+            "Build the network preview before plotting hydraulic results.",
+            tone="warning",
         )
-    
+
     if not model_ids_are_compatible(
         run_state,
         network_view_state,
     ):
         return make_empty_network_figure(
-            "Hydraulic results belong to a different network model."
+            "Hydraulic results belong to a different network model.", tone="danger"
         )
-    
-    results = open_eps_hydraulic_results(run_state)
-    
+
+    results = open_eps_hydraulic_results(run_state, user_id=user_id)
+
     if results.n_steps == 0:
         return make_empty_network_figure(
-            "The hydraulic run has no time steps."
+            "The hydraulic run has no time steps.", tone="danger"
         )
-        
+
     if node_result not in results.node_attributes:
         return make_empty_network_figure(
-            f"Node result '{node_result}' is not available for this run."
+            f"Node result '{node_result}' is not available for this run.", tone="danger"
         )
-        
+
     if link_result not in results.link_attributes:
         return make_empty_network_figure(
-            f"Link result '{link_result}' is not available for this run."
+            f"Link result '{link_result}' is not available for this run.", tone="danger"
         )
-    
-      
+
     nodes = network_view_state.get("nodes", {})
     links = network_view_state.get("links", {})
     ranges = run_state.get("ranges", {})
@@ -618,26 +613,21 @@ def make_hydraulic_timestep_figure(
     )
 
     time_value = results.times[time_index]
-    
+
     node_values = results.node_frame(
-        attribute=node_result,
-        time_index=time_index
+        attribute=node_result, time_index=time_index
     ).reindex(node_ids)
-    
+
     link_values = results.link_frame(
-        attribute=link_result,
-        time_index=time_index
+        attribute=link_result, time_index=time_index
     ).reindex(link_ids)
-    
+
     converged = results.frame_converged(time_index)
-    title = (
-        f"{node_result} / {link_result}"
-        f" · {_format_time_seconds(time_value)}"
-    )
+    title = f"{node_result} / {link_result} · {_format_time_seconds(time_value)}"
 
     if not converged:
-        title += " · ⚠ not converged"
-    
+        title += " · ⚠ did not converge"
+
     title_layout = {
         "text": title,
         "x": 0.02,
@@ -660,9 +650,9 @@ def make_hydraulic_timestep_figure(
         node_cmax=node_cmax,
         link_cmin=link_cmin,
         link_cmax=link_cmax,
-        line_width_scale = line_width_scale,
-        marker_size = marker_size,
-        hide_nodes = hide_nodes,
+        line_width_scale=line_width_scale,
+        marker_size=marker_size,
+        hide_nodes=hide_nodes,
         uirevision=str(
             run_state.get(
                 "run_id",
@@ -671,8 +661,8 @@ def make_hydraulic_timestep_figure(
         ),
         title=title_layout,
     )
-    
-    
+
+
 def make_partitioned_network_figure(
     *,
     network_view_state: Dict[str, Any],
@@ -700,13 +690,15 @@ def make_partitioned_network_figure(
 
     if not partition_state:
         return make_empty_network_figure(
-            "Run optimization to view network partitions."
+            "Run partitioning to view the resulting network communities.",
+            icon="🧩",
+            title="No partitioning result yet",
         )
 
     if not network_view_state:
         return make_empty_network_figure(
-            "Build the network preview before plotting "
-            "partitioning results."
+            "Build the network preview before plotting partitioning results.",
+            tone="warning",
         )
 
     if not model_ids_are_compatible(
@@ -714,26 +706,20 @@ def make_partitioned_network_figure(
         network_view_state,
     ):
         return make_empty_network_figure(
-            "Partitioning results belong to a different "
-            "network model."
+            "Partitioning results belong to a different network model.", tone="danger"
         )
 
-    node_community = partition_state.get(
-        "node_community"
-    )
+    node_community = partition_state.get("node_community")
 
     if not node_community:
         return make_empty_network_figure(
-            "Partitioning result has no communities."
+            "Partitioning result has no communities.", tone="danger"
         )
 
     nodes = network_view_state.get("nodes", {})
     links = network_view_state.get("links", {})
 
-    node_ids = [
-        str(value)
-        for value in nodes.get("id", [])
-    ]
+    node_ids = [str(value) for value in nodes.get("id", [])]
     start_nodes = [
         str(value)
         for value in links.get(
@@ -750,12 +736,7 @@ def make_partitioned_network_figure(
     ]
 
     # An empty selection means that every community is shown.
-    selected = {
-        str(community_id)
-        for community_id in (
-            selected_communities or []
-        )
-    }
+    selected = {str(community_id) for community_id in (selected_communities or [])}
 
     def _is_visible(node_id: str) -> bool:
         community = node_community.get(node_id)
@@ -763,25 +744,19 @@ def make_partitioned_network_figure(
         if community is None:
             return False
 
-        return (
-            not selected
-            or str(community) in selected
-        )
+        return not selected or str(community) in selected
 
     positions = node_positions(nodes)
 
     visible_node_ids = [
         node_id
         for node_id in node_ids
-        if (
-            node_id in positions
-            and _is_visible(node_id)
-        )
+        if (node_id in positions and _is_visible(node_id))
     ]
 
     if not visible_node_ids:
         return make_empty_network_figure(
-            "No nodes belong to the selected communities."
+            "No nodes belong to the selected communities.", tone="warning"
         )
 
     visible_nodes = set(visible_node_ids)
@@ -805,33 +780,22 @@ def make_partitioned_network_figure(
         start_nodes,
         end_nodes,
     ):
-        if (
-            start_node not in visible_nodes
-            or end_node not in visible_nodes
-        ):
+        if start_node not in visible_nodes or end_node not in visible_nodes:
             continue
 
         start_position = positions.get(start_node)
         end_position = positions.get(end_node)
 
-        if (
-            start_position is None
-            or end_position is None
-        ):
+        if start_position is None or end_position is None:
             continue
 
-        start_community = node_community.get(
-            start_node
-        )
-        end_community = node_community.get(
-            end_node
-        )
+        start_community = node_community.get(start_node)
+        end_community = node_community.get(end_node)
 
         is_boundary = (
             start_community is not None
             and end_community is not None
-            and start_community
-            != end_community
+            and start_community != end_community
         )
 
         target_coordinates = (
@@ -868,35 +832,22 @@ def make_partitioned_network_figure(
         },
         hoverinfo="skip",
         name="Boundary links",
-        showlegend=(
-            show_boundary_links
-            and bool(boundary_coordinates["x"])
-        ),
+        showlegend=(show_boundary_links and bool(boundary_coordinates["x"])),
     )
 
-    community_ids = sorted(
-        set(node_community.values())
-    )
+    community_ids = sorted(set(node_community.values()))
 
     community_to_color_index = {
-        community_id: index
-        for index, community_id
-        in enumerate(community_ids)
+        community_id: index for index, community_id in enumerate(community_ids)
     }
 
     node_colors = [
-        community_to_color_index[
-            node_community[node_id]
-        ]
+        community_to_color_index[node_community[node_id]]
         for node_id in visible_node_ids
     ]
 
     node_hover = [
-        (
-            f"<b>{node_id}</b>"
-            f"<br>Community: "
-            f"{node_community[node_id]}"
-        )
+        (f"<b>{node_id}</b><br>Community: {node_community[node_id]}")
         for node_id in visible_node_ids
     ]
 
@@ -905,9 +856,7 @@ def make_partitioned_network_figure(
     n_colors = len(community_ids)
 
     for index in range(n_colors):
-        color = palette[
-            index % len(palette)
-        ]
+        color = palette[index % len(palette)]
 
         lower = index / n_colors
         upper = (index + 1) / n_colors
@@ -920,14 +869,8 @@ def make_partitioned_network_figure(
         )
 
     node_trace = go.Scattergl(
-        x=[
-            positions[node_id][0]
-            for node_id in visible_node_ids
-        ],
-        y=[
-            positions[node_id][1]
-            for node_id in visible_node_ids
-        ],
+        x=[positions[node_id][0] for node_id in visible_node_ids],
+        y=[positions[node_id][1] for node_id in visible_node_ids],
         mode="markers",
         customdata=visible_node_ids,
         hovertext=node_hover,
@@ -946,14 +889,8 @@ def make_partitioned_network_figure(
                 "len": 0.38,
                 "thickness": 12,
                 "tickmode": "array",
-                "tickvals": list(
-                    range(n_colors)
-                ),
-                "ticktext": [
-                    str(community_id)
-                    for community_id
-                    in community_ids
-                ],
+                "tickvals": list(range(n_colors)),
+                "ticktext": [str(community_id) for community_id in community_ids],
             },
         },
         showlegend=False,
@@ -963,9 +900,7 @@ def make_partitioned_network_figure(
     if not hide_nodes:
         traces.append(node_trace)
 
-    figure = go.Figure(
-        data=traces
-    )
+    figure = go.Figure(data=traces)
 
     return apply_network_layout(
         figure,

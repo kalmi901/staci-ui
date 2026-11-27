@@ -5,8 +5,8 @@ import uuid
 from pathlib import Path
 from typing import TypedDict
 
-from src.config import UPLOAD_ROOT
-
+from src.config import MAX_INP_UPLOAD_BYTES, MAX_INP_UPLOAD_MIB, UPLOAD_ROOT
+from src.services.resource_ownership import require_resource_owner, write_resource_owner
 
 _MODEL_ID_PATTERN = re.compile(r"^[a-f0-9]{12}$")
 _UNSAFE_FILENAME_PATTERN = re.compile(r"[^A-Za-z0-9_.-]+")
@@ -26,14 +26,23 @@ def _safe_filename(filename: str) -> str:
 
 
 def store_uploaded_model(
-    filename: str,
-    file_bytes: bytes,
+    filename: str, file_bytes: bytes, *, user_id: str
 ) -> StoredModel:
-    model_id = uuid.uuid4().hex[:12]
     safe_name = _safe_filename(filename)
+
+    if not isinstance(file_bytes, bytes) or not file_bytes:
+        raise ValueError(f"Uploaded INP file is empty: {safe_name}")
+
+    if len(file_bytes) > MAX_INP_UPLOAD_BYTES:
+        raise ValueError(
+            f"INP file exceeds the {MAX_INP_UPLOAD_MIB} MiB upload limit: {safe_name}"
+        )
+
+    model_id = uuid.uuid4().hex[:12]
 
     model_dir = Path(UPLOAD_ROOT) / model_id
     model_dir.mkdir(parents=True, exist_ok=False)
+    write_resource_owner(model_dir, user_id)
 
     stored_path = model_dir / safe_name
     stored_path.write_bytes(file_bytes)
@@ -49,24 +58,26 @@ def store_uploaded_model(
 def resolve_uploaded_model(
     model_id: str,
     filename: str,
+    *,
+    user_id: str,
 ) -> Path:
     if not _MODEL_ID_PATTERN.fullmatch(model_id):
         raise ValueError(f"Invalid model id: {model_id!r}")
 
     upload_root = UPLOAD_ROOT.resolve()
+    model_dir = (upload_root / model_id).resolve()
 
-    path = (
-        upload_root
-        / model_id
-        / Path(filename).name
-    ).resolve()
+    if not model_dir.is_relative_to(upload_root):
+        raise ValueError("Invalid uploaded model directory.")
 
-    if not path.is_relative_to(upload_root):
+    require_resource_owner(model_dir, user_id)
+
+    path = (model_dir / Path(filename).name).resolve()
+
+    if not path.is_relative_to(model_dir):
         raise ValueError("Invalid uploaded model path.")
 
     if not path.is_file():
-        raise FileNotFoundError(
-            f"Uploaded model does not exist: {path}"
-        )
+        raise FileNotFoundError(f"Uploaded model does not exist: {path}")
 
     return path

@@ -9,8 +9,10 @@ from typing import Any, Literal, Sequence
 
 from src.config import RUN_ROOT, STACI_FLUSH_EXECUTABLE
 from src.run_logging import log_prepared_input
-from src.staci.flush import run_staci_flush, write_flush_config
+from src.services.resource_ownership import write_resource_owner
 from src.services.run_storage import resolve_run_dir
+from src.staci.error_messages import format_staci_failure
+from src.staci.flush import run_staci_flush, write_flush_config
 
 
 def _read_csv_rows(path: Path) -> list[dict[str, str]]:
@@ -36,9 +38,7 @@ def _required_float(
     try:
         return float(row[field])
     except (KeyError, TypeError, ValueError) as exc:
-        raise ValueError(
-            f"Invalid or missing CSV field: {field}"
-        ) from exc
+        raise ValueError(f"Invalid or missing CSV field: {field}") from exc
 
 
 def _flag(
@@ -48,9 +48,7 @@ def _flag(
     try:
         value = row[field]
     except KeyError as exc:
-        raise ValueError(
-            f"Missing CSV field: {field}"
-        ) from exc
+        raise ValueError(f"Missing CSV field: {field}") from exc
 
     if value == "1":
         return True
@@ -58,41 +56,26 @@ def _flag(
     if value == "0":
         return False
 
-    raise ValueError(
-        f"Invalid CSV flag {field}: {value!r}"
-    )
+    raise ValueError(f"Invalid CSV flag {field}: {value!r}")
 
 
 def load_flushing_scenario(
-    run_id: str,
-    scenario_id: str,
+    run_id: str, scenario_id: str, *, user_id: str
 ) -> dict[str, Any]:
     if not scenario_id:
-        raise ValueError(
-            "Flushing scenario id is required."
-        )
+        raise ValueError("Flushing scenario id is required.")
 
-    run_dir = resolve_run_dir(
-        run_id,
-        "flushing",
-    )
+    run_dir = resolve_run_dir(run_id, "flushing", user_id=user_id)
     results_dir = run_dir / "results"
 
     pipe_path = results_dir / "scenario_pipes.csv"
-    hydrant_path = (
-        results_dir / "scenario_hydrants.csv"
-    )
+    hydrant_path = results_dir / "scenario_hydrants.csv"
 
     if not pipe_path.is_file():
-        raise FileNotFoundError(
-            f"Scenario pipe results not found: {pipe_path}"
-        )
+        raise FileNotFoundError(f"Scenario pipe results not found: {pipe_path}")
 
     if not hydrant_path.is_file():
-        raise FileNotFoundError(
-            "Scenario hydrant results not found: "
-            f"{hydrant_path}"
-        )
+        raise FileNotFoundError(f"Scenario hydrant results not found: {hydrant_path}")
 
     pipes: list[dict[str, Any]] = []
 
@@ -165,8 +148,7 @@ def load_flushing_scenario(
 
     if not pipes and not hydrants:
         raise ValueError(
-            f"Flushing scenario {scenario_id!r} "
-            f"was not found in run {run_id}."
+            f"Flushing scenario {scenario_id!r} was not found in run {run_id}."
         )
 
     return {
@@ -181,6 +163,7 @@ def call_staci_flush_service(
     inp_path: Path | str,
     *,
     model_id: str,
+    user_id: str,
     hydrant_node_ids: Sequence[str],
     hydrant_area_m2: float,
     total_loss_coefficient: float,
@@ -193,23 +176,18 @@ def call_staci_flush_service(
     if not inp_path.is_file():
         raise FileNotFoundError(f"INP file does not exist: {inp_path}")
 
-    hydrant_ids = [
-        node_id.strip()
-        for node_id in hydrant_node_ids
-    ]
+    hydrant_ids = [node_id.strip() for node_id in hydrant_node_ids]
 
     if not hydrant_ids or any(not node_id for node_id in hydrant_ids):
-        raise ValueError(
-            "At least one non-empty hydrant node id is required."
-        )
+        raise ValueError("At least one non-empty hydrant node ID is required.")
 
     if len(set(hydrant_ids)) != len(hydrant_ids):
-        raise ValueError("Hydrant node ids must be unique.")
+        raise ValueError("Hydrant node IDs must be unique.")
 
     run_id = uuid.uuid4().hex[:12]
     run_dir = Path(RUN_ROOT) / "flushing" / run_id
     run_dir.mkdir(parents=True, exist_ok=False)
-
+    write_resource_owner(run_dir, user_id)
     run_inp = run_dir / "model.inp"
     shutil.copy2(inp_path, run_inp)
 
@@ -228,15 +206,21 @@ def call_staci_flush_service(
     )
 
     log_prepared_input(
-        run_inp, run_id, settings_path=config_path, executable=STACI_FLUSH_EXECUTABLE,
+        run_inp,
+        run_id,
+        settings_path=config_path,
+        executable=STACI_FLUSH_EXECUTABLE,
     )
     flush_result = run_staci_flush(run_inp, config_path)
 
     if not flush_result.success and not flush_result.partial:
         raise RuntimeError(
-            "STACI Flush did not complete successfully "
-            f"(return code {flush_result.returncode}). "
-            f"See {flush_result.stderr_path}"
+            format_staci_failure(
+                "STACI Flush",
+                flush_result.returncode,
+                stderr_path=flush_result.stderr_path,
+                stdout_path=flush_result.stdout_path,
+            )
         )
 
     manifest = _read_run_manifest(flush_result.run_json_path)
@@ -246,11 +230,7 @@ def call_staci_flush_service(
     return {
         "success": flush_result.success,
         "partial": flush_result.partial,
-        "status": (
-            "success"
-            if flush_result.success
-            else "partial"
-        ),
+        "status": ("success" if flush_result.success else "partial"),
         "run_id": run_id,
         "model_id": model_id,
         "mode": mode,
@@ -263,29 +243,17 @@ def call_staci_flush_service(
         "scenarios": scenarios,
         "plan": plan,
         "files": {
-            "run": flush_result.run_json_path.relative_to(
-                run_dir
-            ).as_posix(),
-            "scenarios": flush_result.scenarios_path.relative_to(
-                run_dir
-            ).as_posix(),
-            "plan_csv": flush_result.plan_csv_path.relative_to(
-                run_dir
-            ).as_posix(),
-            "plan_text": flush_result.plan_text_path.relative_to(
-                run_dir
-            ).as_posix(),
-            "stdout": flush_result.stdout_path.relative_to(
-                run_dir
-            ).as_posix(),
-            "stderr": flush_result.stderr_path.relative_to(
-                run_dir
-            ).as_posix(),
+            "run": flush_result.run_json_path.relative_to(run_dir).as_posix(),
+            "scenarios": flush_result.scenarios_path.relative_to(run_dir).as_posix(),
+            "plan_csv": flush_result.plan_csv_path.relative_to(run_dir).as_posix(),
+            "plan_text": flush_result.plan_text_path.relative_to(run_dir).as_posix(),
+            "stdout": flush_result.stdout_path.relative_to(run_dir).as_posix(),
+            "stderr": flush_result.stderr_path.relative_to(run_dir).as_posix(),
             "scenario_hydrants": flush_result.scenario_hydrants_path.relative_to(
                 run_dir
             ).as_posix(),
             "scenario_pipes": flush_result.scenario_pipes_path.relative_to(
-            run_dir
+                run_dir
             ).as_posix(),
         },
     }

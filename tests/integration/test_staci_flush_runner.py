@@ -10,12 +10,7 @@ import pytest
 from src.config import STACI_FLUSH_EXECUTABLE
 from src.staci.flush import run_staci_flush
 
-
-FIXTURE_PATH = (
-    Path(__file__).parent
-    / "fixtures"
-    / "staci_flush_network.inp"
-)
+FIXTURE_PATH = Path(__file__).parent / "fixtures" / "staci_flush_network.inp"
 
 
 @pytest.mark.integration
@@ -81,6 +76,4 @@ def test_run_staci_flush_runs_real_executable(tmp_path: Path) -> None:
         plan_rows = list(csv.DictReader(plan_file))
 
     assert [row["node_id"] for row in plan_rows] == ["C", "B", "A"]
-    assert float(plan_rows[-1]["cumulative_volume_percent"]) == pytest.approx(
-        100.0
-    )
+    assert float(plan_rows[-1]["cumulative_volume_percent"]) == pytest.approx(100.0)

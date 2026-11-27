@@ -7,7 +7,6 @@ import pytest
 from src.config import STACI_EXECUTABLE
 from src.services import hydraulic_runner
 
-
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "tiny_network.inp"
 RUN_ID = "fedcba543210"
 MODEL_ID = "012345abcdef"
@@ -38,6 +37,7 @@ def test_call_hydraulic_simulator_runs_real_staci_eps(
         FIXTURE_PATH,
         model_id=MODEL_ID,
         backend="staci",
+        user_id="41",
     )
 
     run_dir = run_root / "hydraulic" / RUN_ID

@@ -2,16 +2,20 @@
 # pyright: reportCallIssue=false
 from __future__ import annotations
 
-from dash import dcc, html
 import dash_bootstrap_components as dbc
+from dash import dcc, html
 from dash.development.base_component import Component
 
 from src.ui import ids
 from src.ui.pages.components import (
     create_active_model_section,
+    create_empty_state,
+    create_metric_item,
+    create_network_display_controls,
+    create_number_field,
     create_page_header,
     create_run_section,
-    create_network_display_controls
+    create_settings_grid,
 )
 from src.visualisation.common import make_empty_network_figure
 
@@ -34,16 +38,6 @@ def _format_number(
     return f"{number:.{digits}f}{suffix}"
 
 
-def _metric(label: str, value: str):
-    return html.Div(
-        className="meta-item",
-        children=[
-            html.Div(label, className="meta-label"),
-            html.Div(value, className="meta-value"),
-        ],
-    )
-
-
 def make_flushing_scenario_options(
     run_state,
 ) -> tuple[list[dict[str, str]], str | None]:
@@ -62,39 +56,27 @@ def make_flushing_scenario_options(
 
     options = [
         {
-            "label": (
-                f"#{row.get('rank', '?')} · "
-                f"{row['node_id']}"
-            ),
+            "label": (f"#{row.get('rank', '?')} · {row['node_id']}"),
             "value": str(row["node_id"]),
         }
         for row in plan
         if row.get("node_id")
     ]
 
-    selected = (
-        options[0]["value"]
-        if options
-        else None
-    )
+    selected = options[0]["value"] if options else None
 
     return options, selected
 
 
 def _empty_results():
-    return html.Div(
-        className="flush-results-placeholder",
-        children=[
-            html.Div(
-                "🚿",
-                className="flush-placeholder-icon",
-            ),
-            html.H3("No flushing plan yet"),
-            html.P(
-                "Select an active model, enter the hydrant "
-                "junction IDs and run STACI Flush."
-            ),
-        ],
+    return create_empty_state(
+        "🚿",
+        "No flushing plan yet",
+        (
+            "Select an active model, enter the hydrant "
+            "junction IDs, and run STACI Flush."
+        ),
+        large=True,
     )
 
 
@@ -103,9 +85,8 @@ def render_flushing_results(run_state):
         return _empty_results()
 
     plan = run_state.get("plan") or []
-    
-    scenario_options, selected_scenario = \
-        make_flushing_scenario_options(run_state)
+
+    scenario_options, selected_scenario = make_flushing_scenario_options(run_state)
 
     final_coverage = (
         _format_number(
@@ -121,17 +102,15 @@ def render_flushing_results(run_state):
         html.Div(
             className="meta-grid flush-meta-grid",
             children=[
-                _metric(
+                create_metric_item(
                     "Status",
-                    str(
-                        run_state.get("status", "—")
-                    ).title(),
+                    str(run_state.get("status", "—")).title(),
                 ),
-                _metric(
+                create_metric_item(
                     "Scenarios",
                     str(run_state.get("scenario_count", "—")),
                 ),
-                _metric(
+                create_metric_item(
                     "Plan steps",
                     str(
                         run_state.get(
@@ -140,7 +119,7 @@ def render_flushing_results(run_state):
                         )
                     ),
                 ),
-                _metric(
+                create_metric_item(
                     "Final coverage",
                     final_coverage,
                 ),
@@ -161,7 +140,7 @@ def render_flushing_results(run_state):
     if not plan:
         content.append(
             dbc.Alert(
-                "No actionable flushing-plan rows were produced.",
+                "No actionable flushing plan was produced.",
                 color="secondary",
                 className="mt-3",
             )
@@ -172,20 +151,18 @@ def render_flushing_results(run_state):
         "Rank",
         "Hydrant",
         "Flow [L/s]",
-        "Qualifying [m³]",
-        "Additional [m³]",
+        "Qualifying volume [m³]",
+        "Additional volume [m³]",
         "Coverage [%]",
         "Travel time [min]",
-        "Volume/flow [min]",
+        "Volume-to-flow time [min]",
         "Status",
     ]
 
     rows = []
 
     for row in plan:
-        redundant = str(
-            row.get("redundant", "0")
-        ).lower() in {
+        redundant = str(row.get("redundant", "0")).lower() in {
             "1",
             "true",
             "yes",
@@ -202,25 +179,11 @@ def render_flushing_results(run_state):
                             scale=1000.0,
                         )
                     ),
+                    html.Td(_format_number(row.get("qualifying_volume_m3"))),
+                    html.Td(_format_number(row.get("additional_volume_m3"))),
                     html.Td(
                         _format_number(
-                            row.get(
-                                "qualifying_volume_m3"
-                            )
-                        )
-                    ),
-                    html.Td(
-                        _format_number(
-                            row.get(
-                                "additional_volume_m3"
-                            )
-                        )
-                    ),
-                    html.Td(
-                        _format_number(
-                            row.get(
-                                "cumulative_volume_percent"
-                            ),
+                            row.get("cumulative_volume_percent"),
                             digits=1,
                         )
                     ),
@@ -232,24 +195,14 @@ def render_flushing_results(run_state):
                     ),
                     html.Td(
                         _format_number(
-                            row.get(
-                                "volume_over_flow_time_min"
-                            ),
+                            row.get("volume_over_flow_time_min"),
                             digits=1,
                         )
                     ),
                     html.Td(
                         dbc.Badge(
-                            (
-                                "Redundant"
-                                if redundant
-                                else "Selected"
-                            ),
-                            color=(
-                                "secondary"
-                                if redundant
-                                else "success"
-                            ),
+                            ("Redundant" if redundant else "Selected"),
+                            color=("secondary" if redundant else "success"),
                         )
                     ),
                 ]
@@ -262,14 +215,7 @@ def render_flushing_results(run_state):
                 className="flush-plan-table-wrap",
                 children=dbc.Table(
                     children=[
-                        html.Thead(
-                            html.Tr(
-                                [
-                                    html.Th(header)
-                                    for header in headers
-                                ]
-                            )
-                        ),
+                        html.Thead(html.Tr([html.Th(header) for header in headers])),
                         html.Tbody(rows),
                     ],
                     bordered=False,
@@ -296,7 +242,7 @@ def render_flushing_results(run_state):
                     html.Div(
                         className="plot-control",
                         children=[
-                            dbc.Label("Map view"),
+                            dbc.Label("Network view"),
                             dbc.RadioItems(
                                 id=ids.FLUSH_MAP_MODE,
                                 options=[
@@ -327,13 +273,9 @@ def render_flushing_results(run_state):
                 color="blue",
                 children=dcc.Graph(
                     id=ids.FLUSH_NETWORK_GRAPH,
-                    className=(
-                        "network-graph flush-network-graph"
-                    ),
+                    className=("network-graph flush-network-graph"),
                     config={"displaylogo": False},
-                    figure=make_empty_network_figure(
-                        "Loading flushing scenario…"
-                    ),
+                    figure=make_empty_network_figure("Loading flushing scenario…"),
                 ),
             ),
         ]
@@ -342,39 +284,12 @@ def render_flushing_results(run_state):
     return content
 
 
-def _number_field(
-    label: str,
-    component_id: str,
-    value: float,
-    *,
-    min_value: float | None = 0,
-):
-    return html.Div(
-        children=[
-            dbc.Label(label),
-            dbc.Input(
-                id=component_id,
-                type="number",
-                value=value,
-                min=min_value,
-                step="any",
-                persistence=True,
-                persistence_type="memory",
-            ),
-        ]
-    )
-
-
-
 def _create_hydrant_section():
     return html.Div(
         className="setup-section",
         children=[
             html.H3("Hydrants"),
-            html.P(
-                "Enter exact junction IDs separated by commas "
-                "or new lines."
-            ),
+            html.P("Enter exact junction IDs separated by commas or new lines."),
             dbc.Label("Hydrant junction IDs"),
             dbc.Textarea(
                 id=ids.FLUSH_HYDRANT_IDS,
@@ -415,31 +330,32 @@ def _create_outlet_settings_section():
                 "Define the common hydrant outlet and the velocity "
                 "and pressure criteria used by the flushing plan."
             ),
-            html.Div(
-                className="flush-options-grid",
-                children=[
-                    _number_field(
+            create_settings_grid(
+                [
+                    create_number_field(
                         "Outlet area [m²]",
                         ids.FLUSH_HYDRANT_AREA,
                         0.002,
+                        min_value=0,
                     ),
-                    _number_field(
+                    create_number_field(
                         "Total loss coefficient",
                         ids.FLUSH_LOSS_COEFFICIENT,
                         2.0,
+                        min_value=0,
                     ),
-                    _number_field(
+                    create_number_field(
                         "Velocity threshold [m/s]",
                         ids.FLUSH_VELOCITY_THRESHOLD,
                         0.5,
+                        min_value=0,
                     ),
-                    _number_field(
+                    create_number_field(
                         "Minimum pressure head [m]",
                         ids.FLUSH_MIN_PRESSURE_HEAD,
                         0.0,
-                        min_value=None,
                     ),
-                ],
+                ]
             ),
             dbc.Switch(
                 id=ids.FLUSH_WRITE_NETWORKS,
@@ -453,12 +369,11 @@ def _create_outlet_settings_section():
     )
 
 
-
 def _create_setup_card():
     return dbc.Card(
         className="app-card flush-setup-card",
         children=[
-            dbc.CardHeader("Flushing Setup"),
+            dbc.CardHeader("Flushing setup"),
             dbc.CardBody(
                 children=[
                     create_active_model_section(
@@ -470,7 +385,7 @@ def _create_setup_card():
                     _create_outlet_settings_section(),
                     html.Hr(),
                     create_run_section(
-                        "Create Flushing Plan",
+                        "Create flushing plan",
                         ids.FLUSH_RUN_BUTTON,
                         ids.FLUSH_RUN_STATUS,
                         status_class_name="flush-run-status",
@@ -485,7 +400,7 @@ def _create_results_card():
     return dbc.Card(
         className="app-card flush-results-card",
         children=[
-            dbc.CardHeader("Flushing Plan"),
+            dbc.CardHeader("Flushing plan"),
             dbc.CardBody(
                 id=ids.FLUSH_RESULTS,
                 children=_empty_results(),
@@ -499,11 +414,8 @@ def create_layout():
         className="page flush-page",
         children=[
             create_page_header(
-                "Flushing Planning",
-                (
-                    "Evaluate hydrant opening scenarios and rank them "
-                    "by additional pipe-volume coverage."
-                ),
+                "Flushing plan",
+                "Evaluate hydrant-opening scenarios and rank them by the additional pipe volume they cover.",
                 "STACI Flush",
             ),
             html.Div(

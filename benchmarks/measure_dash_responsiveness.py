@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import argparse
-import re
 import json
 import math
+import re
 import shutil
 import statistics
 import threading
@@ -14,8 +14,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
 from urllib.parse import urlencode
+from urllib.request import Request, urlopen
 
 
 def _http_request(
@@ -83,10 +83,7 @@ def _load_dash_end_id(
     )
 
     if metric["status"] != 200:
-        raise RuntimeError(
-            "Could not load the Dash index page: "
-            f"{metric}"
-        )
+        raise RuntimeError(f"Could not load the Dash index page: {metric}")
 
     match = re.search(
         rb"<script[^>]*\bid=['\"]_dash-config['\"][^>]*>"
@@ -96,17 +93,13 @@ def _load_dash_end_id(
     )
 
     if match is None:
-        raise RuntimeError(
-            "Dash index page did not contain _dash-config"
-        )
+        raise RuntimeError("Dash index page did not contain _dash-config")
 
     config = json.loads(match.group(1))
     end_id = config.get("end_id")
 
     if not isinstance(end_id, str) or not end_id:
-        raise RuntimeError(
-            "Dash configuration did not contain end_id"
-        )
+        raise RuntimeError("Dash configuration did not contain end_id")
 
     return end_id
 
@@ -122,10 +115,7 @@ def _find_hydraulic_callback_output(
     )
 
     if metric["status"] != 200:
-        raise RuntimeError(
-            "Could not load Dash callback dependencies: "
-            f"{metric}"
-        )
+        raise RuntimeError(f"Could not load Dash callback dependencies: {metric}")
 
     dependencies = json.loads(body)
 
@@ -134,8 +124,7 @@ def _find_hydraulic_callback_output(
         for dependency in dependencies
         if (
             "hyd-run-store.data" in dependency["output"]
-            and "hyd-run-status.children"
-            in dependency["output"]
+            and "hyd-run-status.children" in dependency["output"]
         )
     ]
 
@@ -233,9 +222,7 @@ def _make_hydraulic_payload(
                 "value": timestep_minutes,
             },
         ],
-        "changedPropIds": [
-            "hyd-run-button.n_clicks"
-        ],
+        "changedPropIds": ["hyd-run-button.n_clicks"],
     }
 
 
@@ -262,10 +249,7 @@ def _run_callback(
     started = time.perf_counter()
     deadline = started + timeout_seconds
 
-    initial_url = (
-        f"{update_url}?"
-        + urlencode({"endId": end_id})
-    )
+    initial_url = f"{update_url}?" + urlencode({"endId": end_id})
 
     metric, body = _http_request(
         initial_url,
@@ -279,9 +263,7 @@ def _run_callback(
     metric["poll_count"] = 0
 
     if metric["status"] != 200:
-        metric["response_preview"] = body[
-            :1000
-        ].decode("utf-8", errors="replace")
+        metric["response_preview"] = body[:1000].decode("utf-8", errors="replace")
         return metric
 
     enqueue_latency_ms = metric["enqueue_latency_ms"]
@@ -304,25 +286,16 @@ def _run_callback(
     # polling because the background task already owns them.
     poll_payload = {
         **payload,
-        "inputs": [
-            {**item, "value": None}
-            for item in payload["inputs"]
-        ],
-        "state": [
-            {**item, "value": None}
-            for item in payload["state"]
-        ],
+        "inputs": [{**item, "value": None} for item in payload["inputs"]],
+        "state": [{**item, "value": None} for item in payload["state"]],
     }
 
-    poll_url = (
-        f"{update_url}?"
-        + urlencode(
-            {
-                "endId": end_id,
-                "cacheKey": cache_key,
-                "job": job,
-            }
-        )
+    poll_url = f"{update_url}?" + urlencode(
+        {
+            "endId": end_id,
+            "cacheKey": cache_key,
+            "job": job,
+        }
     )
 
     poll_count = 0
@@ -335,8 +308,7 @@ def _run_callback(
                 "model_id": network_state["model_id"],
                 "status": None,
                 "latency_ms": round(
-                    (time.perf_counter() - started)
-                    * 1000.0,
+                    (time.perf_counter() - started) * 1000.0,
                     3,
                 ),
                 "enqueue_latency_ms": enqueue_latency_ms,
@@ -374,22 +346,17 @@ def _run_callback(
             {
                 "model_id": network_state["model_id"],
                 "latency_ms": round(
-                    (time.perf_counter() - started)
-                    * 1000.0,
+                    (time.perf_counter() - started) * 1000.0,
                     3,
                 ),
                 "enqueue_latency_ms": enqueue_latency_ms,
                 "poll_count": poll_count,
-                "last_request_latency_ms": (
-                    last_request_latency_ms
-                ),
+                "last_request_latency_ms": (last_request_latency_ms),
             }
         )
 
         if metric["status"] != 200:
-            metric["response_preview"] = body[
-                :1000
-            ].decode("utf-8", errors="replace")
+            metric["response_preview"] = body[:1000].decode("utf-8", errors="replace")
             return metric
 
         poll_response = json.loads(body)
@@ -419,9 +386,7 @@ def _run_probe(
     )
 
     if metric["status"] != 200:
-        metric["response_preview"] = body[
-            :500
-        ].decode("utf-8", errors="replace")
+        metric["response_preview"] = body[:500].decode("utf-8", errors="replace")
 
     return metric
 
@@ -444,17 +409,9 @@ def _percentile(
 def _summarize(
     metrics: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    successful = [
-        metric["latency_ms"]
-        for metric in metrics
-        if metric["status"] == 200
-    ]
+    successful = [metric["latency_ms"] for metric in metrics if metric["status"] == 200]
 
-    failed = [
-        metric
-        for metric in metrics
-        if metric["status"] != 200
-    ]
+    failed = [metric for metric in metrics if metric["status"] != 200]
 
     if not successful:
         return {
@@ -566,45 +523,30 @@ def main() -> None:
         raise ValueError("--jobs must be positive")
 
     if args.callback_poll_interval_seconds <= 0:
-        raise ValueError(
-            "--callback-poll-interval-seconds must be "
-            "positive"
-        )
+        raise ValueError("--callback-poll-interval-seconds must be positive")
 
     model_path = args.model.expanduser().resolve()
     data_root = args.data_root.expanduser().resolve()
 
     if not model_path.is_file():
-        raise FileNotFoundError(
-            f"Benchmark model does not exist: {model_path}"
-        )
+        raise FileNotFoundError(f"Benchmark model does not exist: {model_path}")
 
     data_root.mkdir(parents=True, exist_ok=True)
 
     base_url = args.base_url.rstrip("/")
     index_url = f"{base_url}/"
-    dependencies_url = (
-        f"{base_url}/_dash-dependencies"
-    )
+    dependencies_url = f"{base_url}/_dash-dependencies"
     layout_url = f"{base_url}/_dash-layout"
-    update_url = (
-        f"{base_url}/_dash-update-component"
-    )
+    update_url = f"{base_url}/_dash-update-component"
 
     end_id = _load_dash_end_id(
         index_url,
-        timeout_seconds=(
-            args.request_timeout_seconds
-        ),
+        timeout_seconds=(args.request_timeout_seconds),
     )
 
-    callback_output = (
-        _find_hydraulic_callback_output(
-            dependencies_url,
-            timeout_seconds=(
-                args.request_timeout_seconds
-            ),
-        )
+    callback_output = _find_hydraulic_callback_output(
+        dependencies_url,
+        timeout_seconds=(args.request_timeout_seconds),
     )
 
     network_states = _prepare_models(
@@ -618,21 +560,15 @@ def main() -> None:
     for _ in range(args.idle_probes):
         metric, _ = _http_request(
             layout_url,
-            timeout_seconds=(
-                args.request_timeout_seconds
-            ),
+            timeout_seconds=(args.request_timeout_seconds),
         )
         idle_metrics.append(metric)
 
     start_event = threading.Event()
 
-    worker_count = (
-        args.jobs + args.loaded_probes
-    )
+    worker_count = args.jobs + args.loaded_probes
 
-    with ThreadPoolExecutor(
-        max_workers=worker_count
-    ) as executor:
+    with ThreadPoolExecutor(max_workers=worker_count) as executor:
         callback_futures = [
             executor.submit(
                 _run_callback,
@@ -641,18 +577,10 @@ def main() -> None:
                 callback_output,
                 network_state,
                 start_event,
-                duration_hours=(
-                    args.duration_hours
-                ),
-                timestep_minutes=(
-                    args.timestep_minutes
-                ),
-                poll_interval_seconds=(
-                    args.callback_poll_interval_seconds
-                ),
-                timeout_seconds=(
-                    args.request_timeout_seconds
-                ),
+                duration_hours=(args.duration_hours),
+                timestep_minutes=(args.timestep_minutes),
+                poll_interval_seconds=(args.callback_poll_interval_seconds),
+                timeout_seconds=(args.request_timeout_seconds),
             )
             for network_state in network_states
         ]
@@ -662,97 +590,54 @@ def main() -> None:
                 _run_probe,
                 layout_url,
                 start_event,
-                (
-                    args.probe_start_delay_seconds
-                    + index
-                    * args.probe_interval_seconds
-                ),
-                timeout_seconds=(
-                    args.request_timeout_seconds
-                ),
+                (args.probe_start_delay_seconds + index * args.probe_interval_seconds),
+                timeout_seconds=(args.request_timeout_seconds),
             )
-            for index in range(
-                args.loaded_probes
-            )
+            for index in range(args.loaded_probes)
         ]
 
         benchmark_started = time.perf_counter()
         start_event.set()
 
-        callback_metrics = [
-            future.result()
-            for future in callback_futures
-        ]
+        callback_metrics = [future.result() for future in callback_futures]
 
-        loaded_metrics = [
-            future.result()
-            for future in probe_futures
-        ]
+        loaded_metrics = [future.result() for future in probe_futures]
 
-        benchmark_seconds = (
-            time.perf_counter()
-            - benchmark_started
-        )
+        benchmark_seconds = time.perf_counter() - benchmark_started
 
     idle_summary = _summarize(idle_metrics)
-    loaded_summary = _summarize(
-        loaded_metrics
-    )
-    callback_summary = _summarize(
-        callback_metrics
-    )
+    loaded_summary = _summarize(loaded_metrics)
+    callback_summary = _summarize(callback_metrics)
 
     degradation_ratio = None
 
-    if (
-        idle_summary["p95_ms"]
-        and loaded_summary["p95_ms"]
-    ):
+    if idle_summary["p95_ms"] and loaded_summary["p95_ms"]:
         degradation_ratio = round(
-            loaded_summary["p95_ms"]
-            / idle_summary["p95_ms"],
+            loaded_summary["p95_ms"] / idle_summary["p95_ms"],
             2,
         )
 
     report = {
-        "timestamp_utc": datetime.now(
-            timezone.utc
-        ).isoformat(),
+        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
         "configuration": {
             "base_url": base_url,
             "model": str(model_path),
             "data_root": str(data_root),
             "jobs": args.jobs,
-            "duration_hours": (
-                args.duration_hours
-            ),
-            "timestep_minutes": (
-                args.timestep_minutes
-            ),
-            "requested_steps": int(
-                args.duration_hours
-                * 60.0
-                / args.timestep_minutes
-            ),
-            "loaded_probes": (
-                args.loaded_probes
-            ),
-            "callback_poll_interval_seconds": (
-                args.callback_poll_interval_seconds
-            )
+            "duration_hours": (args.duration_hours),
+            "timestep_minutes": (args.timestep_minutes),
+            "requested_steps": int(args.duration_hours * 60.0 / args.timestep_minutes),
+            "loaded_probes": (args.loaded_probes),
+            "callback_poll_interval_seconds": (args.callback_poll_interval_seconds),
         },
         "benchmark_seconds": round(
             benchmark_seconds,
             3,
         ),
         "idle_http_summary": idle_summary,
-        "loaded_http_summary": (
-            loaded_summary
-        ),
+        "loaded_http_summary": (loaded_summary),
         "callback_summary": callback_summary,
-        "loaded_to_idle_p95_ratio": (
-            degradation_ratio
-        ),
+        "loaded_to_idle_p95_ratio": (degradation_ratio),
         "idle_http_requests": idle_metrics,
         "loaded_http_requests": loaded_metrics,
         "callback_requests": callback_metrics,
@@ -767,9 +652,7 @@ def main() -> None:
     print(rendered)
 
     if args.output:
-        output_path = (
-            args.output.expanduser().resolve()
-        )
+        output_path = args.output.expanduser().resolve()
         output_path.parent.mkdir(
             parents=True,
             exist_ok=True,

@@ -4,7 +4,7 @@
 # C++ build environment
 FROM debian:bookworm-slim AS staci-builder
 
-ARG STACI_COMMIT=b215127e10acce0d404922dbcd2eda623f8f47e2
+ARG STACI_COMMIT=f1987bffcbeea5ae045e765b649ae5c9eca06ece
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
@@ -89,7 +89,7 @@ RUN test -x /opt/staci/staci \
     && test -x /opt/staci/staci_calibrate \
     && test -x /opt/staci/staci_flush
 
-# Fail the Docker build immedieately if a shared library is missing
+# Fail the Docker build immediately if a shared library is missing
 RUN set -eu; \
     for executable in \
         staci \
@@ -104,7 +104,7 @@ RUN set -eu; \
         fi; \
     done
 
-# Python application dependecies
+# Python application dependencies
 WORKDIR /app
 
 COPY requirements.txt requirements-deploy.txt ./

@@ -1,0 +1,351 @@
+from __future__ import annotations
+
+import json
+import math
+import os
+import xml.etree.ElementTree as ET
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+from src.config import (
+    STACI_CALIBRATE_EXECUTABLE,
+    STACI_TIMEOUT_SECONDS,
+)
+from src.staci.optimizer_limits import validate_optimizer_settings, validate_random_seed
+from src.staci.runtime import run_staci_process
+
+_DEFAULT_SETTINGS: dict[str, Any] = {
+    "global_debug_level": 1,
+    "Staci_debug_level": 0,
+    "fname_prefix": "network_",
+    "network_extension": ".inp",
+    "logfilename": "calibrate.log",
+    "best_logfilename": "calibrate-best.log",
+    "Start_of_Periods": 0,
+    "Num_of_Periods": 2,
+    "Spoil_Active_Pipes": False,
+    "dt": 1.0,
+    "weight_p_err": 1.0,
+    "type_of_pipe_selection": "largest_diameter",
+    "num_of_active_pipes": 1,
+    "popsize": 20,
+    "ngen": 50,
+    "pmut": 0.2,
+    "pcross": 0.8,
+}
+
+_PIPE_SELECTION_TYPES = {
+    "Dmin",
+    "most_sensitive",
+    "largest_diameter",
+    "list",
+    "all",
+}
+
+
+@dataclass(frozen=True)
+class StaciCalibrateResults:
+    returncode: int
+    stdout_path: Path
+    stderr_path: Path
+    diagnostics_path: Path
+    calibration_log_path: Path
+    best_log_path: Path
+    best_data_path: Path
+    history_path: Path
+    sensitivity_mass_flow_path: Path
+    sensitivity_pressure_path: Path
+
+    @property
+    def success(self) -> bool:
+        return (
+            self.returncode == 0
+            and self.best_data_path.is_file()
+            and self.history_path.is_file()
+        )
+
+
+def _require_positive_number(
+    settings: dict[str, Any],
+    field: str,
+) -> float | None:
+    value = settings.get(field)
+
+    if value is None:
+        return None
+
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, (int, float))
+        or not math.isfinite(float(value))
+        or float(value) <= 0.0
+    ):
+        raise ValueError(
+            f"STACI Calibrate setting {field!r} must be a positive finite number."
+        )
+
+    return float(value)
+
+
+def _validate_pipe_selection(
+    settings: dict[str, Any],
+) -> None:
+    pipe_selection = settings.get("type_of_pipe_selection")
+
+    if pipe_selection not in _PIPE_SELECTION_TYPES:
+        raise ValueError(
+            f"Unsupported STACI Calibrate pipe selection type: {pipe_selection!r}"
+        )
+
+    if pipe_selection == "list":
+        pipe_ids = settings.get("pipe_ids")
+
+        if (
+            not isinstance(pipe_ids, list)
+            or not pipe_ids
+            or any(
+                not isinstance(pipe_id, str)
+                or not pipe_id
+                or pipe_id != pipe_id.strip()
+                for pipe_id in pipe_ids
+            )
+        ):
+            raise ValueError(
+                "pipe_ids must be a non-empty list of non-empty pipe ID strings."
+            )
+
+        if len(set(pipe_ids)) != len(pipe_ids):
+            raise ValueError("pipe_ids must not contain duplicate pipe IDs.")
+
+        settings.pop("num_of_active_pipes", None)
+        settings.pop("Dmin", None)
+        return
+
+    settings.pop("pipe_ids", None)
+
+    if pipe_selection == "all":
+        settings.pop("num_of_active_pipes", None)
+        settings.pop("Dmin", None)
+        return
+
+    if pipe_selection == "Dmin":
+        if _require_positive_number(settings, "Dmin") is None:
+            raise ValueError("Dmin is required when type_of_pipe_selection is 'Dmin'.")
+
+        settings.pop("num_of_active_pipes", None)
+        return
+
+    settings.pop("Dmin", None)
+
+    num_of_active_pipes = settings.get("num_of_active_pipes")
+
+    if (
+        isinstance(num_of_active_pipes, bool)
+        or not isinstance(num_of_active_pipes, int)
+        or num_of_active_pipes < 1
+    ):
+        raise ValueError("num_of_active_pipes must be a positive integer.")
+
+
+def write_calibrate_settings(
+    output_path: Path,
+    *,
+    measurements_path: Path,
+    snapshot_count: int,
+    overrides: dict[str, Any] | None = None,
+) -> None:
+    output_path = output_path.resolve()
+    measurements_path = measurements_path.resolve()
+    run_dir = output_path.parent
+
+    if output_path.suffix.lower() != ".json":
+        raise ValueError("STACI Calibrate settings must use the .json extension.")
+
+    if (
+        isinstance(snapshot_count, bool)
+        or not isinstance(snapshot_count, int)
+        or snapshot_count < 1
+    ):
+        raise ValueError("STACI Calibrate requires at least one INP snapshot.")
+
+    if not measurements_path.is_file():
+        raise FileNotFoundError(
+            f"STACI Calibrate measurements file not found: {measurements_path}"
+        )
+
+    if measurements_path.suffix.lower() != ".json":
+        raise ValueError("STACI Calibrate measurements must use JSON.")
+
+    if measurements_path.parent != run_dir:
+        raise ValueError(
+            "STACI Calibrate measurements must be located beside the settings file."
+        )
+
+    for index in range(snapshot_count):
+        snapshot_path = run_dir / f"network_{index}.inp"
+
+        if not snapshot_path.is_file():
+            raise FileNotFoundError(
+                f"STACI Calibrate INP snapshot not found: {snapshot_path}"
+            )
+
+    settings = {
+        **_DEFAULT_SETTINGS,
+        **(overrides or {}),
+    }
+
+    settings = validate_optimizer_settings(settings, minimum_population=1)
+
+    # Input paths and period numbering are controlled by the wrapper.
+    settings["dir_name"] = str(run_dir) + os.sep
+    settings["sollwert_dfile"] = measurements_path.name
+    settings["fname_prefix"] = "network_"
+    settings["network_extension"] = ".inp"
+    settings["Start_of_Periods"] = 0
+    settings["Num_of_Periods"] = snapshot_count
+    settings.pop("network_file", None)
+
+    _validate_pipe_selection(settings)
+
+    min_diameter = _require_positive_number(
+        settings,
+        "min_diameter_m",
+    )
+    max_diameter = _require_positive_number(
+        settings,
+        "max_diameter_m",
+    )
+
+    if (
+        min_diameter is not None
+        and max_diameter is not None
+        and min_diameter >= max_diameter
+    ):
+        raise ValueError("min_diameter_m must be less than max_diameter_m.")
+
+    output_path.write_text(
+        json.dumps(settings, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _read_settings(path: Path) -> dict[str, Any]:
+    suffix = path.suffix.lower()
+
+    if suffix == ".json":
+        settings = json.loads(path.read_text(encoding="utf-8"))
+
+        if not isinstance(settings, dict):
+            raise ValueError("STACI Calibrate JSON settings must contain an object.")
+
+        return settings
+
+    if suffix == ".xml":
+        root = ET.parse(path).getroot()
+
+        if root.tag != "settings":
+            raise ValueError("STACI Calibrate XML root element must be 'settings'.")
+
+        return {element.tag: element.text for element in root}
+
+    raise ValueError("STACI Calibrate settings must use .json or .xml.")
+
+
+def _resolve_output_path(
+    run_dir: Path,
+    value: object,
+    field: str,
+) -> Path:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(
+            f"STACI Calibrate setting {field!r} must be a non-empty string."
+        )
+
+    path = Path(value)
+
+    if not path.is_absolute():
+        path = run_dir / path
+
+    path = path.resolve()
+
+    if not path.is_relative_to(run_dir):
+        raise ValueError(
+            f"STACI Calibrate output {field!r} must remain inside the run directory."
+        )
+
+    return path
+
+
+def run_staci_calibrate(
+    settings_path: Path,
+    *,
+    seed: int = 12345,
+) -> StaciCalibrateResults:
+    seed = validate_random_seed(seed)
+    if not STACI_CALIBRATE_EXECUTABLE.is_file():
+        raise FileNotFoundError(
+            f"STACI Calibrate executable not found: {STACI_CALIBRATE_EXECUTABLE}"
+        )
+
+    settings_path = settings_path.resolve()
+
+    if not settings_path.is_file():
+        raise FileNotFoundError(
+            f"STACI Calibrate settings file not found: {settings_path}"
+        )
+
+    run_dir = settings_path.parent
+    settings = _read_settings(settings_path)
+
+    calibration_log_path = _resolve_output_path(
+        run_dir,
+        settings.get("logfilename"),
+        "logfilename",
+    )
+    best_log_path = _resolve_output_path(
+        run_dir,
+        settings.get("best_logfilename"),
+        "best_logfilename",
+    )
+
+    stdout_path = run_dir / "staci_calibrate.stdout.log"
+    stderr_path = run_dir / "staci_calibrate.stderr.log"
+    diagnostics_path = run_dir / "staci-diagnostics.jsonl"
+
+    best_data_path = run_dir / "best.dat"
+    history_path = run_dir / "bog.dat"
+    sensitivity_mass_flow_path = run_dir / "sensitivity_MassFlowRates.dat"
+    sensitivity_pressure_path = run_dir / "sensitivity_Pressures.dat"
+
+    command = [
+        str(STACI_CALIBRATE_EXECUTABLE),
+        "--settings",
+        str(settings_path),
+        "--seed",
+        str(seed),
+        "--diagnostics-file",
+        str(diagnostics_path),
+    ]
+
+    result = run_staci_process(
+        command,
+        cwd=run_dir,
+        stdout_path=stdout_path,
+        stderr_path=stderr_path,
+        timeout_seconds=STACI_TIMEOUT_SECONDS,
+        operation="STACI Calibrate",
+    )
+
+    return StaciCalibrateResults(
+        returncode=result.returncode,
+        stdout_path=stdout_path,
+        stderr_path=stderr_path,
+        diagnostics_path=diagnostics_path,
+        calibration_log_path=calibration_log_path,
+        best_log_path=best_log_path,
+        best_data_path=best_data_path,
+        history_path=history_path,
+        sensitivity_mass_flow_path=sensitivity_mass_flow_path,
+        sensitivity_pressure_path=sensitivity_pressure_path,
+    )
