@@ -50,8 +50,12 @@ function staci_run_page() {
     echo '</select></label> <label>Ettől <input type="date" name="from" value="' . esc_attr($from) . '"></label> '
         . '<label>Eddig <input type="date" name="to" value="' . esc_attr($to) . '"></label> ';
     submit_button('Szűrés / frissítés', 'secondary', 'submit', false);
+    echo ' <a class="button button-secondary" style="background:#b32d2e;border-color:#b32d2e;color:#fff" href="' . esc_url(add_query_arg(array('page' => 'staci-tool-logs'), $base))
+        . '">Szűrők törlése</a>';
     echo '</p></form>';
     if ($selected_id !== '') {
+        echo '<p><a class="button button-secondary" href="' . esc_url(add_query_arg($args, $base))
+            . '">Vissza a naplóhoz</a></p>';
         if (!isset($runs[$selected_id])) {
             echo '<div class="notice notice-info"><p>A futás nem található a megőrzött naplóban.</p></div>';
         } else {
@@ -71,14 +75,22 @@ function staci_run_page() {
             }
             $prepared = $run['events']['prepared'] ?? array();
             echo '<p>Szolverbemenet ellenőrzőösszege (SHA-256): <code>' . esc_html($prepared['input_sha256'] ?? 'Nem áll rendelkezésre') . '</code></p>';
-            if (staci_run_upload_path($run)) {
-                echo '<p><a class="button" href="' . esc_url(staci_run_upload_url($run['id']))
-                    . '">Feltöltött fájl letöltése</a></p>';
-                echo '<p>A letöltés az eredeti feltöltést tartalmazza. A futási felülírások a beállítások között szerepelnek.</p>';
-            } else {
-                echo '<p>A feltöltött fájl nem érhető el.</p>';
+            $specs = staci_run_file_specs($run);
+            echo '<p>';
+            foreach ($specs as $file => $spec) {
+                if (staci_run_file_path($run, $file)) {
+                    echo '<a class="button" href="' . esc_url(staci_run_file_url($run['id'], $file))
+                        . '">' . esc_html($spec['label']) . '</a> ';
+                } else {
+                    echo '<span>' . esc_html($file === 'inp' ? 'A futtatott INP nem érhető el.' : 'A futási metaadatfájl nem érhető el.') . '</span> ';
+                }
             }
-            echo '<p>A reprodukáláshoz azonos bemenet, paraméterek és programverziók szükségesek.</p>';
+            if (!$specs) { echo 'Nem áll rendelkezésre azonosítható futási fájl.'; }
+            echo '</p><p>Az INP a kiválasztott futáshoz előkészített szolverbemenet. '
+                . 'A reprodukáláshoz azonos paraméterek és programverziók is szükségesek.</p>';
+            if (($run['events']['started']['settings']['backend'] ?? '') === 'wntr') {
+                echo '<p>A WNTR futásleírója az eredményfájlokat azonosítja; a paraméterek a beállítások között szerepelnek.</p>';
+            }
             staci_run_parameters($run);
             echo '<details><summary>Futtatási metaadatok</summary><pre style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:350px;overflow:auto">'
                 . esc_html(json_encode($run['events'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE)) . '</pre></details>';
